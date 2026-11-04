@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Old Town Walk</title>
+<meta name="description" content="Walk or fly through Old Town Fort Collins, Colorado, in 3D, built from open map and elevation data.">
+<style>
+  :root {
+    --bg: #101820; --panel: rgba(16, 24, 32, 0.84); --line: #41586b; --text: #f2f5f7; --dim: #c1ccd4;
+    --accent: #f2b84b; --btn: rgba(32, 46, 58, 0.88); --btn-on: #7a5413;
+    --sk-loader-bg: var(--bg); --sk-loader-fg: var(--text); --sk-loader-panel: var(--panel); --sk-loader-accent: var(--accent);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); overflow: hidden;
+    font: 15px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+  #stage { position: fixed; inset: 0; }
+  canvas#view { display: block; width: 100%; height: 100%; touch-action: none; outline: none; background: #000; cursor: grab; }
+  button { font: inherit; color: var(--text); background: var(--btn); border: 2px solid var(--line); border-radius: 14px;
+    min-width: 48px; min-height: 48px; padding: 0 12px; cursor: pointer; touch-action: none; font-weight: 700; }
+  button:active { filter: brightness(1.4); }
+  button[aria-pressed="true"] { background: var(--btn-on); border-color: var(--accent); }
+  button:focus-visible { outline: 3px solid var(--accent); }
+  a { color: var(--accent); }
+  #top { position: absolute; top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right)); display: flex; gap: 8px; align-items: center; pointer-events: none; }
+  #top > * { pointer-events: auto; }
+  #brand { margin-right: auto; font-weight: 800; background: var(--panel); border-radius: 10px; padding: 6px 10px; }
+  #brand a { color: var(--text); text-decoration: none; }
+  #credit { position: absolute; left: 50%; transform: translateX(-50%); bottom: max(4px, env(safe-area-inset-bottom));
+    font-size: 11px; color: var(--dim); background: var(--panel); border-radius: 8px; padding: 2px 8px; white-space: nowrap; }
+  /* Touch: a stick on the left, climb and descend on the right; drag anywhere else to look. */
+  #stick { position: absolute; display: none; width: 132px; height: 132px; border-radius: 50%; touch-action: none;
+    left: max(18px, env(safe-area-inset-left)); bottom: max(28px, env(safe-area-inset-bottom));
+    background: var(--panel); border: 2px solid var(--line); }
+  #knob { position: absolute; left: 40px; top: 40px; width: 52px; height: 52px; border-radius: 50%; background: var(--accent);
+    opacity: 0.92; pointer-events: none; }
+  #height { position: absolute; display: none; flex-direction: column; gap: 12px;
+    right: max(18px, env(safe-area-inset-right)); bottom: max(32px, env(safe-area-inset-bottom)); }
+  #height button { width: 64px; height: 64px; font-size: 24px; padding: 0; }
+  body.touch #stick { display: block; }
+  body.touch.flying #height { display: flex; }
+  #help { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(92vw, 420px);
+    max-height: 90dvh; overflow-y: auto; background: var(--panel); border: 2px solid var(--line); border-radius: 18px;
+    padding: 16px 18px; display: none; z-index: 4; }
+  #help.on { display: block; }
+  #help h1 { font-size: 20px; margin: 0 0 6px; }
+  #help p { margin: 6px 0; color: var(--dim); }
+  #help dl { display: grid; grid-template-columns: max-content 1fr; gap: 3px 12px; margin: 10px 0; }
+  #help dt { font-weight: 700; }
+  #help dd { margin: 0; color: var(--dim); }
+  #help .keys { display: none; }
+  body:not(.touch) #help .keys { display: grid; }
+  body.touch #help .fingers { display: grid; }
+  #help .fingers { display: none; }
+  #start { width: 100%; background: var(--btn-on); border-color: var(--accent); margin-top: 6px; touch-action: manipulation; }
+  #note { position: absolute; left: 50%; top: 66px; transform: translateX(-50%); background: var(--panel); border-radius: 10px;
+    padding: 6px 12px; display: none; max-width: 90vw; text-align: center; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="view" tabindex="0" aria-label="A 3D view of Old Town Fort Collins"></canvas>
+  <div id="top">
+    <span id="brand"><a href="https://danielstephenson.dev/play" target="_top" title="More games">Old Town Walk</a></span>
+    <button id="flyBtn" aria-pressed="false" title="Fly (F)">Fly</button>
+    <button id="helpBtn" title="Controls" aria-label="Controls">?</button>
+  </div>
+  <div id="stick" aria-label="Move"><div id="knob"></div></div>
+  <div id="height">
+    <button id="upBtn" aria-label="Climb">&#9650;</button>
+    <button id="downBtn" aria-label="Descend">&#9660;</button>
+  </div>
+  <div id="note" role="status"></div>
+  <div id="credit">Map &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, ODbL. Elevation: USGS.</div>
+</div>
+<div id="help" role="dialog" aria-label="Controls">
+  <h1>Old Town Walk</h1>
+  <p>A 2 km square of Old Town Fort Collins, built from open map and elevation data.</p>
+  <dl class="keys">
+    <dt>W A S D</dt><dd>Walk (Shift runs)</dd>
+    <dt>Mouse</dt><dd>Look. Esc frees the mouse</dd>
+    <dt>F</dt><dd>Fly or land</dd>
+    <dt>E / Q</dt><dd>Climb / descend when flying</dd>
+    <dt>[ ]</dt><dd>Move the sun</dd>
+  </dl>
+  <dl class="fingers">
+    <dt>Left stick</dt><dd>Walk. Push it all the way to run</dd>
+    <dt>Drag</dt><dd>Look around</dd>
+    <dt>Fly</dt><dd>Fly or land</dd>
+    <dt>&#9650; &#9660;</dt><dd>Climb and descend when flying</dd>
+  </dl>
+  <button id="start">Start walking</button>
+</div>
+<script src="strata-loader.js"></script>
+<script src="strata-kit.js"></script>
+<script src="page.js"></script>
+</body>
+</html>

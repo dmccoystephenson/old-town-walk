@@ -1,0 +1,8 @@
+{
+  "name": "old-town-walk-web-smoke",
+  "private": true,
+  "description": "Headless Chromium smoke test for Old Town Walk's browser build",
+  "dependencies": {
+    "playwright": "1.61.1"
+  }
+}

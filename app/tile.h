@@ -58,5 +58,8 @@ struct Manifest {
 
 bool loadManifest(const std::string& dir, Manifest& out, std::string* error);
 bool loadTile(const std::string& path, Tile& out, std::string* error);
+// The same from bytes already in memory: a browser downloads what a desktop reads.
+bool parseManifest(const std::string& text, const std::string& dir, Manifest& out);
+bool parseTile(const uint8_t* data, size_t size, Tile& out, std::string* error);
 
 }  // namespace otw

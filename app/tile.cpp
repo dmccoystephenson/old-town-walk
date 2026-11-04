@@ -4,30 +4,45 @@
 #include <cstdio>
 #include <cstring>
 #include <fstream>
-#include <memory>
+#include <iterator>
 #include <sstream>
 
 namespace otw {
 namespace {
 
+// Reads a tile's bytes in order; running out sets ok to false.
 struct Reader {
-    std::FILE* f;
+    const uint8_t* at;
+    size_t left;
     bool ok = true;
+    bool bytes(void* out, size_t n) {
+        if (!ok || n > left) {
+            ok = false;
+            return false;
+        }
+        if (n) std::memcpy(out, at, n);
+        at += n;
+        left -= n;
+        return true;
+    }
     template <typename T>
     T get() {
         T v{};
-        if (ok && std::fread(&v, sizeof v, 1, f) != 1) ok = false;
+        bytes(&v, sizeof v);
         return v;
     }
     template <typename T>
     void array(std::vector<T>& v, size_t n) {
+        if (!ok || n > left / sizeof(T)) {
+            ok = false;
+            return;
+        }
         v.resize(n);
-        if (ok && n && std::fread(v.data(), sizeof(T), n, f) != n) ok = false;
+        bytes(v.data(), n * sizeof(T));
     }
-    void pad(size_t bytes) {
+    void pad(size_t count) {
         char skip[4];
-        const size_t n = (4 - bytes % 4) % 4;
-        if (ok && n && std::fread(skip, 1, n, f) != n) ok = false;
+        bytes(skip, (4 - count % 4) % 4);
     }
 };
 
@@ -57,6 +72,15 @@ bool loadManifest(const std::string& dir, Manifest& m, std::string* error) {
         if (error) *error = "cannot open " + dir + "/manifest.txt (run `uv run old-town-walk build` first)";
         return false;
     }
+    std::stringstream text;
+    text << in.rdbuf();
+    if (parseManifest(text.str(), dir, m)) return true;
+    if (error) *error = dir + "/manifest.txt is not a manifest this viewer reads";
+    return false;
+}
+
+bool parseManifest(const std::string& text, const std::string& dir, Manifest& m) {
+    std::istringstream in(text);
     m = Manifest{};
     m.dir = dir;
     std::string line, word;
@@ -80,23 +104,29 @@ bool loadManifest(const std::string& dir, Manifest& m, std::string* error) {
             if (s) m.tiles.push_back(k);
         }
     }
-    if (!header || m.tileSize <= 0 || m.tiles.empty()) {
-        if (error) *error = dir + "/manifest.txt is not a manifest this viewer reads";
-        return false;
-    }
-    return true;
+    return header && m.tileSize > 0 && !m.tiles.empty();
 }
 
 bool loadTile(const std::string& path, Tile& t, std::string* error) {
-    std::unique_ptr<std::FILE, int (*)(std::FILE*)> file(std::fopen(path.c_str(), "rb"), &std::fclose);
+    std::ifstream in(path, std::ios::binary);
+    if (!in) {
+        if (error) *error = path + ": cannot open";
+        return false;
+    }
+    const std::string bytes((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    if (parseTile(reinterpret_cast<const uint8_t*>(bytes.data()), bytes.size(), t, error)) return true;
+    if (error) *error = path + ": " + *error;
+    return false;
+}
+
+bool parseTile(const uint8_t* data, size_t size, Tile& t, std::string* error) {
     auto fail = [&](const char* what) {
-        if (error) *error = path + ": " + what;
+        if (error) *error = what;
         return false;
     };
-    if (!file) return fail("cannot open");
-    Reader r{file.get()};
+    Reader r{data, size};
     char magic[8];
-    if (std::fread(magic, 1, 8, file.get()) != 8 || std::memcmp(magic, "OTWTILE1", 8) != 0) return fail("not a tile");
+    if (!r.bytes(magic, 8) || std::memcmp(magic, "OTWTILE1", 8) != 0) return fail("not a tile");
     t = Tile{};
     if (r.get<uint32_t>() != 1) return fail("unsupported version");
     t.key.ix = r.get<int32_t>();
