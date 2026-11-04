@@ -1,0 +1,34 @@
+# Pushing a bare version tag (0.1.0, no "v") builds the Windows download and attaches it to a release.
+name: Release
+
+on:
+  push:
+    tags: ["[0-9]+.[0-9]+.[0-9]+"]
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    name: Build and attach the Windows download
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Build the tiles and the viewer
+        run: |
+          uv run --python 3.12 old-town-walk verify
+          uv run --python 3.12 old-town-walk build
+          cmake -S . -B build/app
+          cmake --build build/app --config Release --parallel --target old-town-walk
+      - name: The program needs no runtime and names no debug path
+        run: uv run --python 3.12 --with pefile python tools/check_exe.py build\app\Release\old-town-walk.exe
+      - name: Assemble the download
+        run: uv run --python 3.12 python tools/package_zip.py build\app\Release\old-town-walk.exe build\tiles old-town-walk-windows.zip
+      - name: Attach it to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$env:GITHUB_REF_NAME" *> $null
+          if ($LASTEXITCODE -ne 0) { gh release create "$env:GITHUB_REF_NAME" --title "$env:GITHUB_REF_NAME" --notes "Windows download of the Old Town demo." }
+          gh release upload "$env:GITHUB_REF_NAME" old-town-walk-windows.zip --clobber

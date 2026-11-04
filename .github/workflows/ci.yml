@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: Linux tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: System packages (Mesa llvmpipe, EGL, X11 headers for the SDL3 window)
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            libegl1 libegl-mesa0 libgl1-mesa-dri libgl1 \
+            libx11-dev libxext-dev libxcursor-dev libxi-dev libxfixes-dev libxrandr-dev libxss-dev
+      - name: Raw data and pipeline tests
+        run: |
+          uv run --python 3.12 old-town-walk verify
+          uv run --python 3.12 pytest -q
+      - name: Build the tiles and the viewer
+        run: |
+          uv run --python 3.12 old-town-walk build
+          cmake -S . -B build/app
+          cmake --build build/app -j4
+      - name: Test (units and headless renders)
+        run: ctest --test-dir build/app --output-on-failure
+      - name: Check the rendered frames
+        run: |
+          uv run --python 3.12 python tests/check_render.py build/app/walk.png
+          uv run --python 3.12 python tests/check_render.py build/app/fly.png
+
+  windows:
+    name: Windows tests and download
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Raw data and pipeline tests
+        run: |
+          uv run --python 3.12 old-town-walk verify
+          uv run --python 3.12 pytest -q
+      - name: Build the tiles and the viewer
+        run: |
+          uv run --python 3.12 old-town-walk build
+          cmake -S . -B build/app
+          cmake --build build/app --config Release --parallel
+      - name: Unit tests
+        run: build\app\Release\test_app.exe build\tiles
+      - name: The program needs no runtime and names no debug path
+        run: uv run --python 3.12 --with pefile python tools/check_exe.py build\app\Release\old-town-walk.exe
+      - name: Assemble the download
+        run: uv run --python 3.12 python tools/package_zip.py build\app\Release\old-town-walk.exe build\tiles old-town-walk-windows.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: old-town-walk-windows
+          path: old-town-walk-windows.zip
+          retention-days: 14

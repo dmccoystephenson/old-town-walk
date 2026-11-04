@@ -1,0 +1,11 @@
+{
+  "dem-3dep.tif": {
+    "url": "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/exportImage?bbox=492496.0%2C4491496.0%2C494504.0%2C4493504.0&bboxSR=32613&imageSR=32613&size=1004%2C1004&format=tiff&pixelType=F32&interpolation=RSP_BilinearInterpolation&noDataInterpretation=esriNoDataMatchAny&f=image",
+    "sha256": "130b86f75430ab98a946c63bef2879f2bbc07793973da41bf366fd13796b482b",
+    "bytes": 4195937
+  },
+  "osm-sample.osm": {
+    "sha256": "0b16aeec330dd3ffd16402fc39231d3a07a56eb3f191c68f9b69539f5f981088",
+    "bytes": 5388830
+  }
+}
