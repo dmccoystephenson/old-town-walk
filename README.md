@@ -3,9 +3,29 @@
 Walk or fly through 2 km by 2 km of Old Town Fort Collins, Colorado, in 3D. It is built only from open map and
 elevation data and rendered with [Strata](https://github.com/Preponderous-Software/strata).
 
-![Low flight over Old Town Fort Collins: streets, sidewalks and blocks of buildings](docs/images/street.png)
+![Old Town Fort Collins from 95 m: the street grid and blocks of buildings at evening](docs/images/old-town.png)
 
-*Rendered headless by the real viewer. Map data © OpenStreetMap contributors (ODbL); elevation courtesy of the USGS.*
+![A tree-lined street in Old Town seen from a low flight](docs/images/street.png)
+
+*Rendered by the real viewer. Map data © OpenStreetMap contributors (ODbL); elevation courtesy of the USGS.*
+
+## Then and now
+
+Old Town in old photographs, beside roughly the same view in the viewer today. The map shows the streets and buildings
+of now, so the rail yards and streetcars are gone, and the views are matched by hand rather than exactly. The foothills
+are missing because the map stops 2 km out.
+
+| Then | Now |
+|---|---|
+| ![1929 aerial photograph looking west over the Cache la Poudre River, with Linden Street leading into town and the foothills beyond](docs/images/then-1929-looking-west.jpg) | ![The viewer looking west toward downtown along Linden Street](docs/images/now-looking-west.jpg) |
+| **1929.** Looking west over the river, with Linden Street leading into town. | **Today, in the viewer.** |
+| ![1929 aerial photograph looking east over downtown, with rail yards in the foreground and Mountain Avenue along the right](docs/images/then-1929-looking-east.jpg) | ![The viewer looking east over the same part of downtown](docs/images/now-looking-east.jpg) |
+| **1929.** Looking east over downtown, with Mountain Avenue along the right. | **Today, in the viewer.** |
+| ![1940 postcard of a streetcar at the intersection of Mountain and College Avenues and Linden Street](docs/images/then-1940-intersection.jpg) | ![The viewer at the intersection of Mountain and College Avenues and Linden Street](docs/images/now-intersection.jpg) |
+| **1940 postcard.** Mountain and College Avenues at Linden Street. | **Today, in the viewer.** Same intersection, camera angle approximate. |
+
+*The 1929 photographs are from the Colorado State University archives and the postcard is from the Curt Teich collection at
+the Newberry Library. All three are in the public domain in the United States; `NOTICE.md` has sources.*
 
 ## Download and run
 

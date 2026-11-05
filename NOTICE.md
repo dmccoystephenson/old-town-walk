@@ -11,3 +11,12 @@ The code is under the MIT license (see LICENSE). The data it uses is not.
   the public domain; attribution is requested.
 - **Rendering** by [Strata](https://github.com/Preponderous-Software/strata) (MIT), fetched at build time at the commit
   in `strata.ref`, with the third-party libraries it builds in, such as SDL3 (zlib license). The browser version also serves Strata's web kit scripts.
+- **Historic images in the README** are in the public domain in the United States and are not part of the program:
+  - `docs/images/then-1929-looking-west.jpg` and `then-1929-looking-east.jpg`: aerial views of Fort Collins, June 1929,
+    photographer unknown, cropped. Colorado State University archives, which state the material is believed to be in
+    the public domain ([1](http://hdl.handle.net/10217/22454), [2](http://hdl.handle.net/10217/22455)), through Wikimedia
+    Commons ([1](https://commons.wikimedia.org/wiki/File:Fort_Collins_-_aerial_view_(UHPC_5968).jpg),
+    [2](https://commons.wikimedia.org/wiki/File:Fort_Collins_-_aerial_view_(UHPC_5969).jpg)).
+  - `docs/images/then-1940-intersection.jpg`: postcard, 1940, from the Curt Teich collection at the Newberry Library,
+    with no known copyright, trimmed, through
+    [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Ft._Collins_CO_-_Business_District,_Showing_Intersection_of_Mountain,_College_Avenues_and_Linden..._(NBY_430572).jpg).
