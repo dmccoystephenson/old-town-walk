@@ -41,6 +41,9 @@
   #height button { width: 64px; height: 64px; font-size: 24px; padding: 0; }
   body.touch #stick { display: block; }
   body.touch.flying #height { display: flex; }
+  #jumpBtn { position: absolute; display: none; width: 76px; height: 76px; border-radius: 50%; padding: 0;
+    right: max(18px, env(safe-area-inset-right)); bottom: max(32px, env(safe-area-inset-bottom)); }
+  body.touch:not(.flying) #jumpBtn { display: block; }
   #help { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(92vw, 420px);
     max-height: 90dvh; overflow-y: auto; background: var(--panel); border: 2px solid var(--line); border-radius: 18px;
     padding: 16px 18px; display: none; z-index: 4; }
@@ -72,6 +75,7 @@
     <button id="upBtn" aria-label="Climb">&#9650;</button>
     <button id="downBtn" aria-label="Descend">&#9660;</button>
   </div>
+  <button id="jumpBtn" aria-label="Jump">Jump</button>
   <div id="note" role="status"></div>
   <div id="credit">Map &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, ODbL. Elevation: USGS.</div>
 </div>
@@ -81,6 +85,7 @@
   <dl class="keys">
     <dt>W A S D</dt><dd>Walk (Shift runs)</dd>
     <dt>Mouse</dt><dd>Look. Esc frees the mouse</dd>
+    <dt>Space</dt><dd>Jump</dd>
     <dt>F</dt><dd>Fly or land</dd>
     <dt>E / Q</dt><dd>Climb / descend when flying</dd>
     <dt>[ ]</dt><dd>Move the sun</dd>
@@ -88,6 +93,7 @@
   <dl class="fingers">
     <dt>Left stick</dt><dd>Walk. Push it all the way to run</dd>
     <dt>Drag</dt><dd>Look around</dd>
+    <dt>Jump</dt><dd>Jump</dd>
     <dt>Fly</dt><dd>Fly or land</dd>
     <dt>&#9650; &#9660;</dt><dd>Climb and descend when flying</dd>
   </dl>
