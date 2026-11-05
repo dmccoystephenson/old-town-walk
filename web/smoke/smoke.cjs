@@ -145,7 +145,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       const b = await page.locator(sel).boundingBox();
       return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
     };
-    for (const sel of ['#flyBtn', '#helpBtn', '#stick']) {
+    for (const sel of ['#flyBtn', '#helpBtn', '#stick', '#jumpBtn']) {
       const b = await page.locator(sel).boundingBox();
       check(b && b.width >= 44 && b.height >= 44 && b.x >= 0 && b.y >= 0 &&
         b.x + b.width <= 390 && b.y + b.height <= page.viewportSize().height, `${sel} is on screen and big enough`);
@@ -172,8 +172,20 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       await touch('touchEnd', []);
       await sleep(250);
     };
+    const leap = await middle('#jumpBtn');
+    await touch('touchStart', [{ x: leap.x, y: leap.y, id: 5 }]);
+    await touch('touchEnd', []);
+    await page.waitForFunction(() => window.oldTownWalk.status().height > 2, null, { timeout: 30000 });
+    check(true, 'the Jump button jumps');
     await tap('#flyBtn');
     check((await status()).flying === 1, 'Fly takes off');
+    for (const sel of ['#fasterBtn', '#slowerBtn']) {
+      const b = await page.locator(sel).boundingBox();
+      check(b && b.width >= 44 && b.height >= 44 && b.x >= 0 && b.x + b.width <= 390, `${sel} is on screen and big enough`);
+    }
+    await page.locator('#fasterBtn').click();
+    await page.waitForFunction(() => document.getElementById('status').textContent.includes('31 m/s'), null, { timeout: 30000 });
+    check(true, 'the + button flies faster');
     const low = await status();
     const up = await middle('#upBtn');
     await touch('touchStart', [{ x: up.x, y: up.y, id: 4 }]);
@@ -201,7 +213,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       const view = document.getElementById('view');
       for (let i = 0; i < 6; i++) view.dispatchEvent(new PointerEvent('pointermove', { movementX: 40, movementY: 0, bubbles: true }));
     });
-    await sleep(800);
+    await page.waitForFunction((yaw) => window.oldTownWalk.status().yaw !== yaw, before.yaw, { timeout: 30000 });
     const lockedLook = await status();
     check(Math.abs(lockedLook.yaw - before.yaw) > 5, `a locked mouse looks (${(lockedLook.yaw - before.yaw).toFixed(1)} degrees)`);
     await page.evaluate(() => {
@@ -239,18 +251,37 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await page.keyboard.press('KeyF');
     await sleep(300);
     check((await status()).flying === 0, 'F lands');
+    // Speed and view, then a jump on the ground. Every one of these is a setting the player can see.
+    const panel = () => page.locator('#status').textContent();
+    await page.mouse.move(640, 360);
+    await page.mouse.wheel(0, -100);
+    await page.waitForFunction(() => document.getElementById('status').textContent.includes('1.8 m/s'), null, { timeout: 30000 });
+    check(true, 'the wheel sets the speed');
+    await page.keyboard.press('Equal');
+    check(JSON.parse(await page.evaluate(() => localStorage.getItem('old-town-walk-settings') || '{}')).view > 0, 'settings are kept in the browser');
+    await page.waitForFunction(() => document.getElementById('status').textContent.includes('tiles'), null, { timeout: 30000 });
+    check((await panel()).includes('fps'), 'the status panel shows the frame rate');
+    await page.keyboard.down('Space');
+    await page.waitForFunction(() => window.oldTownWalk.status().height > 2, null, { timeout: 30000 });
+    await page.keyboard.up('Space');
+    check(true, 'Space jumps');
+    await page.keyboard.press('KeyH');
+    check(await help.isVisible(), 'H shows the controls');
+    await page.keyboard.press('KeyH');
+    check(!(await help.isVisible()), 'H hides them');
+    await page.keyboard.press('KeyR');
+    await page.waitForFunction(() => document.getElementById('note').textContent.includes('start'), null, { timeout: 30000 });
+    check(true, 'R goes back to the start');
     const sun = await page.evaluate(() => window.oldTownWalk.sunTime);
     await page.keyboard.press('BracketRight');
     check((await page.evaluate(() => window.oldTownWalk.sunTime)) > sun, '] moves the sun');
   }
 
-  // Level the view first: how far the arrow keys tilted it depends on the machine's frame rate, and pavement filling
-  // the frame has too few colours to tell a real picture from a flat one.
-  if (!phone) {
-    await page.keyboard.down('ArrowUp');
-    await page.waitForFunction(() => window.oldTownWalk.status().pitch > -5, null, { timeout: 60000 });
-    await page.keyboard.up('ArrowUp');
-  }
+  // Back to the start first: where a run ends depends on the machine's frame rate, and a wall or pavement filling the
+  // frame has too few colours to tell a real picture from a flat one.
+  await page.keyboard.press('KeyR');
+  await page.waitForFunction(() => Math.abs(window.oldTownWalk.status().pitch) < 1 && window.oldTownWalk.status().flying === 0, null, { timeout: 60000 });
+  await sleep(1000);
 
   // A lost context is rebuilt, and the map comes back.
   const held = (await status()).tiles;

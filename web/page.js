@@ -153,11 +153,12 @@
     $("status").textContent = lines.join("\n");
   }
 
-  let noteTimer = 0;
+  let noteTimer = 0, noteFree = 0;
   function note(text) {
     const n = $("note");
     n.textContent = text;
     n.style.display = "block";
+    noteFree = performance.now() + 4000;
     clearTimeout(noteTimer);
     noteTimer = setTimeout(() => { n.style.display = "none"; }, 4000);
   }
@@ -289,6 +290,13 @@
     dpitch += keyed("ArrowUp", "ArrowDown") * KEY_DEG * 0.66 * dt;
     const at = mod._otw_step(dt, ahead, right, up, run ? 1 : 0, dyaw, dpitch);
     dyaw = dpitch = 0;
+    if (shown && performance.now() > noteFree) {
+      // Looks further than a frame's travel, or fast flight stops short of the edge and never sees it.
+      const reach = Math.max(10, (flying ? settings.fly : settings.walk) * 8 * dt);
+      const limit = mod._otw_limit(ahead, right, up, reach);
+      if (limit === 1) note("The map ends here");
+      if (limit === 2) note("Highest you can fly: 400 m above the ground");
+    }
     if (at) {
       const f = mod.HEAPF32, i = at >> 2, c = kit.cam;
       c.yaw = f[i]; c.pitch = f[i + 1]; c.dist = f[i + 2]; c.tx = f[i + 3]; c.ty = f[i + 4]; c.tz = f[i + 5];

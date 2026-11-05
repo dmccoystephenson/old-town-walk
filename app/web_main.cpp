@@ -181,6 +181,17 @@ EMSCRIPTEN_KEEPALIVE const float* otw_step(float dt, float ahead, float right, f
     return game->camera;
 }
 
+// For the page's messages: 1 when a move by (ahead, right) would leave the map, 2 at the flight ceiling, 0 otherwise.
+EMSCRIPTEN_KEEPALIVE int otw_limit(float ahead, float right, float rise, float reach) {
+    if (!game || !game->stream) return 0;
+    const otw::Stream& s = *game->stream;
+    const otw::Walker& w = game->walker;
+    if (game->flying && rise > 0 && w.eyeY - s.groundAt(w.x, w.z) >= otw::kFlyCeiling - 0.5f) return 2;
+    if (ahead == 0 && right == 0) return 0;
+    const float yaw = w.yawDeg * 3.14159265f / 180.0f, fx = std::sin(yaw), fz = -std::cos(yaw);
+    return s.overTile(w.x + (ahead * fx - right * fz) * reach, w.z + (ahead * fz + right * fx) * reach) ? 0 : 1;
+}
+
 EMSCRIPTEN_KEEPALIVE void otw_jump() {
     if (game && !game->flying) game->walker.jump();
 }
