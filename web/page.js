@@ -1,6 +1,6 @@
 /* Old Town Walk's page: boots the engine behind Strata's loading shell, downloads the tiles the player
-   is near, and turns keys, the mouse and fingers into the walker's input. Stores nothing and reports
-   nothing. */
+   is near, and turns keys, the mouse and fingers into the walker's input. Keeps your settings in this
+   browser only, and reports nothing. */
 (function () {
   "use strict";
   const $ = (id) => document.getElementById(id);
@@ -15,8 +15,28 @@
 
 
   const FLY = [5, 800], WALK = [0.7, 14], VIEW = [200, 1500], NOTCH = 1.25, VIEW_STEP = 100;
-  const settings = {fly: 20, walk: 1.4, view: coarse ? 500 : 700};
+  const SENSITIVITY = [0.03, 0.6];
   const clamp = (v, [low, high]) => Math.min(high, Math.max(low, v));
+  const DEFAULTS = {fly: 20, walk: 1.4, view: coarse ? 500 : 700, sensitivity: MOUSE_DEG, invert: false, status: true};
+  const settings = {...DEFAULTS};
+  function loadSettings() {
+    let saved = {};
+    try { saved = JSON.parse(stored.get("old-town-walk-settings") || "{}") || {}; } catch (e) { /* start from the defaults */ }
+    const number = (v, fallback) => (typeof v === "number" && isFinite(v) ? v : fallback);
+    settings.fly = clamp(number(saved.fly, DEFAULTS.fly), FLY);
+    settings.walk = clamp(number(saved.walk, DEFAULTS.walk), WALK);
+    settings.view = clamp(number(saved.view, DEFAULTS.view), VIEW);
+    settings.sensitivity = clamp(number(saved.sensitivity, DEFAULTS.sensitivity), SENSITIVITY);
+    settings.invert = saved.invert === true;
+    settings.status = saved.status !== false;
+  }
+  function keepSettings() { stored.set("old-town-walk-settings", JSON.stringify(settings)); }
+  function applySettings() {
+    document.body.classList.toggle("no-status", !settings.status);
+    if (!mod) return;
+    mod._otw_set_speeds(settings.fly, settings.walk);
+    mod._otw_set_radius(parseFloat(search.get("reach")) || settings.view);
+  }
 
   let mod = null, kit = null, sunTime = MIDSUMMER_AFTERNOON, flying = false, shown = false, failed = false;
 
@@ -72,7 +92,7 @@
   const keyed = (a, b) => (held.has(a) ? 1 : 0) - (held.has(b) ? 1 : 0);
   const locked = () => document.pointerLockElement === canvas;
 
-  function look(dx, dy, deg) { dyaw += dx * deg; dpitch -= dy * deg; }
+  function look(dx, dy, deg) { dyaw += dx * deg; dpitch -= (settings.invert ? -dy : dy) * deg; }
 
   function setFlying(on) {
     flying = on;
@@ -90,13 +110,26 @@
     const key = flying ? "fly" : "walk", range = flying ? FLY : WALK, before = settings[key];
     settings[key] = clamp(before * Math.pow(NOTCH, notches), range);
     if (settings[key] === before) note(notches > 0 ? "That is the top speed" : "That is the lowest speed");
-    if (mod) mod._otw_set_speeds(settings.fly, settings.walk);
+    applySettings();
+    keepSettings();
   }
   function changeView(steps) {
     const before = settings.view;
     settings.view = clamp((Math.round(before / VIEW_STEP) + steps) * VIEW_STEP, VIEW);
     if (settings.view === before) note(steps > 0 ? "That is the longest view" : "That is the shortest view");
-    if (mod) mod._otw_set_radius(settings.view);
+    applySettings();
+    keepSettings();
+  }
+  function changeSensitivity(notches) {
+    settings.sensitivity = clamp(settings.sensitivity * Math.pow(NOTCH, notches), SENSITIVITY);
+    note(`Mouse sensitivity ${settings.sensitivity.toFixed(2)}`);
+    keepSettings();
+  }
+  function goToStart() {
+    if (!mod) return;
+    mod._otw_go_to_start();
+    setFlying(false);
+    note("Back at the start");
   }
 
   const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
@@ -148,7 +181,22 @@
       if (!e.repeat && e.code === "KeyF") toggleFly();
       if (e.code === "PageUp") { changeSpeed(1); e.preventDefault(); }
       if (e.code === "PageDown") { changeSpeed(-1); e.preventDefault(); }
-      if (e.code === "Tab") { document.body.classList.toggle("no-status"); e.preventDefault(); }
+      if (e.code === "Tab") { settings.status = !settings.status; applySettings(); keepSettings(); e.preventDefault(); }
+      if (!e.repeat && e.code === "KeyR") goToStart();
+      if (e.code === "Comma") changeSensitivity(-1);
+      if (e.code === "Period") changeSensitivity(1);
+      if (!e.repeat && e.code === "KeyI") {
+        settings.invert = !settings.invert;
+        note(settings.invert ? "Mouse look inverted" : "Mouse look normal");
+        keepSettings();
+      }
+      if (!e.repeat && e.code === "Backspace") {
+        Object.assign(settings, DEFAULTS);
+        applySettings();
+        keepSettings();
+        note("Settings back to the defaults");
+        e.preventDefault();
+      }
       if (e.code === "Minus") changeView(-1);
       if (e.code === "Equal") changeView(1);
       if (!e.repeat && e.code === "BracketLeft") shiftSun(-0.5);
@@ -173,11 +221,11 @@
       if (locked()) {
         // The first events after a lock carry where the cursor jumped from, not a hand's movement.
         if (settling > 0) { settling--; return; }
-        if (Math.abs(e.movementX) < MAX_MOUSE_STEP && Math.abs(e.movementY) < MAX_MOUSE_STEP) look(e.movementX, e.movementY, MOUSE_DEG);
+        if (Math.abs(e.movementX) < MAX_MOUSE_STEP && Math.abs(e.movementY) < MAX_MOUSE_STEP) look(e.movementX, e.movementY, settings.sensitivity);
         return;
       }
       if (e.pointerId !== lookId) return;
-      look(e.clientX - lookX, e.clientY - lookY, e.pointerType === "touch" ? TOUCH_DEG : MOUSE_DEG);
+      look(e.clientX - lookX, e.clientY - lookY, e.pointerType === "touch" ? TOUCH_DEG : settings.sensitivity);
       lookX = e.clientX; lookY = e.clientY;
     });
     document.addEventListener("pointerlockchange", () => { settling = 3; lookId = null; });
@@ -255,6 +303,7 @@
 
   async function boot() {
     if (coarse) useTouch();
+    loadSettings();
     wireInput();
     mod = await StrataLoader.load({
       script: "walk.js", factory: "createWalk", wasm: "walk.wasm", bytes: __WASM_BYTES__,
@@ -280,6 +329,7 @@
     const started = mod._otw_start(text, parseFloat(search.get("reach")) || settings.view);
     mod._free(text);
     if (!started) throw Object.assign(new Error("The map could not be read."), {code: "engine"});
+    applySettings();
     window.oldTownWalk = {status, kit, shiftSun, get sunTime() { return sunTime; }};
     kit.start();
   }
