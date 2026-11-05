@@ -55,19 +55,31 @@ Tiles are downloaded as they are needed, gzipped, and the page unpacks them, so 
 
 ## Controls
 
-| Input | Action |
-|---|---|
-| W A S D | walk (**Shift** runs) |
-| mouse or arrow keys | look |
-| F | fly, and F again to land outside any building |
-| W A S D while flying | fly where you look at 20 m/s (**Shift** 80 m/s) |
-| E or Space, Q or Ctrl | climb, descend |
-| `[` `]` | time of day |
-| P | save a screenshot |
-| H | hide the on-screen label |
-| Esc | free the mouse (click to take it back); Esc again quits |
+Press **H** in the window to see these at any time. In a browser on a phone, the on-screen stick and buttons do the same.
 
-Flying stops at the edge of the map, up to 400 m above the ground.
+| Key | What it does |
+|---|---|
+| WASD | Move. On foot you stop at walls; in the air you follow your view. |
+| Mouse or arrow keys | Look |
+| Shift | Go four times faster |
+| Space | Jump. In the air, Space climbs. |
+| F | Fly, or land on the ground outside any building |
+| E or Space, Q or Ctrl | Climb and descend while flying |
+| Mouse wheel, or Page Up and Page Down | Set your speed: 5 to 800 m/s flying, 0.7 to 14 m/s on foot |
+| `-` and `=` | Shorten or lengthen the view, 200 to 1,500 m |
+| `,` and `.` | Mouse sensitivity |
+| 9 and 0 | Field of view, 40 to 110 degrees |
+| I | Invert the mouse's up and down |
+| Z | Hold to zoom in on something far away |
+| R | Back to where you started |
+| `[` and `]` | Time of day |
+| P | Save a screenshot |
+| Tab | Hide the status panel |
+| Backspace | Put every setting back to its default |
+| Esc | Free the mouse. A click takes it back, and Esc again quits. |
+
+Your settings are remembered between runs, in `old-town-walk/settings.txt` under your user configuration folder.
+`old-town-walk --help` lists the command-line options.
 
 ## Building it
 
