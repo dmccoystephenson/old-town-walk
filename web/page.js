@@ -182,6 +182,7 @@
       if (e.code === "PageUp") { changeSpeed(1); e.preventDefault(); }
       if (e.code === "PageDown") { changeSpeed(-1); e.preventDefault(); }
       if (e.code === "Tab") { settings.status = !settings.status; applySettings(); keepSettings(); e.preventDefault(); }
+      if (!e.repeat && e.code === "KeyH") $("help").classList.toggle("on");
       if (!e.repeat && e.code === "KeyR") goToStart();
       if (e.code === "Comma") changeSensitivity(-1);
       if (e.code === "Period") changeSensitivity(1);
@@ -228,7 +229,10 @@
       look(e.clientX - lookX, e.clientY - lookY, e.pointerType === "touch" ? TOUCH_DEG : settings.sensitivity);
       lookX = e.clientX; lookY = e.clientY;
     });
-    document.addEventListener("pointerlockchange", () => { settling = 3; lookId = null; });
+    document.addEventListener("pointerlockchange", () => {
+      settling = 3; lookId = null;
+      if (!locked() && shown && !$("help").classList.contains("on")) note("Click to look around");
+    });
     const endLook = (e) => { if (e.pointerId === lookId) lookId = null; };
     canvas.addEventListener("pointerup", endLook);
     canvas.addEventListener("pointercancel", endLook);
