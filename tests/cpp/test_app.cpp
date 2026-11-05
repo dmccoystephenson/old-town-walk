@@ -6,6 +6,7 @@
 #include <string>
 
 #include "exe_dir.h"
+#include "settings.h"
 #include "streaming.h"
 #include "tile.h"
 #include "walker.h"
@@ -141,6 +142,61 @@ static void testWalking() {
             j.jump();
             CHECK(j.hopSpeed == otw::kJumpSpeed);
         }
+        otw::Walker quick;  // A chosen speed, and Shift scaling it.
+        quick.x = 100;
+        quick.yawDeg = 90;
+        quick.fly(mapped, ground, 1, 0, 0, false, 1.0f, 200.0f);
+        CHECK(std::fabs(quick.x - 300) < 1e-2f);
+        quick.fly(mapped, ground, 1, 0, 0, true, 1.0f, 100.0f);
+        CHECK(std::fabs(quick.x - 700) < 1e-2f);
+        CHECK(otw::stepViewRadius(700, 1) == 800.0f && otw::stepViewRadius(700, -1) == 600.0f);
+        CHECK(otw::stepViewRadius(1500, 1) == otw::kMaxViewRadius && otw::stepViewRadius(200, -1) == otw::kMinViewRadius);
+        CHECK(otw::stepViewRadius(733, 1) == 800.0f);  // a --radius between steps lands on one
+        {
+            // The longest view fits Strata's mesh limit anywhere on a full map, with nothing dropped by the budget.
+            std::vector<otw::TileKey> all;
+            for (int y = 0; y < 40; ++y)
+                for (int x = 0; x < 40; ++x) all.push_back({x, y});
+            otw::StreamConfig longest;
+            longest.loadRadius = otw::kMaxViewRadius;
+            longest.unloadRadius = otw::kMaxViewRadius + 200;
+            const auto plan = otw::planStreaming(all, {}, 10000, 10000, 500, longest);
+            size_t reach = 0;
+            for (const auto& k : all) reach += otw::tileDistance(k, 10000, 10000, 500) <= otw::kMaxViewRadius;
+            CHECK(reach <= static_cast<size_t>(longest.maxTiles) && plan.load.size() == reach);
+        }
+        CHECK(otw::stepFov(70, 1) == 75.0f && otw::stepFov(110, 1) == otw::kMaxFov && otw::stepFov(40, -1) == otw::kMinFov);
+        {
+            // Settings come back as they went in, and a bad file cannot do harm.
+            otw::Settings chosen;
+            chosen.flySpeed = 152.59f;
+            chosen.viewRadius = 1200;
+            chosen.sensitivity = 0.075f;
+            chosen.fov = 95;
+            chosen.panel = false;
+            chosen.invertLook = true;
+            const otw::Settings back = otw::parseSettings(otw::formatSettings(chosen));
+            CHECK(std::fabs(back.flySpeed - chosen.flySpeed) < 0.01f && back.viewRadius == 1200 && back.fov == 95 && !back.panel);
+            CHECK(std::fabs(back.sensitivity - chosen.sensitivity) < 0.001f && back.invertLook);
+            const otw::Settings bad = otw::parseSettings("fly_speed 99999\nfov banana\nmystery 3\nview_radius -5\n");
+            CHECK(bad.flySpeed == otw::kMaxFlySpeed && bad.fov == 70 && bad.viewRadius == otw::kMinViewRadius);
+            CHECK(otw::parseSettings("").flySpeed == 20);
+        }
+        CHECK(otw::frameStep(0.016f) == 0.016f && otw::frameStep(0.2f) == 0.2f && otw::frameStep(3.0f) == 0.25f);
+        CHECK(std::string(otw::compass(0)) == "N" && std::string(otw::compass(359)) == "N");
+        CHECK(std::string(otw::compass(90)) == "E" && std::string(otw::compass(225)) == "SW");
+        const std::string panel = otw::hudText({true, 40, 700, 120, 90, 58, 11, 0, 0.5f});
+        CHECK(panel.find("clock   12:00") != std::string::npos);
+        CHECK(otw::hudText({true, 40, 700, 120, 90, 58, 11, 0, 0.75f}).find("clock   18:00") != std::string::npos);
+        CHECK(panel.find("flying  40 m/s") != std::string::npos && panel.find("view    700 m") != std::string::npos);
+        CHECK(panel.find("facing  E") != std::string::npos && panel.find("tiles   11") != std::string::npos);
+        CHECK(otw::hudText({false, 1.4f, 700, 1.65f, 0, 60, 4, 0, 0.5f}).find("on foot  1.4 m/s") != std::string::npos);
+        CHECK(otw::hudText({true, 40, 700, 120, 90, 58, 11, 3, 0.5f}).find("tiles   11 +3 loading") != std::string::npos);
+        CHECK(panel.find("loading") == std::string::npos);
+        CHECK(otw::stepSpeed(20, 1, 5, 800) == 25.0f);
+        CHECK(std::fabs(otw::stepSpeed(25, -1, 5, 800) - 20.0f) < 1e-4f);
+        CHECK(otw::stepSpeed(790, 1, 5, 800) == 800.0f && otw::stepSpeed(5, -1, 5, 800) == 5.0f);
+
         otw::Walker land;  // Landing on a roof steps off it.
         land.x = 110;
         land.z = 210;

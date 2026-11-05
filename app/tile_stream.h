@@ -58,11 +58,15 @@ public:
             planStreaming(m_.tiles, loaded, east(x), north(z), m_.tileSize, config_);
         for (const TileKey& k : plan.unload) drop(k);
         int count = 0;
+        waiting_ = static_cast<int>(plan.load.size());
         for (const TileKey& k : plan.load) {
             if (count >= maxLoads) break;
             const TileFetch got = load(k);
             if (got == TileFetch::Failed) return false;
-            if (got == TileFetch::Ready) ++count;
+            if (got == TileFetch::Ready) {
+                ++count;
+                --waiting_;
+            }
         }
         return true;
     }
@@ -92,6 +96,9 @@ public:
     int meshes() const { return meshCount_; }
     int peakMeshes() const { return peakMeshes_; }
     int tileCount() const { return static_cast<int>(tiles_.size()); }
+    int waiting() const { return waiting_; }
+    float viewRadius() const { return config_.loadRadius; }
+    bool overTile(float x, float z) const { const TileKey k = keyAt(x, z); return std::find(m_.tiles.begin(), m_.tiles.end(), k) != m_.tiles.end(); }
     int loads() const { return loads_; }
     int unloads() const { return unloads_; }
     double readMs() const { return readMs_; }
@@ -232,7 +239,7 @@ private:
     std::map<TileKey, Loaded> tiles_;
     Solids solids_;
     std::vector<StrataRenderItem> trees_;
-    int meshCount_ = 0, peakMeshes_ = 0, loads_ = 0, unloads_ = 0;
+    int waiting_ = 0, meshCount_ = 0, peakMeshes_ = 0, loads_ = 0, unloads_ = 0;
     double readMs_ = 0, uploadMs_ = 0, worstLoadMs_ = 0;
 };
 
