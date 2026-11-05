@@ -15,6 +15,24 @@ There is nothing to install. It needs OpenGL 4.5, which most PCs from the last d
 The program is not code-signed, so Windows SmartScreen may warn about an unknown publisher. Choose **More info**, then
 **Run anyway**.
 
+## Play in a browser
+
+The page in `web/` runs the same tiles and walker on Strata's WebGL 2 backend and web kit. It needs WebGL 2 and works
+with a keyboard and mouse or a touch screen: a stick to walk, drag to look, and buttons to fly, climb and descend.
+
+```sh
+source /path/to/emsdk/emsdk_env.sh     # emsdk 6.0.11, Strata's pin
+uv run old-town-walk build
+emcmake cmake -S . -B build-web -DCMAKE_BUILD_TYPE=Release
+cmake --build build-web -j8
+uv run python tools/build_site.py build-web build/tiles web-site
+python3 -m http.server 8000 --directory web-site
+```
+
+Tiles are downloaded as they are needed, gzipped, and the page unpacks them, so the map costs about 3 MB to start and
+11 MB if you walk all of it. The page stores nothing beyond having shown the controls once, and reports nothing.
+`web/smoke/smoke.cjs` plays it in headless Chromium, on a desktop and a phone profile, with real input.
+
 ## Controls
 
 | Input | Action |

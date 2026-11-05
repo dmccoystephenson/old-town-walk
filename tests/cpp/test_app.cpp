@@ -195,6 +195,16 @@ static void testFiles() {
     std::fclose(out);
     otw::Tile bad;
     CHECK(!otw::loadTile("truncated.tile", bad, &err));
+    // The browser reads the same bytes from memory: whole, they parse; cut short or foreign, they do not.
+    otw::Tile fromMemory;
+    CHECK(otw::parseTile(reinterpret_cast<const uint8_t*>(bytes.data()), bytes.size(), fromMemory, &err));
+    CHECK(fromMemory.key == k && fromMemory.samples == t.samples && fromMemory.trees.size() == t.trees.size());
+    CHECK(!otw::parseTile(reinterpret_cast<const uint8_t*>(bytes.data()), bytes.size() / 2, fromMemory, &err));
+    CHECK(!otw::parseTile(reinterpret_cast<const uint8_t*>("not a tile at all"), 17, fromMemory, &err));
+    otw::Manifest none;
+    CHECK(!otw::parseManifest("nothing here", "tiles", none));
+    CHECK(otw::parseManifest("old-town-walk-manifest 1\ntile_size 500\ntile 1 2\n", "tiles", none));
+    CHECK(none.tiles.size() == 1 && none.path({1, 2}) == "tiles/1_2.tile");
     std::remove("truncated.tile");
 
     // Neighbours agree along their shared edge, where a seam would show.

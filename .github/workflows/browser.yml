@@ -1,0 +1,93 @@
+# Builds the browser version (Emscripten and Strata's WebGL 2 backend with its web kit), plays it in
+# headless Chromium on a desktop and a phone profile (web/smoke/smoke.cjs), and, once the repository
+# variable ARCADE_ENABLED is true, deploys it to the arcade as https://old-town-walk.play.danielstephenson.dev
+name: Browser build
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    name: Web build and smoke test (headless Chromium)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Set up emsdk 6.0.11 (Strata's pin)
+        run: |
+          git clone -q --depth 1 https://github.com/emscripten-core/emsdk.git "$RUNNER_TEMP/emsdk"
+          "$RUNNER_TEMP/emsdk/emsdk" install 6.0.11
+          "$RUNNER_TEMP/emsdk/emsdk" activate 6.0.11
+
+      - name: Build the tiles
+        run: |
+          uv run --python 3.12 old-town-walk verify
+          uv run --python 3.12 old-town-walk build
+
+      - name: Build for the browser
+        run: |
+          source "$RUNNER_TEMP/emsdk/emsdk_env.sh"
+          emcmake cmake -S . -B build-web -DCMAKE_BUILD_TYPE=Release -Wno-dev
+          cmake --build build-web -j "$(nproc)"
+
+      - name: Assemble the site (fails on a source map or a build path)
+        run: uv run --python 3.12 python tools/build_site.py build-web build/tiles web-site
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Playwright and Chromium
+        working-directory: web/smoke
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Smoke test (desktop, then iPhone 13 profile)
+        run: |
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory web-site > http.log 2>&1 &
+          sleep 1
+          node web/smoke/smoke.cjs "http://127.0.0.1:8080/?quality=0&reach=250" smoke-out/desktop
+          node web/smoke/smoke.cjs "http://127.0.0.1:8080/?quality=0&reach=250" smoke-out/phone --phone
+
+      - name: Upload smoke screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-smoke
+          path: smoke-out/
+          if-no-files-found: ignore
+
+      - name: Upload the built site for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-site
+          path: web-site/
+          retention-days: 7
+
+      - name: Write the deploy version
+        run: |
+          version=$(sed -n 's/^project(old-town-walk VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
+          echo "${version}+g${GITHUB_SHA::7}" > "$RUNNER_TEMP/arcade-version.txt"
+          cat "$RUNNER_TEMP/arcade-version.txt"
+
+      - name: Deploy to arcade
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.ARCADE_ENABLED == 'true'
+        uses: Stephenson-Software/arcade-deploy@v1
+        with:
+          slug: old-town-walk
+          token: ${{ secrets.ARCADE_TOKEN }}
+          site-dir: web-site
+          version-file: ${{ runner.temp }}/arcade-version.txt
