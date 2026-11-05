@@ -14,6 +14,10 @@
   const stored = StrataKit.store;
 
 
+  const FLY = [5, 800], WALK = [0.7, 14], VIEW = [200, 1500], NOTCH = 1.25, VIEW_STEP = 100;
+  const settings = {fly: 20, walk: 1.4, view: coarse ? 500 : 700};
+  const clamp = (v, [low, high]) => Math.min(high, Math.max(low, v));
+
   let mod = null, kit = null, sunTime = MIDSUMMER_AFTERNOON, flying = false, shown = false, failed = false;
 
   /* ------------------------------------------------------- tiles */
@@ -82,6 +86,19 @@
     if (kit) kit.setSun(sunTime, PLACE.lat, PLACE.lon);
   }
 
+  function changeSpeed(notches) {
+    const key = flying ? "fly" : "walk", range = flying ? FLY : WALK, before = settings[key];
+    settings[key] = clamp(before * Math.pow(NOTCH, notches), range);
+    if (settings[key] === before) note(notches > 0 ? "That is the top speed" : "That is the lowest speed");
+    if (mod) mod._otw_set_speeds(settings.fly, settings.walk);
+  }
+  function changeView(steps) {
+    const before = settings.view;
+    settings.view = clamp((Math.round(before / VIEW_STEP) + steps) * VIEW_STEP, VIEW);
+    if (settings.view === before) note(steps > 0 ? "That is the longest view" : "That is the shortest view");
+    if (mod) mod._otw_set_radius(settings.view);
+  }
+
   let noteTimer = 0;
   function note(text) {
     const n = $("note");
@@ -108,6 +125,10 @@
   function wireInput() {
     window.addEventListener("keydown", (e) => {
       if (!e.repeat && e.code === "KeyF") toggleFly();
+      if (e.code === "PageUp") { changeSpeed(1); e.preventDefault(); }
+      if (e.code === "PageDown") { changeSpeed(-1); e.preventDefault(); }
+      if (e.code === "Minus") changeView(-1);
+      if (e.code === "Equal") changeView(1);
       if (!e.repeat && e.code === "BracketLeft") shiftSun(-0.5);
       if (!e.repeat && e.code === "BracketRight") shiftSun(0.5);
       held.add(e.code);
@@ -115,6 +136,11 @@
     });
     window.addEventListener("keyup", (e) => held.delete(e.code));
     window.addEventListener("blur", () => { held.clear(); lift.up = lift.down = false; });
+
+    canvas.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      if (e.deltaY !== 0) changeSpeed(e.deltaY < 0 ? 1 : -1);
+    }, {passive: false});
 
     canvas.addEventListener("pointerdown", (e) => {
       if (e.pointerType === "touch") useTouch();
@@ -228,7 +254,7 @@
     const text = mod.stringToNewUTF8(manifest);
     // ?reach=<metres> narrows how far the map loads, as ?quality= sets the tier. The smoke test needs it:
     // a software renderer on a small machine cannot draw the full view and still take input.
-    const started = mod._otw_start(text, parseFloat(search.get("reach")) || (coarse ? 500 : 700));
+    const started = mod._otw_start(text, parseFloat(search.get("reach")) || settings.view);
     mod._free(text);
     if (!started) throw Object.assign(new Error("The map could not be read."), {code: "engine"});
     window.oldTownWalk = {status, kit, shiftSun, get sunTime() { return sunTime; }};
