@@ -266,6 +266,8 @@
     hold($("upBtn"), "up");
     hold($("downBtn"), "down");
     $("jumpBtn").addEventListener("pointerdown", (e) => { e.preventDefault(); if (mod) mod._otw_jump(); });
+    $("fasterBtn").addEventListener("click", () => changeSpeed(2));
+    $("slowerBtn").addEventListener("click", () => changeSpeed(-2));
     $("flyBtn").addEventListener("click", () => { toggleFly(); canvas.focus(); });
     $("helpBtn").addEventListener("click", () => $("help").classList.toggle("on"));
     $("start").addEventListener("click", () => {

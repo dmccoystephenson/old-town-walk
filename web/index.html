@@ -42,7 +42,10 @@
     opacity: 0.92; pointer-events: none; }
   #height { position: absolute; display: none; flex-direction: column; gap: 12px;
     right: max(18px, env(safe-area-inset-right)); bottom: max(32px, env(safe-area-inset-bottom)); }
-  #height button { width: 64px; height: 64px; font-size: 24px; padding: 0; }
+  #height button, #speed button { width: 64px; height: 64px; font-size: 24px; padding: 0; }
+  #speed { position: absolute; display: none; flex-direction: column; gap: 12px;
+    right: calc(max(18px, env(safe-area-inset-right)) + 76px); bottom: max(32px, env(safe-area-inset-bottom)); }
+  body.touch.flying #speed { display: flex; }
   body.touch #stick { display: block; }
   body.touch.flying #height { display: flex; }
   #jumpBtn { position: absolute; display: none; width: 76px; height: 76px; border-radius: 50%; padding: 0;
@@ -80,6 +83,10 @@
     <button id="upBtn" aria-label="Climb">&#9650;</button>
     <button id="downBtn" aria-label="Descend">&#9660;</button>
   </div>
+  <div id="speed">
+    <button id="fasterBtn" aria-label="Faster">+</button>
+    <button id="slowerBtn" aria-label="Slower">&minus;</button>
+  </div>
   <button id="jumpBtn" aria-label="Jump">Jump</button>
   <div id="note" role="status"></div>
   <div id="credit">Map &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, ODbL. Elevation: USGS.</div>
@@ -109,6 +116,7 @@
     <dt>Jump</dt><dd>Jump</dd>
     <dt>Fly</dt><dd>Fly or land</dd>
     <dt>&#9650; &#9660;</dt><dd>Climb and descend when flying</dd>
+    <dt>+ &minus;</dt><dd>Fly faster or slower</dd>
   </dl>
   <button id="start">Start walking</button>
 </div>
