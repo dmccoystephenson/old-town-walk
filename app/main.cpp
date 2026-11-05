@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
     auto draw = [&]() -> bool {
         float ahead[3];
         walker.forward(ahead);
-        const float eye[3] = {walker.x, walker.eyeY, walker.z};
+        const float eye[3] = {walker.x, walker.eyeY + walker.hop, walker.z};
         const float look[3] = {eye[0] + ahead[0], eye[1] + ahead[1], eye[2] + ahead[2]};
         const float up[3] = {0, 1, 0};
         StrataCamera c{};
@@ -179,6 +179,7 @@ int main(int argc, char** argv) {
     if (flying) walker.eyeY = stream.groundAt(walker.x, walker.z) + a.altitude;
     auto toggleFlight = [&] {
         flying = !flying;
+        walker.hop = walker.hopSpeed = 0;
         if (flying) walker.eyeY += otw::kFlyClearance;  // lift off at once
         else walker.clearOfBuildings(stream.solids(), walkableHere);
         std::puts(flying ? "flying" : "on foot");
@@ -191,6 +192,7 @@ int main(int argc, char** argv) {
         walker.step(stream.solids(), [&](float x, float z) { return stream.walkable(x, z); }, ahead, right, run, dt);
         const float target = stream.groundAt(walker.x, walker.z) + otw::kEyeHeight;
         walker.eyeY += (target - walker.eyeY) * std::min(1.0f, dt * 10.0f);
+        walker.stepHop(dt);
     };
 
     if (a.headless) {
@@ -282,6 +284,7 @@ int main(int argc, char** argv) {
         last = now;
         walker.look(((held[kRight] ? 1.0f : 0.0f) - (held[kLeft] ? 1.0f : 0.0f)) * 90.0f * dt,
                     ((held[kUp] ? 1.0f : 0.0f) - (held[kDown] ? 1.0f : 0.0f)) * 60.0f * dt);
+        if (!flying && held[kSpace]) walker.jump();
         stepWalker((held[kW] ? 1.0f : 0.0f) - (held[kS] ? 1.0f : 0.0f), (held[kD] ? 1.0f : 0.0f) - (held[kA] ? 1.0f : 0.0f),
                    held[225] || held[229], dt,
                    (held[kE] || held[kSpace] ? 1.0f : 0.0f) - (held[kQ] || held[kLeftCtrl] ? 1.0f : 0.0f));

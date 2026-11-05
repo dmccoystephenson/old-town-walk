@@ -125,6 +125,22 @@ static void testWalking() {
         f.fly(mapped, ground, 1, 0, 0, false, 1.0f);
         CHECK(f.z > z0 && f.x < 1000);
 
+        {
+            // A jump rises about a metre, comes down, and cannot be repeated in the air.
+            otw::Walker j;
+            j.jump();
+            float top = 0;
+            int frames = 0;
+            for (; frames < 300 && (frames == 0 || j.hop > 0); ++frames) {
+                if (frames == 10) j.jump();
+                j.stepHop(1.0f / 60.0f);
+                top = std::max(top, j.hop);
+            }
+            CHECK(top > 1.0f && top < 1.3f);
+            CHECK(j.hop == 0 && j.hopSpeed == 0 && frames > 40 && frames < 70);
+            j.jump();
+            CHECK(j.hopSpeed == otw::kJumpSpeed);
+        }
         otw::Walker land;  // Landing on a roof steps off it.
         land.x = 110;
         land.z = 210;
