@@ -165,6 +165,7 @@
 
     hold($("upBtn"), "up");
     hold($("downBtn"), "down");
+    $("jumpBtn").addEventListener("pointerdown", (e) => { e.preventDefault(); if (mod) mod._otw_jump(); });
     $("flyBtn").addEventListener("click", () => { toggleFly(); canvas.focus(); });
     $("helpBtn").addEventListener("click", () => $("help").classList.toggle("on"));
     $("start").addEventListener("click", () => {
@@ -181,6 +182,7 @@
     const up = (lift.up ? 1 : 0) - (lift.down ? 1 : 0) +
       (held.has("KeyE") || held.has("Space") ? 1 : 0) - (held.has("KeyQ") || held.has("ControlLeft") ? 1 : 0);
     const run = move.run || held.has("ShiftLeft") || held.has("ShiftRight");
+    if (!flying && held.has("Space")) mod._otw_jump();
     dyaw += keyed("ArrowRight", "ArrowLeft") * KEY_DEG * dt;
     dpitch += keyed("ArrowUp", "ArrowDown") * KEY_DEG * 0.66 * dt;
     const at = mod._otw_step(dt, ahead, right, up, run ? 1 : 0, dyaw, dpitch);

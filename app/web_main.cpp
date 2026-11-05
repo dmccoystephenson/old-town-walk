@@ -33,6 +33,7 @@ struct Game {
     std::map<otw::TileKey, otw::Tile> arrived;  // downloaded, not uploaded yet
     std::set<otw::TileKey> asked;
     bool placed = false, flying = false, ready = false;
+    float flySpeed = otw::kFlySpeed, walkSpeed = otw::kWalkSpeed;
     double sinceLoad = 1;
     float startX = 0, startZ = 0;
     float camera[6] = {};
@@ -71,7 +72,7 @@ void aimCamera() {
     game->camera[1] = std::asin(std::clamp(-ahead[1], -1.0f, 1.0f));
     game->camera[2] = 1.0f;
     game->camera[3] = w.x + ahead[0];
-    game->camera[4] = w.eyeY + ahead[1];
+    game->camera[4] = w.eyeY + w.hop + ahead[1];
     game->camera[5] = w.z + ahead[2];
 }
 
@@ -127,7 +128,7 @@ EMSCRIPTEN_KEEPALIVE int otw_start(const char* manifestText, float radius) {
     game->startZ = static_cast<float>((game->origin.iy + 1) * static_cast<double>(m.tileSize) - north);
     game->walker.x = game->startX;
     game->walker.z = game->startZ;
-    game->walker.yawDeg = 90;  // east, down the street
+    game->walker.yawDeg = 40;  // north-east, down the street
     makeStream(strata_kit::host().engine, radius);
     return 1;
 }
@@ -168,15 +169,38 @@ EMSCRIPTEN_KEEPALIVE const float* otw_step(float dt, float ahead, float right, f
     if (s.walkable(w.x, w.z)) {  // false for a moment after a lost context, while tiles come back
         auto walkable = [&](float x, float z) { return s.walkable(x, z); };
         if (game->flying) {
-            w.fly(walkable, [&](float x, float z) { return s.groundAt(x, z); }, ahead, right, up, run != 0, dt);
+            w.fly(walkable, [&](float x, float z) { return s.groundAt(x, z); }, ahead, right, up, run != 0, dt, game->flySpeed);
         } else {
-            w.step(s.solids(), walkable, ahead, right, run != 0, dt);
+            w.step(s.solids(), walkable, ahead, right, run != 0, dt, game->walkSpeed);
             const float target = s.groundAt(w.x, w.z) + otw::kEyeHeight;
             w.eyeY += (target - w.eyeY) * std::min(1.0f, dt * 10.0f);
+            w.stepHop(dt);
         }
     }
     aimCamera();
     return game->camera;
+}
+
+EMSCRIPTEN_KEEPALIVE void otw_jump() {
+    if (game && !game->flying) game->walker.jump();
+}
+
+EMSCRIPTEN_KEEPALIVE void otw_set_speeds(float fly, float walk) {
+    if (!game) return;
+    game->flySpeed = fly;
+    game->walkSpeed = walk;
+}
+
+EMSCRIPTEN_KEEPALIVE void otw_go_to_start() {
+    if (!game || !game->stream) return;
+    otw::Walker& w = game->walker;
+    w.x = game->startX;
+    w.z = game->startZ;
+    w.yawDeg = 40;
+    w.pitchDeg = 0;
+    w.hop = w.hopSpeed = 0;
+    game->flying = false;
+    w.eyeY = game->stream->groundAt(w.x, w.z) + otw::kEyeHeight;
 }
 
 EMSCRIPTEN_KEEPALIVE int otw_toggle_fly() {
@@ -184,6 +208,7 @@ EMSCRIPTEN_KEEPALIVE int otw_toggle_fly() {
     otw::Stream& s = *game->stream;
     game->flying = !game->flying;
     if (game->flying) {
+        game->walker.hop = game->walker.hopSpeed = 0;
         game->walker.eyeY += otw::kFlyClearance;  // lift off at once
     } else {
         game->walker.clearOfBuildings(s.solids(), [&](float x, float z) { return s.walkable(x, z); });
@@ -200,13 +225,13 @@ EMSCRIPTEN_KEEPALIVE const char* otw_status() {
     if (!game || !game->stream) return "{}";
     const otw::Stream& s = *game->stream;
     const otw::Walker& w = game->walker;
-    char text[300];
+    char text[360];
     std::snprintf(text, sizeof text,
                   "{\"ready\":%d,\"x\":%.2f,\"y\":%.2f,\"z\":%.2f,\"yaw\":%.1f,\"pitch\":%.1f,\"flying\":%d,\"tiles\":%d,"
-                  "\"meshes\":%d,\"peak\":%d,\"loads\":%d,\"unloads\":%d,\"worstMs\":%.1f}",
+                  "\"meshes\":%d,\"peak\":%d,\"loads\":%d,\"unloads\":%d,\"worstMs\":%.1f,\"waiting\":%d,\"height\":%.1f}",
                   game->ready ? 1 : 0, static_cast<double>(w.x), static_cast<double>(w.eyeY), static_cast<double>(w.z),
                   static_cast<double>(w.yawDeg), static_cast<double>(w.pitchDeg), game->flying ? 1 : 0, s.tileCount(), s.meshes(),
-                  s.peakMeshes(), s.loads(), s.unloads(), s.worstLoadMs());
+                  s.peakMeshes(), s.loads(), s.unloads(), s.worstLoadMs(), s.waiting(), static_cast<double>(w.eyeY + w.hop - s.groundAt(w.x, w.z)));
     game->status = text;
     return game->status.c_str();
 }
