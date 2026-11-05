@@ -12,6 +12,7 @@ namespace otw {
 
 constexpr float kEyeHeight = 1.65f, kBodyRadius = 0.3f, kWalkSpeed = 1.4f, kRunSpeed = 5.0f, kTrunkRadius = 0.35f;
 constexpr float kFlySpeed = 20.0f, kFlyFastSpeed = 80.0f;
+constexpr float kJumpSpeed = 4.7f, kGravity = 9.8f;  // leaves the ground at this speed, for a hop of about 1.1 m
 constexpr float kFlyClearance = 2.0f, kFlyCeiling = 400.0f;  // metres above the ground
 
 struct SolidOutline {
@@ -92,6 +93,18 @@ private:
 // Yaw 0 faces north (-z), 90 faces east (+x).
 struct Walker {
     float x = 0, z = 0, yawDeg = 0, pitchDeg = 0, eyeY = 0;
+    float hop = 0, hopSpeed = 0;  // height of a jump above the ground, kept apart from eyeY, which eases over the terrain
+
+    // A jump starts only from the ground, so holding the key hops rather than climbs.
+    void jump() {
+        if (hop <= 0) hopSpeed = kJumpSpeed;
+    }
+    void stepHop(float dt) {
+        if (hop <= 0 && hopSpeed <= 0) return;
+        hop += hopSpeed * dt;
+        hopSpeed -= kGravity * dt;
+        if (hop <= 0) hop = hopSpeed = 0;
+    }
 
     void look(float dyaw, float dpitch) {
         yawDeg = std::fmod(yawDeg + dyaw + 360.0f, 360.0f);
@@ -105,10 +118,10 @@ struct Walker {
     }
     // Moves by ahead/right (-1..1), sliding along solids and stopping where `walkable(x, z)` says no.
     template <typename Walkable>
-    void step(const Solids& solids, Walkable&& walkable, float ahead, float right, bool run, float dt) {
+    void step(const Solids& solids, Walkable&& walkable, float ahead, float right, bool run, float dt, float speed = kWalkSpeed) {
         const float length = std::hypot(ahead, right);
         if (length <= 0) return;
-        const float yaw = yawDeg * 3.14159265f / 180.0f, scale = (run ? kRunSpeed : kWalkSpeed) * dt / std::max(1.0f, length);
+        const float yaw = yawDeg * 3.14159265f / 180.0f, scale = (run ? speed * kRunSpeed / kWalkSpeed : speed) * dt / std::max(1.0f, length);
         const float fx = std::sin(yaw), fz = -std::cos(yaw);
         const float dx = (ahead * fx - right * fz) * scale, dz = (ahead * fz + right * fx) * scale;
         const int steps = std::max(1, static_cast<int>(std::ceil(std::hypot(dx, dz) / (kBodyRadius * 0.5f))));
@@ -124,12 +137,12 @@ struct Walker {
     // Moves freely toward the view: ahead and right follow the look, up follows the world. Solids do not
     // stop a flight, but `walkable(x, z)` does, one axis at a time so the edge of the map can be slid along.
     template <typename Walkable, typename Ground>
-    void fly(Walkable&& walkable, Ground&& ground, float ahead, float right, float up, bool fast, float dt) {
+    void fly(Walkable&& walkable, Ground&& ground, float ahead, float right, float up, bool fast, float dt, float speed = kFlySpeed) {
         const float length = std::sqrt(ahead * ahead + right * right + up * up);
         if (length > 0) {
             float f[3];
             forward(f);
-            const float yaw = yawDeg * 3.14159265f / 180.0f, scale = (fast ? kFlyFastSpeed : kFlySpeed) * dt / std::max(1.0f, length);
+            const float yaw = yawDeg * 3.14159265f / 180.0f, scale = (fast ? speed * kFlyFastSpeed / kFlySpeed : speed) * dt / std::max(1.0f, length);
             const float dx = (ahead * f[0] + right * std::cos(yaw)) * scale, dz = (ahead * f[2] + right * std::sin(yaw)) * scale;
             if (walkable(x + dx, z)) x += dx;
             if (walkable(x, z + dz)) z += dz;
