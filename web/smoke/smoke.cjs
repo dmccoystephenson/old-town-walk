@@ -244,6 +244,14 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     check((await page.evaluate(() => window.oldTownWalk.sunTime)) > sun, '] moves the sun');
   }
 
+  // Level the view first: how far the arrow keys tilted it depends on the machine's frame rate, and pavement filling
+  // the frame has too few colours to tell a real picture from a flat one.
+  if (!phone) {
+    await page.keyboard.down('ArrowUp');
+    await page.waitForFunction(() => window.oldTownWalk.status().pitch > -5, null, { timeout: 60000 });
+    await page.keyboard.up('ArrowUp');
+  }
+
   // A lost context is rebuilt, and the map comes back.
   const held = (await status()).tiles;
   check(await page.evaluate(() => window.oldTownWalk.kit.loseContext()), 'the context can be lost');
