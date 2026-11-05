@@ -201,7 +201,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   } else {
     const before = await status();
     await page.keyboard.down('KeyW');
-    await sleep(2500);
+    await page.waitForFunction(({ x, z }) => {
+      const s = window.oldTownWalk.status();
+      return Math.hypot(s.x - x, s.z - z) > 0.6;
+    }, { x: before.x, z: before.z }, { timeout: 60000 });
     await page.keyboard.up('KeyW');
     const walked = await status();
     const dist = Math.hypot(walked.x - before.x, walked.z - before.z);
