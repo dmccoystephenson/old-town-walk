@@ -30,6 +30,10 @@
   #brand a { color: var(--text); text-decoration: none; }
   #credit { position: absolute; left: 50%; transform: translateX(-50%); bottom: max(4px, env(safe-area-inset-bottom));
     font-size: 11px; color: var(--dim); background: var(--panel); border-radius: 8px; padding: 2px 8px; white-space: nowrap; }
+  #status { position: absolute; left: max(8px, env(safe-area-inset-left)); top: calc(max(8px, env(safe-area-inset-top)) + 56px);
+    font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace; white-space: pre; background: var(--panel); border-radius: 10px;
+    padding: 6px 10px; pointer-events: none; }
+  body.no-status #status { display: none; }
   /* Touch: a stick on the left, climb and descend on the right; drag anywhere else to look. */
   #stick { position: absolute; display: none; width: 132px; height: 132px; border-radius: 50%; touch-action: none;
     left: max(18px, env(safe-area-inset-left)); bottom: max(28px, env(safe-area-inset-bottom));
@@ -70,6 +74,7 @@
     <button id="flyBtn" aria-pressed="false" title="Fly (F)">Fly</button>
     <button id="helpBtn" title="Controls" aria-label="Controls">?</button>
   </div>
+  <div id="status" aria-hidden="true"></div>
   <div id="stick" aria-label="Move"><div id="knob"></div></div>
   <div id="height">
     <button id="upBtn" aria-label="Climb">&#9650;</button>
@@ -91,6 +96,7 @@
     <dt>F</dt><dd>Fly or land</dd>
     <dt>E / Q</dt><dd>Climb / descend when flying</dd>
     <dt>[ ]</dt><dd>Move the sun</dd>
+    <dt>Tab</dt><dd>Hide the status panel</dd>
   </dl>
   <dl class="fingers">
     <dt>Left stick</dt><dd>Walk. Push it all the way to run</dd>
