@@ -224,7 +224,9 @@
     });
     kit.setSun(sunTime, PLACE.lat, PLACE.lon);
     const text = mod.stringToNewUTF8(manifest);
-    const started = mod._otw_start(text, coarse ? 500 : 700);
+    // ?reach=<metres> narrows how far the map loads, as ?quality= sets the tier. The smoke test needs it:
+    // a software renderer on a small machine cannot draw the full view and still take input.
+    const started = mod._otw_start(text, parseFloat(search.get("reach")) || (coarse ? 500 : 700));
     mod._free(text);
     if (!started) throw Object.assign(new Error("The map could not be read."), {code: "engine"});
     window.oldTownWalk = {status, kit, shiftSun, get sunTime() { return sunTime; }};

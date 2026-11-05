@@ -59,8 +59,8 @@ jobs:
         run: |
           python3 -m http.server 8080 --bind 127.0.0.1 --directory web-site > http.log 2>&1 &
           sleep 1
-          node web/smoke/smoke.cjs "http://127.0.0.1:8080/?quality=0" smoke-out/desktop
-          node web/smoke/smoke.cjs "http://127.0.0.1:8080/?quality=0" smoke-out/phone --phone
+          node web/smoke/smoke.cjs "http://127.0.0.1:8080/?quality=0&reach=250" smoke-out/desktop
+          node web/smoke/smoke.cjs "http://127.0.0.1:8080/?quality=0&reach=250" smoke-out/phone --phone
 
       - name: Upload smoke screenshots
         if: always()

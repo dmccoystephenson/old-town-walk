@@ -88,18 +88,29 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   page.on('request', (r) => requests.push(r.url()));
   page.on('response', (r) => { if (r.status() >= 400 && !r.url().endsWith('favicon.ico')) errors.push(`${r.status()} ${r.url()}`); });
 
+  // Headless Chromium has no display to hold the page back, so it queues frames faster than a software
+  // renderer draws them and the page stops answering: each frame here waits for the GPU process, then
+  // leaves a gap for input to get through.
   // Pictures come straight off the canvas, in the task that drew them. page.screenshot goes through
-  // the compositor, which under a software renderer falls tens of seconds behind a scene this size, so
-  // it times out; this reads what GL drew, without the page's controls on top.
+  // the compositor, which falls tens of seconds behind a scene this size, so it times out; this reads
+  // what GL drew, without the page's controls on top.
   await page.addInitScript(() => {
+    const getContext = HTMLCanvasElement.prototype.getContext;
+    let gl = null;
+    HTMLCanvasElement.prototype.getContext = function (kind, ...rest) {
+      const made = getContext.call(this, kind, ...rest);
+      if (kind === 'webgl2' && made) gl = made;
+      return made;
+    };
     const raf = window.requestAnimationFrame.bind(window);
-    window.requestAnimationFrame = (draw) => raf((now) => {
+    window.requestAnimationFrame = (draw) => setTimeout(() => raf((now) => {
       draw(now);
+      if (gl) gl.finish();
       if (window.takeFrame) {
         window.takeFrame(document.getElementById('view').toDataURL('image/png'));
         window.takeFrame = null;
       }
-    });
+    }), 100);
   });
   await page.goto(url);
   const status = () => page.evaluate(() => window.oldTownWalk.status());
