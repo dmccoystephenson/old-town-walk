@@ -99,6 +99,27 @@
     if (mod) mod._otw_set_radius(settings.view);
   }
 
+  const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+  let sinceStatus = 1, frames = 0, fps = 0;
+  function showStatus(dt) {
+    frames++;
+    sinceStatus += dt;
+    if (sinceStatus < 0.25) return;
+    fps = frames / sinceStatus;
+    frames = 0; sinceStatus = 0;
+    const s = status();
+    const speed = flying ? settings.fly : settings.walk;
+    const minutes = Math.floor(((sunTime / 60 - 360) % 1440 + 1440) % 1440);  // Mountain Daylight Time
+    const clock = `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+    const heading = COMPASS[Math.floor(s.yaw / 45 + 0.5) & 7];
+    const lines = [`${flying ? "flying" : "on foot"}  ${speed.toFixed(speed < 10 ? 1 : 0)} m/s`];
+    if (!document.body.classList.contains("touch")) {
+      lines.push(`height  ${Math.round(s.height)} m`, `view    ${settings.view} m`, `facing  ${heading}`, `clock   ${clock}`,
+                 `tiles   ${s.tiles}${s.waiting > 0 ? ` +${s.waiting} loading` : ""}`, `${Math.round(fps)} fps  H help`);
+    }
+    $("status").textContent = lines.join("\n");
+  }
+
   let noteTimer = 0;
   function note(text) {
     const n = $("note");
@@ -127,6 +148,7 @@
       if (!e.repeat && e.code === "KeyF") toggleFly();
       if (e.code === "PageUp") { changeSpeed(1); e.preventDefault(); }
       if (e.code === "PageDown") { changeSpeed(-1); e.preventDefault(); }
+      if (e.code === "Tab") { document.body.classList.toggle("no-status"); e.preventDefault(); }
       if (e.code === "Minus") changeView(-1);
       if (e.code === "Equal") changeView(1);
       if (!e.repeat && e.code === "BracketLeft") shiftSun(-0.5);
@@ -218,6 +240,7 @@
       c.yaw = f[i]; c.pitch = f[i + 1]; c.dist = f[i + 2]; c.tx = f[i + 3]; c.ty = f[i + 4]; c.tz = f[i + 5];
     }
     pump();
+    if (shown) showStatus(dt);
     if (!shown) {
       StrataLoader.progress(0.5 + 0.5 * Math.min(tilesIn / 4, 1), `${tilesIn} map tiles`);
       if (status().ready) {
