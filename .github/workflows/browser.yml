@@ -70,6 +70,13 @@ jobs:
           path: smoke-out/
           if-no-files-found: ignore
 
+      - name: Upload the built site for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-site
+          path: web-site/
+          retention-days: 7
+
       - name: Write the deploy version
         run: |
           version=$(sed -n 's/^project(old-town-walk VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)

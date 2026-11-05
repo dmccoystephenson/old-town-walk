@@ -88,8 +88,25 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   page.on('request', (r) => requests.push(r.url()));
   page.on('response', (r) => { if (r.status() >= 400 && !r.url().endsWith('favicon.ico')) errors.push(`${r.status()} ${r.url()}`); });
 
+  // Pictures come straight off the canvas, in the task that drew them. page.screenshot goes through
+  // the compositor, which under a software renderer falls tens of seconds behind a scene this size, so
+  // it times out; this reads what GL drew, without the page's controls on top.
+  await page.addInitScript(() => {
+    const raf = window.requestAnimationFrame.bind(window);
+    window.requestAnimationFrame = (draw) => raf((now) => {
+      draw(now);
+      if (window.takeFrame) {
+        window.takeFrame(document.getElementById('view').toDataURL('image/png'));
+        window.takeFrame = null;
+      }
+    });
+  });
   await page.goto(url);
   const status = () => page.evaluate(() => window.oldTownWalk.status());
+  const shoot = async (file) => {
+    const png = await page.evaluate(() => new Promise((done) => { window.takeFrame = done; }));
+    fs.writeFileSync(file, Buffer.from(png.split(',')[1], 'base64'));
+  };
   await page.waitForFunction(() => window.oldTownWalk && window.oldTownWalk.status().ready === 1, null, { timeout: 180000 });
   const first = await status();
   console.log('ready', JSON.stringify(first));
@@ -101,12 +118,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   const help = page.locator('#help');
   check(await help.isVisible(), 'the controls show without a keyboard');
-  await page.screenshot({ path: path.join(outDir, 'help.png') });
   await page.locator('#start').click();
   check(!(await help.isVisible()), 'Start closes them');
   await sleep(1500);
   const groundShot = path.join(outDir, 'ground.png');
-  await page.screenshot({ path: groundShot });
+  await shoot(groundShot);
   check(colours(groundShot) > 40, 'the street is drawn');
   const level = await status();
   check(Math.abs(level.pitch) < 15, `starting does not swing the view (pitch ${level.pitch})`);
@@ -155,7 +171,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const high = await status();
     check(high.y > low.y + 5, `the climb button climbs (${(high.y - low.y).toFixed(1)} m)`);
     const air = path.join(outDir, 'air.png');
-    await page.screenshot({ path: air });
+    await shoot(air);
     check(colours(air) > 25, 'the view from the air is drawn');
     await tap('#flyBtn');
     check((await status()).flying === 0, 'Fly lands');
@@ -207,7 +223,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const tilted = await status();
     check(tilted.pitch < -5 && tilted.pitch > -85, `the arrow keys tilt the view (pitch ${tilted.pitch})`);
     const air = path.join(outDir, 'air.png');
-    await page.screenshot({ path: air });
+    await shoot(air);
     check(colours(air) > 25, 'the view from the air is drawn');
     await page.keyboard.press('KeyF');
     await sleep(300);
@@ -227,7 +243,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   check(true, `a lost context comes back with ${held} tiles`);
   await sleep(1000);
   const backShot = path.join(outDir, 'restored.png');
-  await page.screenshot({ path: backShot });
+  await shoot(backShot);
   check(colours(backShot) > 25, 'the frame after a restore is drawn');
 
   const end = await status();
