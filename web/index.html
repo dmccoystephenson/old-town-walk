@@ -66,6 +66,8 @@
   #help .fingers { display: none; }
   #start { width: 100%; background: var(--btn-on); border-color: var(--accent); margin-top: 6px; touch-action: manipulation; }
   body.touch #note { top: 122px; }  /* below the status panel, which a phone is too narrow to pass */
+  #homeBtn { width: 100%; margin-top: 8px; touch-action: manipulation; }
+  #homeBtn[hidden] { display: none; }
   #note { position: absolute; left: 50%; top: 66px; transform: translateX(-50%); background: var(--panel); border-radius: 10px;
     padding: 6px 12px; display: none; max-width: 90vw; text-align: center; }
 </style>
@@ -123,6 +125,7 @@
     <dt>+ &minus;</dt><dd>Fly faster or slower</dd>
   </dl>
   <button id="start">Start walking</button>
+  <button id="homeBtn" hidden>Back to the start</button>
 </div>
 <script src="strata-loader.js"></script>
 <script src="strata-kit.js"></script>

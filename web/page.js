@@ -124,6 +124,10 @@
     else note(touching() ? "On the bike: push the stick up to pedal, sideways to steer" : "On the bike: W pedals, S brakes, A and D steer");
   }
 
+  function started() {  // the panel is now a pause, not a welcome
+    $("start").textContent = "Back to the walk";
+    $("homeBtn").hidden = false;
+  }
   const helpOpen = () => $("help").classList.contains("on");
   function setHelp(on) {
     $("help").classList.toggle("on", on);
@@ -132,7 +136,7 @@
       $("start").focus();
     } else {
       stored.set("old-town-walk-seen", "1");
-      $("start").textContent = "Back to the walk";
+      started();
       canvas.focus();
       grabMouse();
     }
@@ -324,6 +328,7 @@
     $("bikeBtn").addEventListener("click", () => { toggleBike(); canvas.focus(); });
     $("helpBtn").addEventListener("click", () => setHelp(!helpOpen()));
     $("start").addEventListener("click", () => setHelp(false));
+    $("homeBtn").addEventListener("click", () => { goToStart(); setHelp(false); });
   }
 
   /* ------------------------------------------------------- frames */
@@ -358,7 +363,7 @@
         shown = true;
         StrataLoader.done();
         if (stored.get("old-town-walk-seen") !== "1") setHelp(true);
-        else $("start").textContent = "Back to the walk";
+        else started();
       }
     }
   }
