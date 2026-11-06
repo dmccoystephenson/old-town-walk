@@ -69,15 +69,15 @@ Press **H** in the window to see these at any time. In a browser on a phone, the
 | Mouse or arrow keys | Look |
 | Shift | Go faster: run, fly four times as fast, or sprint on the bike. The panel shows the speed you are going. |
 | Space | Jump. In the air, Space climbs. |
-| F | Fly, or land on the ground outside any building |
+| F | Fly, or land on the ground outside any building. On the bike, either F or R gets you off. |
 | E or Space, Q | Climb and descend while flying. Ctrl descends too, on the desktop. |
-| Mouse wheel, or Page Up and Page Down | Set your speed: 5 to 800 m/s flying, 0.7 to 14 m/s on foot |
+| Mouse wheel, or Page Up and Page Down | Set your speed: 5 to 800 m/s flying, 3 to 40 m/s on the bike, 0.7 to 14 m/s on foot |
 | `-` and `=` | Shorten or lengthen the view, 200 to 1,500 m |
 | `,` and `.` | Mouse sensitivity |
 | 9 and 0 | Field of view, 40 to 110 degrees |
 | I | Invert the mouse's up and down |
 | Z | Hold to zoom in on something far away |
-| B | Get on or off the bike: W pedals, S brakes, A and D steer, Shift goes faster |
+| B | Get on or off the bike: W pedals, S brakes and backs up, A and D steer, Shift goes faster |
 | R | Back to where you started |
 | `[` and `]` | Time of day |
 | P | Save a screenshot |
