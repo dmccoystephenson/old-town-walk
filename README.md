@@ -37,6 +37,8 @@ The program is not code-signed, so Windows SmartScreen may warn about an unknown
 
 ## Play in a browser
 
+Play it now at **[old-town-walk.play.danielstephenson.dev](https://old-town-walk.play.danielstephenson.dev)**.
+
 The page in `web/` runs the same tiles and walker on Strata's WebGL 2 backend and web kit. It needs WebGL 2 and works
 with a keyboard and mouse or a touch screen: a stick to walk, drag to look, and buttons to fly, climb and descend.
 
