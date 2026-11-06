@@ -7,10 +7,11 @@ import json
 import sys
 from pathlib import Path
 
-from .fetch import fetch, sha256, verify
+from .fetch import fetch, fetch_street_names, sha256, verify
 from .geo import Area
 from .osm import parse
 from .sanitize import sanitize
+from .streets import load_names, manifest_lines
 from .tiles import Dem, build_all
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -18,7 +19,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="old-town-walk")
-    ap.add_argument("command", choices=["fetch", "sanitize", "verify", "build"])
+    ap.add_argument("command", choices=["fetch", "names", "sanitize", "verify", "build"])
     ap.add_argument("--area", type=Path, default=ROOT / "area.json")
     ap.add_argument("--raw", type=Path, default=ROOT / "data" / "raw")
     ap.add_argument("--out", type=Path, default=ROOT / "build" / "tiles")
@@ -27,6 +28,9 @@ def main(argv=None) -> int:
     area = Area.load(args.area)
     if args.command == "fetch":
         fetch(area, args.fetched)
+        return 0
+    if args.command == "names":
+        print(f"wrote {fetch_street_names(area, args.raw)}")
         return 0
     if args.command == "sanitize":
         out = args.raw / "osm-sample.osm"
@@ -39,7 +43,9 @@ def main(argv=None) -> int:
         bad = verify(args.raw)
         print("raw data OK" if not bad else f"mismatch: {bad}")
         return 1 if bad else 0
-    summary = build_all(area, parse(sorted(args.raw.glob("osm-*.osm"))), Dem(args.raw / "dem-3dep.tif"), args.out)
+    osm = parse(sorted(args.raw.glob("osm-*.osm")))
+    streets = manifest_lines(area, osm, load_names(args.raw / "street-names.csv"))
+    summary = build_all(area, osm, Dem(args.raw / "dem-3dep.tif"), args.out, streets)
     print(f"wrote {args.out}: {summary}")
     return 0
 

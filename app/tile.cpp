@@ -102,6 +102,22 @@ bool parseManifest(const std::string& text, const std::string& dir, Manifest& m)
             TileKey k;
             s >> k.ix >> k.iy;
             if (s) m.tiles.push_back(k);
+        } else if (word == "street") {
+            size_t id = 0;
+            std::string name;
+            s >> id;
+            std::getline(s >> std::ws, name);
+            if (!name.empty()) m.streets.addName(id, name);
+        } else if (word == "road") {
+            StreetRoad road;
+            s >> road.street;
+            double value = 0;
+            while (s >> value) road.en.push_back(value);
+            if (road.en.size() >= 4) m.streets.roads.push_back(std::move(road));
+        } else if (word == "sign") {
+            StreetSign sign;
+            s >> sign.east >> sign.north >> sign.a >> sign.b;
+            if (s) m.streets.signs.push_back(sign);
         }
     }
     return header && m.tileSize > 0 && !m.tiles.empty();

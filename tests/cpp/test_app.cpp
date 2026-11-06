@@ -237,6 +237,26 @@ static void testWalking() {
     CHECK(!solids.inside(110, 210));
 }
 
+static void testStreets() {
+    otw::Manifest m;
+    CHECK(otw::parseManifest("old-town-walk-manifest 1\ntile_size 500\ntile 1 2 3 abc\nstreet 0 Linden St\nstreet 1 E Mountain Ave\n"
+                             "road 0 0 0 100 0\nroad 1 50 -40 50 40\nsign 54.0 6.0 0 1\n", "x", m));
+    const otw::Streets& s = m.streets;
+    CHECK(s.names.size() == 2 && s.roads.size() == 2 && s.signs.size() == 1);
+    CHECK(s.names[1] == "E Mountain Ave");
+    CHECK(s.streetAt(10, 5, 35) == 0);
+    CHECK(s.streetAt(52, 30, 35) == 1);
+    CHECK(s.streetAt(10, 100, 35) == -1);
+    CHECK(s.signText(s.signs[0]) == "LINDEN ST / E MOUNTAIN AVE");
+    auto always = [](const otw::StreetSign&) { return true; };
+    auto never = [](const otw::StreetSign&) { return false; };
+    CHECK(s.signsNear(50, 0, 20, 6, always).size() == 1);
+    CHECK(s.signsNear(500, 0, 20, 6, always).empty());
+    CHECK(s.signsNear(50, 0, 20, 6, never).empty());
+    CHECK(otw::hudText({false, 1.4f, 700, 1.65f, 0, 60, 4, 0, 0.5f, "Linden St"}).find("street  Linden St") != std::string::npos);
+    CHECK(otw::hudText({false, 1.4f, 700, 1.65f, 0, 60, 4, 0, 0.5f}).find("street  -") != std::string::npos);
+}
+
 static void testFiles() {
     otw::Manifest m;
     std::string err;
@@ -312,6 +332,7 @@ int main(int argc, char** argv) {
     testStreaming();
     testWalking();
     testFiles();
+    testStreets();
     if (failures) std::fprintf(stderr, "%d failure(s)\n", failures);
     else std::puts("test_app: all checks passed");
     return failures ? 1 : 0;
