@@ -235,6 +235,7 @@
 
   function wireInput() {
     window.addEventListener("keydown", (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;  // the browser's own shortcuts: Ctrl+F is find, not take off
       if (!e.repeat && e.code === "KeyF") toggleFly();
       if (!e.repeat && e.code === "KeyB") toggleBike();
       if (e.code === "PageUp") { changeSpeed(1); e.preventDefault(); }
@@ -349,7 +350,7 @@
   function frame(t, now, dt) {
     const ahead = move.ahead + keyed("KeyW", "KeyS"), right = move.right + keyed("KeyD", "KeyA");
     const up = (lift.up ? 1 : 0) - (lift.down ? 1 : 0) +
-      (held.has("KeyE") || held.has("Space") ? 1 : 0) - (held.has("KeyQ") || held.has("ControlLeft") ? 1 : 0);
+      (held.has("KeyE") || held.has("Space") ? 1 : 0) - (held.has("KeyQ") ? 1 : 0);
     const run = move.run || held.has("ShiftLeft") || held.has("ShiftRight");
     if (!flying && held.has("Space")) mod._otw_jump();
     dyaw += keyed("ArrowRight", "ArrowLeft") * KEY_DEG * dt;

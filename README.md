@@ -70,7 +70,7 @@ Press **H** in the window to see these at any time. In a browser on a phone, the
 | Shift | Go faster: run, fly four times as fast, or sprint on the bike. The panel shows the speed you are going. |
 | Space | Jump. In the air, Space climbs. |
 | F | Fly, or land on the ground outside any building |
-| E or Space, Q or Ctrl | Climb and descend while flying |
+| E or Space, Q | Climb and descend while flying. Ctrl descends too, on the desktop. |
 | Mouse wheel, or Page Up and Page Down | Set your speed: 5 to 800 m/s flying, 0.7 to 14 m/s on foot |
 | `-` and `=` | Shorten or lengthen the view, 200 to 1,500 m |
 | `,` and `.` | Mouse sensitivity |
