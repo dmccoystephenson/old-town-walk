@@ -52,14 +52,14 @@ struct Streets {
     // Signs within `radius` metres that `seen(sign)` allows, nearest first, at most `most` of them.
     template <typename Seen>
     std::vector<const StreetSign*> signsNear(double east, double north, double radius, size_t most, Seen&& seen) const {
-        std::vector<std::pair<double, const StreetSign*>> near;
+        std::vector<std::pair<double, const StreetSign*>> nearby;
         for (const StreetSign& s : signs) {
             const double d = std::hypot(s.east - east, s.north - north);
-            if (d <= radius) near.push_back({d, &s});
+            if (d <= radius) nearby.push_back({d, &s});
         }
-        std::sort(near.begin(), near.end(), [](const auto& l, const auto& r) { return l.first < r.first; });
+        std::sort(nearby.begin(), nearby.end(), [](const auto& l, const auto& r) { return l.first < r.first; });
         std::vector<const StreetSign*> out;
-        for (const auto& n : near) {
+        for (const auto& n : nearby) {
             if (out.size() == most) break;
             if (seen(*n.second)) out.push_back(n.second);
         }
