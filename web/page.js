@@ -124,6 +124,20 @@
     else note(touching() ? "On the bike: push the stick up to pedal, sideways to steer" : "On the bike: W pedals, S brakes, A and D steer");
   }
 
+  const helpOpen = () => $("help").classList.contains("on");
+  function setHelp(on) {
+    $("help").classList.toggle("on", on);
+    if (on) {
+      if (locked()) document.exitPointerLock();  // the panel's buttons need a cursor
+      $("start").focus();
+    } else {
+      stored.set("old-town-walk-seen", "1");
+      $("start").textContent = "Back to the walk";
+      canvas.focus();
+      grabMouse();
+    }
+  }
+
   function shiftSun(hours) {
     sunTime += hours * 3600;
     if (kit) kit.setSun(sunTime, PLACE.lat, PLACE.lon);
@@ -218,7 +232,8 @@
         keepSettings();
         if (!settings.status) note("Panel hidden: Tab brings it back");
       }
-      if (!e.repeat && e.code === "KeyH") $("help").classList.toggle("on");
+      if (!e.repeat && e.code === "KeyH") setHelp(!helpOpen());
+      if (e.code === "Escape" && helpOpen()) setHelp(false);
       if (!e.repeat && e.code === "KeyR") goToStart();
       if (e.code === "Comma") changeSensitivity(-1);
       if (e.code === "Period") changeSensitivity(1);
@@ -251,6 +266,7 @@
 
     canvas.addEventListener("pointerdown", (e) => {
       if (e.pointerType === "touch") useTouch();
+      if (helpOpen()) setHelp(false);
       if (e.pointerType === "mouse") grabMouse();
       if (lookId === null) { lookId = e.pointerId; lookX = e.clientX; lookY = e.clientY; }
     });
@@ -267,7 +283,7 @@
     });
     document.addEventListener("pointerlockchange", () => {
       settling = 3; lookId = null;
-      if (!locked() && shown && !$("help").classList.contains("on")) note("Click to look around");
+      if (!locked() && shown && !helpOpen()) note("Click to look around");
     });
     const endLook = (e) => { if (e.pointerId === lookId) lookId = null; };
     canvas.addEventListener("pointerup", endLook);
@@ -306,13 +322,8 @@
     $("slowerBtn").addEventListener("click", () => changeSpeed(-2));
     $("flyBtn").addEventListener("click", () => { toggleFly(); canvas.focus(); });
     $("bikeBtn").addEventListener("click", () => { toggleBike(); canvas.focus(); });
-    $("helpBtn").addEventListener("click", () => $("help").classList.toggle("on"));
-    $("start").addEventListener("click", () => {
-      $("help").classList.remove("on");
-      stored.set("old-town-walk-seen", "1");
-      canvas.focus();
-      grabMouse();
-    });
+    $("helpBtn").addEventListener("click", () => setHelp(!helpOpen()));
+    $("start").addEventListener("click", () => setHelp(false));
   }
 
   /* ------------------------------------------------------- frames */
@@ -346,7 +357,8 @@
       if (status().ready) {
         shown = true;
         StrataLoader.done();
-        if (stored.get("old-town-walk-seen") !== "1") $("help").classList.add("on");
+        if (stored.get("old-town-walk-seen") !== "1") setHelp(true);
+        else $("start").textContent = "Back to the walk";
       }
     }
   }
