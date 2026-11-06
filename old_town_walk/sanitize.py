@@ -2,7 +2,7 @@
 
 An OSM download carries each object's editor name, user id, changeset and timestamps, along with names, addresses,
 phone numbers and websites. None of that is needed to draw a block, so none of it is kept: only geometry, element ids
-(which pick colours) and the tags in KEEP_TAGS.
+(which pick colours) and the tags in KEEP_TAGS. Street names live apart, in street-names.csv.
 """
 
 from __future__ import annotations

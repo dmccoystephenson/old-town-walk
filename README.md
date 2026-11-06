@@ -35,6 +35,8 @@ There is nothing to install. It needs OpenGL 4.5, which most PCs from the last d
 The program is not code-signed, so Windows SmartScreen may warn about an unknown publisher. Choose **More info**, then
 **Run anyway**.
 
+Street signs stand at the crossings, and the status panel names the street you are on.
+
 ## Play in a browser
 
 Play it now at **[old-town-walk.play.danielstephenson.dev](https://old-town-walk.play.danielstephenson.dev)**.

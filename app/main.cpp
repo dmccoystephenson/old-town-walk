@@ -17,6 +17,7 @@
 #include "streaming.h"
 #include "strata/strata.h"
 #include "tile.h"
+#include "sign_view.h"
 #include "tile_stream.h"
 #include "walker.h"
 
@@ -206,6 +207,8 @@ int main(int argc, char** argv) {
         noteLeft = 3;
     };
     // One StrataText a line, because a '\n' inside one leaves no gap between lines.
+    otw::SignView signs;
+    int signFrames = 0;
     auto writeLines = [&](float x, float y, const std::string& text, const float color[4]) -> bool {
         std::vector<std::string> lines(1);
         for (char c : text) {
@@ -228,7 +231,7 @@ int main(int argc, char** argv) {
         if (noteLeft > 0 && !writeLines(centre - static_cast<float>(note.size()) * kGlyph / 2, static_cast<float>(h) - 56, note, yellow)) return false;
         if (!a.headless && !mouseHeld) {
             const std::string freed = "Click to look around. Esc again quits.";
-            if (!writeLines(centre - static_cast<float>(freed.size()) * kGlyph / 2, 7 * kLineGap + 34, freed, yellow)) return false;
+            if (!writeLines(centre - static_cast<float>(freed.size()) * kGlyph / 2, 8 * kLineGap + 34, freed, yellow)) return false;
         }
         if (helpOpen) {
             const StrataRect panel{static_cast<float>(w) - 33 * kGlyph - 24, 8, 33 * kGlyph + 16, 19 * kLineGap + 10, {0, 0, 0, 0.5f}};
@@ -237,12 +240,26 @@ int main(int argc, char** argv) {
         if (!hud) return true;
         const otw::HudState state{flying, flying ? flySpeed : walkSpeed, stream.viewRadius(),
                                   walker.eyeY + walker.hop - stream.groundAt(walker.x, walker.z), walker.yawDeg, fps,
-                                  stream.tileCount(), stream.waiting(), light.time_of_day};
+                                  stream.tileCount(), stream.waiting(), light.time_of_day, signs.street()};
         const std::string text = otw::hudText(state);
-        const StrataRect panel{8, 8, 20 * kGlyph + 16, 7 * kLineGap + 10, {0, 0, 0, 0.5f}};
+        const StrataRect panel{8, 8, 26 * kGlyph + 16, 8 * kLineGap + 10, {0, 0, 0, 0.5f}};
         return check(strata_submit_rects(engine, &panel, 1), "status panel") && writeLines(16, 14, text, white);
     };
+    auto drawSigns = [&]() -> bool {
+        const auto& items = signs.items();
+        if (items.empty()) return true;
+        std::vector<StrataText> texts;
+        std::vector<float> anchors;
+        for (const otw::SignView::Label& l : signs.labels()) {
+            texts.push_back({-static_cast<float>(l.text.size()) * otw::kSignPixels / 2, -otw::kSignPixels, otw::kSignPixels,
+                             STRATA_TEXT_SHADOW, {1, 1, 1, 1}, l.text.c_str()});
+            anchors.insert(anchors.end(), l.at, l.at + 3);
+        }
+        return check(strata_submit_primitives(engine, items.data(), static_cast<int32_t>(items.size())), "signs") &&
+               check(strata_submit_world_text(engine, texts.data(), anchors.data(), static_cast<int32_t>(texts.size())), "sign text");
+    };
     auto draw = [&]() -> bool {
+        if (signFrames++ % 15 == 0) signs.update(manifest.streets, stream, walker, flying);
         float ahead[3];
         walker.forward(ahead);
         const float eye[3] = {walker.x, walker.eyeY + walker.hop, walker.z};
@@ -256,7 +273,7 @@ int main(int argc, char** argv) {
         return check(strata_set_camera(engine, &c), "camera") && check(strata_set_lighting(engine, &light), "lighting") &&
                check(strata_begin_frame(engine, &fd), "begin_frame") &&
                check(strata_submit_primitives(engine, trees.data(), static_cast<int32_t>(trees.size())), "trees") &&
-               overlay() &&
+               drawSigns() && overlay() &&
                check(strata_end_frame(engine), "end_frame");
     };
     auto walkableHere = [&](float x, float z) { return stream.walkable(x, z); };

@@ -12,6 +12,7 @@
 #include <string>
 
 #include "tile.h"
+#include "sign_view.h"
 #include "tile_stream.h"
 #include "walker.h"
 
@@ -36,6 +37,8 @@ struct Game {
     float startX = 0, startZ = 0;
     float camera[6] = {};
     std::string status;
+    otw::SignView signs;
+    int signFrames = 0;
 };
 
 Game* game = nullptr;
@@ -110,6 +113,9 @@ void strata_kit_build(strata_kit::Host& h, double) {
     if (!game || !game->stream) return;
     const auto& trees = game->stream->trees();
     h.items.insert(h.items.end(), trees.begin(), trees.end());
+    const auto& signs = game->signs.items();
+    h.items.insert(h.items.end(), signs.begin(), signs.end());
+    for (const otw::SignView::Label& l : game->signs.labels()) h.label(l.at[0], l.at[1], l.at[2], l.text.c_str(), otw::kSignPixels);
     h.meshes = game->stream->meshes();
 }
 
@@ -177,6 +183,7 @@ EMSCRIPTEN_KEEPALIVE const float* otw_step(float dt, float ahead, float right, f
             w.stepHop(dt);
         }
     }
+    if (game->placed && game->signFrames++ % 15 == 0) game->signs.update(game->manifest.streets, s, w, game->flying);
     aimCamera();
     return game->camera;
 }
@@ -236,13 +243,14 @@ EMSCRIPTEN_KEEPALIVE const char* otw_status() {
     if (!game || !game->stream) return "{}";
     const otw::Stream& s = *game->stream;
     const otw::Walker& w = game->walker;
-    char text[360];
+    char text[440];
     std::snprintf(text, sizeof text,
                   "{\"ready\":%d,\"x\":%.2f,\"y\":%.2f,\"z\":%.2f,\"yaw\":%.1f,\"pitch\":%.1f,\"flying\":%d,\"tiles\":%d,"
-                  "\"meshes\":%d,\"peak\":%d,\"loads\":%d,\"unloads\":%d,\"worstMs\":%.1f,\"waiting\":%d,\"height\":%.1f}",
+                  "\"meshes\":%d,\"peak\":%d,\"loads\":%d,\"unloads\":%d,\"worstMs\":%.1f,\"waiting\":%d,\"height\":%.1f,\"street\":\"%s\",\"signs\":%d}",
                   game->ready ? 1 : 0, static_cast<double>(w.x), static_cast<double>(w.eyeY), static_cast<double>(w.z),
                   static_cast<double>(w.yawDeg), static_cast<double>(w.pitchDeg), game->flying ? 1 : 0, s.tileCount(), s.meshes(),
-                  s.peakMeshes(), s.loads(), s.unloads(), s.worstLoadMs(), s.waiting(), static_cast<double>(w.eyeY + w.hop - s.groundAt(w.x, w.z)));
+                  s.peakMeshes(), s.loads(), s.unloads(), s.worstLoadMs(), s.waiting(), static_cast<double>(w.eyeY + w.hop - s.groundAt(w.x, w.z)),
+                  game->signs.street().c_str(), static_cast<int>(game->signs.labels().size()));
     game->status = text;
     return game->status.c_str();
 }

@@ -122,6 +122,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const first = await status();
   check(first.yaw === 225, 'the walk begins facing down Old Town Square');
   console.log('ready', JSON.stringify(first));
+  await page.waitForFunction(() => window.oldTownWalk.status().street !== '', null, { timeout: 30000 });
+  const named = await status();
+  check(named.street.length > 0, `the status names the street (${named.street})`);
+  check(named.signs > 0, `street signs stand nearby (${named.signs})`);
   check(requests.filter((r) => /\.tile\.gz$/.test(r)).length >= 4, 'tiles arrive on demand');
   check(requests.every((r) => r.startsWith(new URL(url).origin) || r.startsWith('data:') || r.startsWith('blob:')), 'nothing is fetched from another site');
   await page.waitForFunction(() => document.querySelector('.sk-loader') === null ||

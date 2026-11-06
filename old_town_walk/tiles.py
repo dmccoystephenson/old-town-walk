@@ -244,11 +244,12 @@ def write_tile(path: Path, area: Area, tile: Tile, painted: list, dem: Dem, datu
             f.write(TREE.pack(east - tw, y, tn - north, height, height * 0.32, *[(c / 255) ** 2.2 for c in rgb]))
 
 
-def write_manifest(path: Path, area: Area, datum: float, sizes: dict) -> None:
+def write_manifest(path: Path, area: Area, datum: float, sizes: dict, streets: list = ()) -> None:
     e, n = area.centre_utm()
     lines = ["old-town-walk-manifest 1", f"name {area.name}", "epsg 32613", f"tile_size {area.tile_size:g}", f"cell {area.cell:g}",
              f"datum {datum:g}", f"latitude {area.centre_lat}", f"start {e:.1f} {n:.1f}", f"tiles {len(sizes)}"]
     lines += [f"tile {ix} {iy} {size} {digest}" for (ix, iy), (size, digest) in sorted(sizes.items())]
+    lines += streets
     path.write_text("\n".join(lines) + "\n")
 
 
@@ -269,7 +270,7 @@ def tile_name(ix: int, iy: int) -> str:
     return f"{ix}_{iy}.tile"
 
 
-def build_all(area: Area, osm: OsmData, dem: Dem, out: Path) -> dict:
+def build_all(area: Area, osm: OsmData, dem: Dem, out: Path, streets: list = ()) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     tiles, datum = build_tiles(area, osm, dem)
     painted = painted_areas(osm)
@@ -278,6 +279,6 @@ def build_all(area: Area, osm: OsmData, dem: Dem, out: Path) -> dict:
         path = out / tile_name(*key)
         write_tile(path, area, tile, painted, dem, datum)
         sizes[key] = (path.stat().st_size, hashlib.sha256(path.read_bytes()).hexdigest()[:16])
-    write_manifest(out / "manifest.txt", area, datum, sizes)
+    write_manifest(out / "manifest.txt", area, datum, sizes, streets)
     return {"tiles": len(tiles), "buildings": sum(len(t.footprints) for t in tiles.values()),
             "trees": sum(len(t.trees) for t in tiles.values()), "bytes": sum(s for s, _ in sizes.values())}
