@@ -58,7 +58,7 @@ if(EMSCRIPTEN)
   string(APPEND _incoming ",websocket,wasmBinary")
   set(_exports "_malloc,_free,_sk_init,_sk_restore,_sk_kit_version,_sk_resize,_sk_set_quality,_sk_set_camera,_sk_set_sun")
   string(APPEND _exports ",_sk_view_proj,_sk_stats,_sk_frame")
-  string(APPEND _exports ",_otw_start,_otw_tile,_otw_step,_otw_toggle_fly,_otw_set_radius,_otw_status,_otw_jump,_otw_set_speeds,_otw_limit,_otw_go_to_start")
+  string(APPEND _exports ",_otw_start,_otw_tile,_otw_step,_otw_toggle_fly,_otw_set_radius,_otw_status,_otw_jump,_otw_set_speeds,_otw_limit,_otw_go_to_start,_otw_toggle_bike,_otw_set_bike_speed")
   target_link_options(old-town-walk-web PRIVATE
     -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sENVIRONMENT=web -sMODULARIZE=1 -sEXPORT_NAME=createWalk
     -sSTACK_SIZE=1MB -sINITIAL_MEMORY=96MB

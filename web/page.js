@@ -14,10 +14,10 @@
   const stored = StrataKit.store;
 
 
-  const FLY = [5, 800], WALK = [0.7, 14], VIEW = [200, 1500], NOTCH = 1.25, VIEW_STEP = 100;
+  const FLY = [5, 800], WALK = [0.7, 14], BIKE = [2, 12], VIEW = [200, 1500], NOTCH = 1.25, VIEW_STEP = 100;
   const SENSITIVITY = [0.03, 0.6];
   const clamp = (v, [low, high]) => Math.min(high, Math.max(low, v));
-  const DEFAULTS = {fly: 20, walk: 1.4, view: coarse ? 500 : 700, sensitivity: MOUSE_DEG, invert: false, status: true};
+  const DEFAULTS = {fly: 20, walk: 1.4, bike: 5.5, view: coarse ? 500 : 700, sensitivity: MOUSE_DEG, invert: false, status: true};
   const settings = {...DEFAULTS};
   function loadSettings() {
     let saved = {};
@@ -25,6 +25,7 @@
     const number = (v, fallback) => (typeof v === "number" && isFinite(v) ? v : fallback);
     settings.fly = clamp(number(saved.fly, DEFAULTS.fly), FLY);
     settings.walk = clamp(number(saved.walk, DEFAULTS.walk), WALK);
+    settings.bike = clamp(number(saved.bike, DEFAULTS.bike), BIKE);
     settings.view = clamp(number(saved.view, DEFAULTS.view), VIEW);
     settings.sensitivity = clamp(number(saved.sensitivity, DEFAULTS.sensitivity), SENSITIVITY);
     settings.invert = saved.invert === true;
@@ -35,10 +36,11 @@
     document.body.classList.toggle("no-status", !settings.status);
     if (!mod) return;
     mod._otw_set_speeds(settings.fly, settings.walk);
+    mod._otw_set_bike_speed(settings.bike);
     mod._otw_set_radius(parseFloat(search.get("reach")) || settings.view);
   }
 
-  let mod = null, kit = null, sunTime = MIDSUMMER_AFTERNOON, flying = false, shown = false, failed = false;
+  let mod = null, kit = null, sunTime = MIDSUMMER_AFTERNOON, flying = false, riding = false, shown = false, failed = false;
 
   /* ------------------------------------------------------- tiles */
   const queue = [];
@@ -99,7 +101,24 @@
     document.body.classList.toggle("flying", on);
     $("flyBtn").setAttribute("aria-pressed", String(on));
   }
-  function toggleFly() { if (mod) setFlying(mod._otw_toggle_fly() === 1); }
+  function toggleFly() {
+    if (!mod) return;
+    setFlying(mod._otw_toggle_fly() === 1);
+    setRiding(false);
+  }
+  function setRiding(on) {
+    riding = on;
+    document.body.classList.toggle("riding", on);
+    $("bikeBtn").setAttribute("aria-pressed", String(on));
+    if (!on) canvas.style.transform = "";
+  }
+  function toggleBike() {
+    if (!mod) return;
+    const on = mod._otw_toggle_bike() === 1;
+    setFlying(false);
+    setRiding(on);
+    note(on ? "On the bike: W pedals, S brakes, A and D steer" : "Off the bike");
+  }
 
   function shiftSun(hours) {
     sunTime += hours * 3600;
@@ -107,7 +126,7 @@
   }
 
   function changeSpeed(notches) {
-    const key = flying ? "fly" : "walk", range = flying ? FLY : WALK, before = settings[key];
+    const key = flying ? "fly" : riding ? "bike" : "walk", range = flying ? FLY : riding ? BIKE : WALK, before = settings[key];
     settings[key] = clamp(before * Math.pow(NOTCH, notches), range);
     if (settings[key] === before) note(notches > 0 ? "That is the top speed" : "That is the lowest speed");
     applySettings();
@@ -129,6 +148,7 @@
     if (!mod) return;
     mod._otw_go_to_start();
     setFlying(false);
+    setRiding(false);
     note("Back at the start");
   }
 
@@ -141,11 +161,11 @@
     fps = frames / sinceStatus;
     frames = 0; sinceStatus = 0;
     const s = status();
-    const speed = flying ? settings.fly : settings.walk;
+    const speed = riding ? Math.abs(s.speed) : flying ? settings.fly : settings.walk;
     const minutes = Math.floor(((sunTime / 60 - 360) % 1440 + 1440) % 1440);  // Mountain Daylight Time
     const clock = `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
     const heading = COMPASS[Math.floor(s.yaw / 45 + 0.5) & 7];
-    const lines = [`${flying ? "flying" : "on foot"}  ${speed.toFixed(speed < 10 ? 1 : 0)} m/s`, `street  ${s.street || "-"}`];
+    const lines = [`${riding ? "riding" : flying ? "flying" : "on foot"}  ${speed.toFixed(speed < 10 ? 1 : 0)} m/s`, `street  ${s.street || "-"}`];
     if (!document.body.classList.contains("touch")) {
       lines.push(`height  ${Math.round(s.height)} m`, `view    ${settings.view} m`, `facing  ${heading}`, `clock   ${clock}`,
                  `tiles   ${s.tiles}${s.waiting > 0 ? ` +${s.waiting} loading` : ""}`, `${Math.round(fps)} fps  H help`);
@@ -180,6 +200,7 @@
   function wireInput() {
     window.addEventListener("keydown", (e) => {
       if (!e.repeat && e.code === "KeyF") toggleFly();
+      if (!e.repeat && e.code === "KeyB") toggleBike();
       if (e.code === "PageUp") { changeSpeed(1); e.preventDefault(); }
       if (e.code === "PageDown") { changeSpeed(-1); e.preventDefault(); }
       if (e.code === "Tab") { settings.status = !settings.status; applySettings(); keepSettings(); e.preventDefault(); }
@@ -270,6 +291,7 @@
     $("fasterBtn").addEventListener("click", () => changeSpeed(2));
     $("slowerBtn").addEventListener("click", () => changeSpeed(-2));
     $("flyBtn").addEventListener("click", () => { toggleFly(); canvas.focus(); });
+    $("bikeBtn").addEventListener("click", () => { toggleBike(); canvas.focus(); });
     $("helpBtn").addEventListener("click", () => $("help").classList.toggle("on"));
     $("start").addEventListener("click", () => {
       $("help").classList.remove("on");
@@ -300,6 +322,10 @@
     if (at) {
       const f = mod.HEAPF32, i = at >> 2, c = kit.cam;
       c.yaw = f[i]; c.pitch = f[i + 1]; c.dist = f[i + 2]; c.tx = f[i + 3]; c.ty = f[i + 4]; c.tz = f[i + 5];
+      if (riding) {  // the kit's camera cannot tilt, so the canvas does, half as far, and grows to keep its corners covered
+        const lean = f[i + 6] / 2;
+        canvas.style.transform = `rotate(${(-lean).toFixed(2)}deg) scale(${(1 + Math.abs(lean) * 0.033).toFixed(3)})`;
+      }
     }
     pump();
     if (shown) showStatus(dt);

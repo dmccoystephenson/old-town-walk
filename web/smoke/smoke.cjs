@@ -259,6 +259,23 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await page.keyboard.press('KeyF');
     await sleep(300);
     check((await status()).flying === 0, 'F lands');
+    // The bike goes where its wheels point: it builds up speed, turns in an arc and keeps rolling.
+    await page.keyboard.press('KeyB');
+    await page.waitForFunction(() => window.oldTownWalk.status().riding === 1, null, { timeout: 5000 });
+    check(true, 'B gets on the bike');
+    await page.keyboard.down('KeyW');
+    await page.waitForFunction(() => window.oldTownWalk.status().speed > 1, null, { timeout: 60000 });
+    check(true, 'W pedals');
+    const straight = await status();
+    await page.keyboard.down('KeyD');
+    await page.waitForFunction((yaw) => Math.abs(window.oldTownWalk.status().yaw - yaw) > 5, straight.yaw, { timeout: 60000 });
+    await page.keyboard.up('KeyD');
+    await page.keyboard.up('KeyW');
+    await shoot(path.join(outDir, 'bike.png'));
+    check(true, 'D steers the bike');
+    await page.keyboard.press('KeyB');
+    await page.waitForFunction(() => window.oldTownWalk.status().riding === 0, null, { timeout: 5000 });
+    check(true, 'B gets off the bike');
     // Speed and view, then a jump on the ground. Every one of these is a setting the player can see.
     const panel = () => page.locator('#status').textContent();
     await page.mouse.move(640, 360);

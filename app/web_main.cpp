@@ -12,6 +12,7 @@
 #include <string>
 
 #include "tile.h"
+#include "bike_view.h"
 #include "sign_view.h"
 #include "tile_stream.h"
 #include "walker.h"
@@ -32,13 +33,14 @@ struct Game {
     std::map<otw::TileKey, otw::Tile> arrived;  // downloaded, not uploaded yet
     std::set<otw::TileKey> asked;
     bool placed = false, flying = false, ready = false;
-    float flySpeed = otw::kFlySpeed, walkSpeed = otw::kWalkSpeed;
+    float flySpeed = otw::kFlySpeed, walkSpeed = otw::kWalkSpeed, bikeSpeed = otw::kBikeSpeed;
     double sinceLoad = 1;
     float startX = 0, startZ = 0;
-    float camera[6] = {};
+    float camera[7] = {};  // the kit's six, then the bike's lean, which the page shows by turning the canvas
     std::string status;
     otw::SignView signs;
     int signFrames = 0;
+    otw::Bike bike;
 };
 
 Game* game = nullptr;
@@ -75,6 +77,7 @@ void aimCamera() {
     game->camera[3] = w.x + ahead[0];
     game->camera[4] = w.eyeY + w.hop + ahead[1];
     game->camera[5] = w.z + ahead[2];
+    game->camera[6] = game->bike.lean;
 }
 
 // Everything within the ready radius of the start that the map has.
@@ -116,6 +119,12 @@ void strata_kit_build(strata_kit::Host& h, double) {
     const auto& signs = game->signs.items();
     h.items.insert(h.items.end(), signs.begin(), signs.end());
     for (const otw::SignView::Label& l : game->signs.labels()) h.label(l.at[0], l.at[1], l.at[2], l.text.c_str(), otw::kSignPixels);
+    if (game->bike.riding) {
+        const otw::Walker& w = game->walker;
+        for (const otw::BikeSegment& s : otw::handlebars(game->bike, w.x, w.eyeY, w.z))
+            h.wideLine(s.from[0], s.from[1], s.from[2], s.to[0], s.to[1], s.to[2], {s.grey, s.grey, s.grey}, 2.0f, s.width, 1.0f,
+                       STRATA_LINES_ON_TOP | STRATA_LINES_ROUND_CAPS);
+    }
     h.meshes = game->stream->meshes();
 }
 
@@ -176,6 +185,10 @@ EMSCRIPTEN_KEEPALIVE const float* otw_step(float dt, float ahead, float right, f
         auto walkable = [&](float x, float z) { return s.walkable(x, z); };
         if (game->flying) {
             w.fly(walkable, [&](float x, float z) { return s.groundAt(x, z); }, ahead, right, up, run != 0, dt, game->flySpeed);
+        } else if (game->bike.riding) {
+            game->bike.ride(w, s.solids(), walkable, ahead, right, run != 0, dt, game->bikeSpeed);
+            const float seat = s.groundAt(w.x, w.z) + otw::kBikeEye;
+            w.eyeY += (seat - w.eyeY) * std::min(1.0f, dt * 10.0f);
         } else {
             w.step(s.solids(), walkable, ahead, right, run != 0, dt, game->walkSpeed);
             const float target = s.groundAt(w.x, w.z) + otw::kEyeHeight;
@@ -200,7 +213,7 @@ EMSCRIPTEN_KEEPALIVE int otw_limit(float ahead, float right, float rise, float r
 }
 
 EMSCRIPTEN_KEEPALIVE void otw_jump() {
-    if (game && !game->flying) game->walker.jump();
+    if (game && !game->flying && !game->bike.riding) game->walker.jump();
 }
 
 EMSCRIPTEN_KEEPALIVE void otw_set_speeds(float fly, float walk) {
@@ -218,13 +231,32 @@ EMSCRIPTEN_KEEPALIVE void otw_go_to_start() {
     w.pitchDeg = 0;
     w.hop = w.hopSpeed = 0;
     game->flying = false;
+    game->bike.dismount();
     w.eyeY = game->stream->groundAt(w.x, w.z) + otw::kEyeHeight;
+}
+
+// Gets on or off the bike, landing first if need be. Returns 1 when riding.
+EMSCRIPTEN_KEEPALIVE int otw_toggle_bike() {
+    if (!game || !game->stream) return 0;
+    otw::Stream& s = *game->stream;
+    if (game->flying) {
+        game->flying = false;
+        game->walker.clearOfBuildings(s.solids(), [&](float x, float z) { return s.walkable(x, z); });
+    }
+    if (game->bike.riding) game->bike.dismount();
+    else game->bike.mount(game->walker);
+    return game->bike.riding ? 1 : 0;
+}
+
+EMSCRIPTEN_KEEPALIVE void otw_set_bike_speed(float speed) {
+    if (game) game->bikeSpeed = speed;
 }
 
 EMSCRIPTEN_KEEPALIVE int otw_toggle_fly() {
     if (!game || !game->stream) return 0;
     otw::Stream& s = *game->stream;
     game->flying = !game->flying;
+    game->bike.dismount();
     if (game->flying) {
         game->walker.hop = game->walker.hopSpeed = 0;
         game->walker.eyeY += otw::kFlyClearance;  // lift off at once
@@ -243,14 +275,14 @@ EMSCRIPTEN_KEEPALIVE const char* otw_status() {
     if (!game || !game->stream) return "{}";
     const otw::Stream& s = *game->stream;
     const otw::Walker& w = game->walker;
-    char text[440];
+    char text[480];
     std::snprintf(text, sizeof text,
                   "{\"ready\":%d,\"x\":%.2f,\"y\":%.2f,\"z\":%.2f,\"yaw\":%.1f,\"pitch\":%.1f,\"flying\":%d,\"tiles\":%d,"
-                  "\"meshes\":%d,\"peak\":%d,\"loads\":%d,\"unloads\":%d,\"worstMs\":%.1f,\"waiting\":%d,\"height\":%.1f,\"street\":\"%s\",\"signs\":%d}",
+                  "\"meshes\":%d,\"peak\":%d,\"loads\":%d,\"unloads\":%d,\"worstMs\":%.1f,\"waiting\":%d,\"height\":%.1f,\"street\":\"%s\",\"signs\":%d,\"riding\":%d,\"speed\":%.1f}",
                   game->ready ? 1 : 0, static_cast<double>(w.x), static_cast<double>(w.eyeY), static_cast<double>(w.z),
                   static_cast<double>(w.yawDeg), static_cast<double>(w.pitchDeg), game->flying ? 1 : 0, s.tileCount(), s.meshes(),
                   s.peakMeshes(), s.loads(), s.unloads(), s.worstLoadMs(), s.waiting(), static_cast<double>(w.eyeY + w.hop - s.groundAt(w.x, w.z)),
-                  game->signs.street().c_str(), static_cast<int>(game->signs.labels().size()));
+                  game->signs.street().c_str(), static_cast<int>(game->signs.labels().size()), game->bike.riding ? 1 : 0, static_cast<double>(game->bike.speed));
     game->status = text;
     return game->status.c_str();
 }

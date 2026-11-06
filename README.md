@@ -37,6 +37,8 @@ The program is not code-signed, so Windows SmartScreen may warn about an unknown
 
 Street signs stand at the crossings, and the status panel names the street you are on.
 
+The bike rides like one: it builds up speed, coasts, turns in arcs, and cannot move sideways.
+
 ## Play in a browser
 
 Play it now at **[old-town-walk.play.danielstephenson.dev](https://old-town-walk.play.danielstephenson.dev)**.
@@ -75,6 +77,7 @@ Press **H** in the window to see these at any time. In a browser on a phone, the
 | 9 and 0 | Field of view, 40 to 110 degrees |
 | I | Invert the mouse's up and down |
 | Z | Hold to zoom in on something far away |
+| B | Get on or off the bike: W pedals, S brakes, A and D steer, Shift goes faster |
 | R | Back to where you started |
 | `[` and `]` | Time of day |
 | P | Save a screenshot |

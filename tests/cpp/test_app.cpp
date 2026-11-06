@@ -5,6 +5,7 @@
 #include <fstream>
 #include <string>
 
+#include "bike_view.h"
 #include "exe_dir.h"
 #include "settings.h"
 #include "streaming.h"
@@ -237,6 +238,44 @@ static void testWalking() {
     CHECK(!solids.inside(110, 210));
 }
 
+static void testBike() {
+    otw::Solids none;
+    auto open = [](float, float) { return true; };
+    otw::Walker w;
+    otw::Bike b;
+    b.mount(w);
+    CHECK(b.riding);
+    for (int i = 0; i < 60; ++i) b.ride(w, none, open, 1, 0, false, 0.05f);
+    CHECK(b.speed > 4 && b.speed <= otw::kBikeSpeed + 0.01f);
+    CHECK(std::abs(w.x) < 0.01f && w.z < -8);  // north, straight ahead
+    const float rolling = b.speed;
+    b.ride(w, none, open, 0, 0, false, 0.5f);
+    CHECK(b.speed < rolling && b.speed > 0);  // coasts
+    for (int i = 0; i < 40; ++i) b.ride(w, none, open, 1, 0, true, 0.05f);
+    CHECK(b.speed > otw::kBikeSpeed);  // Shift goes faster
+    otw::Walker turning;
+    otw::Bike t;
+    t.mount(turning);
+    t.ride(turning, none, open, 0, 1, false, 1);
+    CHECK(t.heading == 0);  // a stopped bike does not turn on the spot
+    for (int i = 0; i < 40; ++i) t.ride(turning, none, open, 1, 1, false, 0.05f);
+    CHECK(t.heading > 20 && t.heading < 180 && t.lean > 0);  // an arc to the right, leaning into it
+    CHECK(turning.x > 0.1f);
+    for (int i = 0; i < 60; ++i) b.ride(w, none, open, -1, 0, false, 0.05f);
+    CHECK(b.speed < 0 && b.speed >= -otw::kBikeReverse);  // brakes, then a slow reverse
+    otw::Walker atEdge;
+    otw::Bike e;
+    e.mount(atEdge);
+    e.speed = 5;
+    e.ride(atEdge, none, [](float, float) { return false; }, 1, 0, false, 0.1f);
+    CHECK(e.speed == 0);  // a wall stops it
+    CHECK(otw::hudText({false, 4.2f, 700, 1.75f, 0, 60, 4, 0, 0.5f, "", true}).find("riding  4.2 m/s") != std::string::npos);
+    CHECK(otw::handlebars(b, 0, 2, 0).size() == 4);
+    otw::Settings saved;
+    saved.bikeSpeed = 8;
+    CHECK(otw::parseSettings(otw::formatSettings(saved)).bikeSpeed == 8);
+}
+
 static void testStreets() {
     otw::Manifest m;
     CHECK(otw::parseManifest("old-town-walk-manifest 1\ntile_size 500\ntile 1 2 3 abc\nstreet 0 Linden St\nstreet 1 E Mountain Ave\n"
@@ -333,6 +372,7 @@ int main(int argc, char** argv) {
     testWalking();
     testFiles();
     testStreets();
+    testBike();
     if (failures) std::fprintf(stderr, "%d failure(s)\n", failures);
     else std::puts("test_app: all checks passed");
     return failures ? 1 : 0;

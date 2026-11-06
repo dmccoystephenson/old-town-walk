@@ -11,6 +11,7 @@ namespace otw {
 
 constexpr float kMinFlySpeed = 5.0f, kMaxFlySpeed = 800.0f;    // metres a second
 constexpr float kMinWalkSpeed = 0.7f, kMaxWalkSpeed = 14.0f;
+constexpr float kMinBikeSpeed = 2.0f, kMaxBikeSpeed = 12.0f;
 constexpr float kMinSensitivity = 0.03f, kMaxSensitivity = 0.6f;   // degrees a pixel of mouse movement
 constexpr float kMinFov = 40.0f, kMaxFov = 110.0f, kFovStep = 5.0f;  // vertical, in degrees
 constexpr float kSpeedNotch = 1.25f;                           // one wheel notch
@@ -38,6 +39,7 @@ constexpr const char* kHelpText =
     "Z          hold to zoom\n"
     "Space      jump\n"
     "F          fly / land\n"
+    "B          get on / off the bike\n"
     "E Q        up / down\n"
     "[ ]        time of day\n"
     "R          back to the start\n"
@@ -51,6 +53,7 @@ constexpr const char* kHelpText =
 struct Settings {
     float flySpeed = 20, walkSpeed = 1.4f, viewRadius = 700, sensitivity = 0.15f, fov = 70;
     bool panel = true, invertLook = false;
+    float bikeSpeed = 5.5f;
 };
 
 // One "name value" a line. Anything unknown or unreadable keeps its default, and values are held to their ranges, so
@@ -74,15 +77,16 @@ inline Settings parseSettings(const std::string& text) {
         else if (name == "fov") s.fov = std::clamp(value, kMinFov, kMaxFov);
         else if (name == "panel") s.panel = value != 0;
         else if (name == "invert_look") s.invertLook = value != 0;
+        else if (name == "bike_speed") s.bikeSpeed = std::clamp(value, kMinBikeSpeed, kMaxBikeSpeed);
     }
     return s;
 }
 
 inline std::string formatSettings(const Settings& s) {
-    char text[200];
-    std::snprintf(text, sizeof text, "fly_speed %.2f\nwalk_speed %.2f\nview_radius %.0f\nsensitivity %.3f\nfov %.0f\npanel %d\ninvert_look %d\n",
+    char text[240];
+    std::snprintf(text, sizeof text, "fly_speed %.2f\nwalk_speed %.2f\nview_radius %.0f\nsensitivity %.3f\nfov %.0f\npanel %d\ninvert_look %d\n\nbike_speed %.2f",
                   static_cast<double>(s.flySpeed), static_cast<double>(s.walkSpeed), static_cast<double>(s.viewRadius),
-                  static_cast<double>(s.sensitivity), static_cast<double>(s.fov), s.panel ? 1 : 0, s.invertLook ? 1 : 0);
+                  static_cast<double>(s.sensitivity), static_cast<double>(s.fov), s.panel ? 1 : 0, s.invertLook ? 1 : 0, static_cast<double>(s.bikeSpeed));
     return text;
 }
 
@@ -107,6 +111,7 @@ struct HudState {
     int tiles, loading;
     float dayFraction;  // 0 midnight, 0.5 noon
     std::string street = {};  // empty away from any named road
+    bool riding = false;
 };
 
 // The status panel: what mode you are in and what your settings are, one line each.
@@ -116,7 +121,7 @@ inline std::string hudText(const HudState& s) {
     const int minutes = static_cast<int>(s.dayFraction * 1440.0f) % 1440;
     char text[260];
     std::snprintf(text, sizeof text, "%s  %.*f m/s\nstreet  %s\nheight  %.0f m\nview    %.0f m\nfacing  %s\nclock   %02d:%02d\ntiles   %d%s\n%.0f fps  H help",
-                  s.flying ? "flying" : "on foot", s.speed < 10 ? 1 : 0, static_cast<double>(s.speed), s.street.empty() ? "-" : s.street.c_str(), static_cast<double>(s.height),
+                  s.riding ? "riding" : s.flying ? "flying" : "on foot", s.speed < 10 ? 1 : 0, static_cast<double>(s.speed), s.street.empty() ? "-" : s.street.c_str(), static_cast<double>(s.height),
                   static_cast<double>(s.viewRadius), compass(s.yawDeg), minutes / 60, minutes % 60, s.tiles, more, static_cast<double>(s.fps));
     return text;
 }
