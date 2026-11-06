@@ -8,7 +8,7 @@
   const MORE = {href: "https://danielstephenson.dev/play", text: "More games"};
   const PLACE = {lat: 40.5877, lon: -105.0761};  // Old Town, for where the sun stands
   const MIDSUMMER_AFTERNOON = Date.UTC(2026, 6, 15, 21, 0) / 1000;
-  const MOUSE_DEG = 0.15, TOUCH_DEG = 0.3, KEY_DEG = 90, MAX_MOUSE_STEP = 300, CONCURRENT = 3, RETRIES = 3;
+  const MOUSE_DEG = 0.15, TOUCH_DEG = 0.3, KEY_DEG = 90, MAX_MOUSE_STEP = 300, CONCURRENT = 3, RETRIES = 3, RETRY_MS = 5000, RETRY_MAX_MS = 60000;
   const search = new URLSearchParams(location.search);
   const coarse = matchMedia("(pointer: coarse)").matches || search.get("touch") === "1";
   const stored = StrataKit.store;
@@ -72,14 +72,24 @@
     return false;
   }
 
+  // A tile that never arrives is an invisible wall, so keep asking, less often the longer it goes on.
+  const missing = new Map();
+  function tryAgainLater(ix, iy) {
+    const key = `${ix}_${iy}`, tries = missing.get(key) || 0;
+    missing.set(key, tries + 1);
+    note("Part of the map did not download. Trying again.");
+    setTimeout(() => { queue.push([ix, iy]); pump(); }, Math.min(RETRY_MS * 2 ** tries, RETRY_MAX_MS));
+  }
+
   function pump() {
     while (downloading < CONCURRENT && queue.length) {
       const [ix, iy] = queue.shift();
       downloading++;
       download(ix, iy).then((ok) => {
         downloading--;
-        if (!ok) note("Part of the map did not download.");
         if (!ok && !shown && !failed) { failed = true; StrataLoader.fallback("network", "The map did not download."); }
+        if (!ok && shown) tryAgainLater(ix, iy);
+        if (ok && missing.delete(`${ix}_${iy}`) && missing.size === 0) note("The missing part of the map has arrived");
         pump();
       });
     }
