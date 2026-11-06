@@ -372,12 +372,19 @@ int main(int argc, char** argv) {
         if (flying) speed = otw::stepSpeed(speed, notches, otw::kMinFlySpeed, otw::kMaxFlySpeed);
         else if (bike.riding) speed = otw::stepSpeed(speed, notches, otw::kMinBikeSpeed, otw::kMaxBikeSpeed);
         else speed = otw::stepSpeed(speed, notches, otw::kMinWalkSpeed, otw::kMaxWalkSpeed);
-        if (speed == before) say(notches > 0 ? "That is the top speed" : "That is the lowest speed");
+        if (speed == before) {
+            say(notches > 0 ? "That is the top speed" : "That is the lowest speed");
+            return;
+        }
+        char text[48];
+        std::snprintf(text, sizeof text, "%s speed %.*f m/s", flying ? "Flying" : bike.riding ? "Bike top" : "Walking", speed < 10 ? 1 : 0, static_cast<double>(speed));
+        say(text);
     };
     auto changeView = [&](int steps) {
         const float before = stream.viewRadius(), radius = otw::stepViewRadius(before, steps);
         stream.setLoadRadius(radius);
         if (radius == before) say(steps > 0 ? "That is the longest view" : "That is the shortest view");
+        else say("View " + std::to_string(static_cast<int>(radius)) + " m");
     };
     auto holdMouse = [&](bool hold) { mouseHeld = check(strata_set_relative_mouse_mode(engine, hold ? 1 : 0), "mouse look") && hold; };
     holdMouse(true);

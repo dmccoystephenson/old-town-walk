@@ -125,10 +125,12 @@
     if (kit) kit.setSun(sunTime, PLACE.lat, PLACE.lon);
   }
 
+  const formatSpeed = (speed) => speed.toFixed(speed < 10 ? 1 : 0);
   function changeSpeed(notches) {
     const key = flying ? "fly" : riding ? "ride" : "walk", range = flying ? FLY : riding ? BIKE : WALK, before = settings[key];
     settings[key] = clamp(before * Math.pow(NOTCH, notches), range);
     if (settings[key] === before) note(notches > 0 ? "That is the top speed" : "That is the lowest speed");
+    else note(`${flying ? "Flying" : riding ? "Bike top" : "Walking"} speed ${formatSpeed(settings[key])} m/s`);
     applySettings();
     keepSettings();
   }
@@ -136,6 +138,7 @@
     const before = settings.view;
     settings.view = clamp((Math.round(before / VIEW_STEP) + steps) * VIEW_STEP, VIEW);
     if (settings.view === before) note(steps > 0 ? "That is the longest view" : "That is the shortest view");
+    else note(`View ${settings.view} m`);
     applySettings();
     keepSettings();
   }
@@ -165,7 +168,7 @@
     const minutes = Math.floor(((sunTime / 60 - 360) % 1440 + 1440) % 1440);  // Mountain Daylight Time
     const clock = `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
     const heading = COMPASS[Math.floor(s.yaw / 45 + 0.5) & 7];
-    const lines = [`${riding ? "riding" : flying ? "flying" : s.hurrying ? "running" : "on foot"}  ${speed.toFixed(speed < 10 ? 1 : 0)} m/s`, `street  ${s.street || "-"}`];
+    const lines = [`${riding ? "riding" : flying ? "flying" : s.hurrying ? "running" : "on foot"}  ${formatSpeed(speed)} m/s`, `street  ${s.street || "-"}`];
     if (!document.body.classList.contains("touch")) {
       lines.push(`height  ${Math.round(s.height)} m`, `view    ${settings.view} m`, `facing  ${heading}`, `clock   ${clock}`,
                  `tiles   ${s.tiles}${s.waiting > 0 ? ` +${s.waiting} loading` : ""}`, `${Math.round(fps)} fps  H help`);
