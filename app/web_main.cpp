@@ -41,6 +41,7 @@ struct Game {
     otw::SignView signs;
     int signFrames = 0;
     otw::Bike bike;
+    bool hurrying = false;  // this frame, with Shift or a full stick
 };
 
 Game* game = nullptr;
@@ -180,6 +181,7 @@ EMSCRIPTEN_KEEPALIVE const float* otw_step(float dt, float ahead, float right, f
         game->placed = true;
     }
     if (!game->ready && game->placed && startLoaded()) game->ready = true;
+    game->hurrying = run != 0 && (ahead != 0 || right != 0 || (game->flying && up != 0));
     w.look(dyaw, dpitch);
     if (s.walkable(w.x, w.z)) {  // false for a moment after a lost context, while tiles come back
         auto walkable = [&](float x, float z) { return s.walkable(x, z); };
@@ -275,14 +277,15 @@ EMSCRIPTEN_KEEPALIVE const char* otw_status() {
     if (!game || !game->stream) return "{}";
     const otw::Stream& s = *game->stream;
     const otw::Walker& w = game->walker;
-    char text[480];
+    char text[520];
     std::snprintf(text, sizeof text,
                   "{\"ready\":%d,\"x\":%.2f,\"y\":%.2f,\"z\":%.2f,\"yaw\":%.1f,\"pitch\":%.1f,\"flying\":%d,\"tiles\":%d,"
-                  "\"meshes\":%d,\"peak\":%d,\"loads\":%d,\"unloads\":%d,\"worstMs\":%.1f,\"waiting\":%d,\"height\":%.1f,\"street\":\"%s\",\"signs\":%d,\"riding\":%d,\"speed\":%.1f}",
+                  "\"meshes\":%d,\"peak\":%d,\"loads\":%d,\"unloads\":%d,\"worstMs\":%.1f,\"waiting\":%d,\"height\":%.1f,\"street\":\"%s\",\"signs\":%d,\"riding\":%d,\"speed\":%.1f,\"pace\":%.2f,\"hurrying\":%d}",
                   game->ready ? 1 : 0, static_cast<double>(w.x), static_cast<double>(w.eyeY), static_cast<double>(w.z),
                   static_cast<double>(w.yawDeg), static_cast<double>(w.pitchDeg), game->flying ? 1 : 0, s.tileCount(), s.meshes(),
                   s.peakMeshes(), s.loads(), s.unloads(), s.worstLoadMs(), s.waiting(), static_cast<double>(w.eyeY + w.hop - s.groundAt(w.x, w.z)),
-                  game->signs.street().c_str(), static_cast<int>(game->signs.labels().size()), game->bike.riding ? 1 : 0, static_cast<double>(game->bike.speed));
+                  game->signs.street().c_str(), static_cast<int>(game->signs.labels().size()), game->bike.riding ? 1 : 0, static_cast<double>(game->bike.speed),
+                  static_cast<double>(otw::shownSpeed(game->flying, game->bike, game->flying ? game->flySpeed : game->walkSpeed, game->hurrying)), game->hurrying ? 1 : 0);
     game->status = text;
     return game->status.c_str();
 }

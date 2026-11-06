@@ -192,6 +192,9 @@ static void testWalking() {
         CHECK(panel.find("flying  40 m/s") != std::string::npos && panel.find("view    700 m") != std::string::npos);
         CHECK(panel.find("facing  E") != std::string::npos && panel.find("tiles   11") != std::string::npos);
         CHECK(otw::hudText({false, 1.4f, 700, 1.65f, 0, 60, 4, 0, 0.5f}).find("on foot  1.4 m/s") != std::string::npos);
+        otw::HudState running{false, 5, 700, 1.65f, 0, 60, 4, 0, 0.5f};
+        running.running = true;
+        CHECK(otw::hudText(running).find("running  5.0 m/s") != std::string::npos);
         CHECK(otw::hudText({true, 40, 700, 120, 90, 58, 11, 3, 0.5f}).find("tiles   11 +3 loading") != std::string::npos);
         CHECK(panel.find("loading") == std::string::npos);
         CHECK(otw::stepSpeed(20, 1, 5, 800) == 25.0f);
@@ -236,6 +239,16 @@ static void testWalking() {
     // A tile's walls leave with it.
     solids.remove(t.key);
     CHECK(!solids.inside(110, 210));
+}
+
+static void testShownSpeed() {
+    otw::Bike bike;
+    CHECK(otw::shownSpeed(false, bike, 1.4f, false) == 1.4f);
+    CHECK(std::fabs(otw::shownSpeed(false, bike, 1.4f, true) - 5.0f) < 1e-4f);
+    CHECK(otw::shownSpeed(true, bike, 20, true) == 80.0f);
+    bike.riding = true;
+    bike.speed = -1.5f;
+    CHECK(otw::shownSpeed(false, bike, 12, true) == 1.5f);
 }
 
 static void testBike() {
@@ -381,6 +394,7 @@ int main(int argc, char** argv) {
     testFiles();
     testStreets();
     testBike();
+    testShownSpeed();
     if (failures) std::fprintf(stderr, "%d failure(s)\n", failures);
     else std::puts("test_app: all checks passed");
     return failures ? 1 : 0;

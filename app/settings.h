@@ -30,7 +30,7 @@ inline float stepViewRadius(float radius, int steps) {
 constexpr const char* kHelpText =
     "WASD       move\n"
     "mouse      look (arrows too)\n"
-    "Shift      go four times faster\n"
+    "Shift      go faster\n"
     "wheel      slower / faster\n"
     "- =        shorter / longer view\n"
     ", .        mouse sensitivity\n"
@@ -112,6 +112,7 @@ struct HudState {
     float dayFraction;  // 0 midnight, 0.5 noon
     std::string street = {};  // empty away from any named road
     bool riding = false;
+    bool running = false;
 };
 
 // The status panel: what mode you are in and what your settings are, one line each.
@@ -121,7 +122,7 @@ inline std::string hudText(const HudState& s) {
     const int minutes = static_cast<int>(s.dayFraction * 1440.0f) % 1440;
     char text[260];
     std::snprintf(text, sizeof text, "%s  %.*f m/s\nstreet  %s\nheight  %.0f m\nview    %.0f m\nfacing  %s\nclock   %02d:%02d\ntiles   %d%s\n%.0f fps  H help",
-                  s.riding ? "riding" : s.flying ? "flying" : "on foot", s.speed < 10 ? 1 : 0, static_cast<double>(s.speed), s.street.empty() ? "-" : s.street.c_str(), static_cast<double>(s.height),
+                  s.riding ? "riding" : s.flying ? "flying" : s.running ? "running" : "on foot", s.speed < 10 ? 1 : 0, static_cast<double>(s.speed), s.street.empty() ? "-" : s.street.c_str(), static_cast<double>(s.height),
                   static_cast<double>(s.viewRadius), compass(s.yawDeg), minutes / 60, minutes % 60, s.tiles, more, static_cast<double>(s.fps));
     return text;
 }

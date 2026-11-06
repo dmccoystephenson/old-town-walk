@@ -67,7 +67,7 @@ Press **H** in the window to see these at any time. In a browser on a phone, the
 |---|---|
 | WASD | Move. On foot you stop at walls; in the air you follow your view. |
 | Mouse or arrow keys | Look |
-| Shift | Go four times faster |
+| Shift | Go faster: run, fly four times as fast, or sprint on the bike. The panel shows the speed you are going. |
 | Space | Jump. In the air, Space climbs. |
 | F | Fly, or land on the ground outside any building |
 | E or Space, Q or Ctrl | Climb and descend while flying |

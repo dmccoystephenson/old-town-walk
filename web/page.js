@@ -161,11 +161,11 @@
     fps = frames / sinceStatus;
     frames = 0; sinceStatus = 0;
     const s = status();
-    const speed = riding ? Math.abs(s.speed) : flying ? settings.fly : settings.walk;
+    const speed = s.pace;
     const minutes = Math.floor(((sunTime / 60 - 360) % 1440 + 1440) % 1440);  // Mountain Daylight Time
     const clock = `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
     const heading = COMPASS[Math.floor(s.yaw / 45 + 0.5) & 7];
-    const lines = [`${riding ? "riding" : flying ? "flying" : "on foot"}  ${speed.toFixed(speed < 10 ? 1 : 0)} m/s`, `street  ${s.street || "-"}`];
+    const lines = [`${riding ? "riding" : flying ? "flying" : s.hurrying ? "running" : "on foot"}  ${speed.toFixed(speed < 10 ? 1 : 0)} m/s`, `street  ${s.street || "-"}`];
     if (!document.body.classList.contains("touch")) {
       lines.push(`height  ${Math.round(s.height)} m`, `view    ${settings.view} m`, `facing  ${heading}`, `clock   ${clock}`,
                  `tiles   ${s.tiles}${s.waiting > 0 ? ` +${s.waiting} loading` : ""}`, `${Math.round(fps)} fps  H help`);

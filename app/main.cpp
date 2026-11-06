@@ -201,7 +201,7 @@ int main(int argc, char** argv) {
     int w = a.width, h = a.height;
     bool flying = a.fly, hud = a.hud || (!a.headless && saved.panel), invertLook = saved.invertLook;
     float flySpeed = saved.flySpeed, walkSpeed = saved.walkSpeed, sensitivity = saved.sensitivity, fov = saved.fov, zoom = 1, fps = 60;
-    bool helpOpen = !a.headless, helpAtStart = helpOpen, mouseHeld = false;
+    bool helpOpen = !a.headless, helpAtStart = helpOpen, mouseHeld = false, hurrying = false;
     std::string note;  // a passing message: what just happened, or why it did not
     float noteLeft = 0;
     auto say = [&](const std::string& text) {
@@ -243,9 +243,9 @@ int main(int argc, char** argv) {
             if (!check(strata_submit_rects(engine, &panel, 1), "help panel") || !writeLines(panel.x + 8, 14, otw::kHelpText, white)) return false;
         }
         if (!hud) return true;
-        const otw::HudState state{flying, bike.riding ? std::abs(bike.speed) : flying ? flySpeed : walkSpeed, stream.viewRadius(),
+        const otw::HudState state{flying, otw::shownSpeed(flying, bike, flying ? flySpeed : walkSpeed, hurrying), stream.viewRadius(),
                                   walker.eyeY + walker.hop - stream.groundAt(walker.x, walker.z), walker.yawDeg, fps,
-                                  stream.tileCount(), stream.waiting(), light.time_of_day, signs.street(), bike.riding};
+                                  stream.tileCount(), stream.waiting(), light.time_of_day, signs.street(), bike.riding, hurrying && !flying && !bike.riding};
         const std::string text = otw::hudText(state);
         const StrataRect panel{8, 8, 26 * kGlyph + 16, 8 * kLineGap + 10, {0, 0, 0, 0.5f}};
         return check(strata_submit_rects(engine, &panel, 1), "status panel") && writeLines(16, 14, text, white);
@@ -483,7 +483,9 @@ int main(int argc, char** argv) {
         if (!flying && !bike.riding && held[kSpace]) walker.jump();
         const float ahead = (held[kW] ? 1.0f : 0.0f) - (held[kS] ? 1.0f : 0.0f), right = (held[kD] ? 1.0f : 0.0f) - (held[kA] ? 1.0f : 0.0f);
         const float rise = (held[kE] || held[kSpace] ? 1.0f : 0.0f) - (held[kQ] || held[kLeftCtrl] ? 1.0f : 0.0f);
-        stepWalker(ahead, right, held[225] || held[229], dt, rise);
+        const bool shift = held[225] || held[229];
+        hurrying = shift && (ahead != 0 || right != 0 || (flying && rise != 0));
+        stepWalker(ahead, right, shift, dt, rise);
         if (noteLeft <= 0 && flying && rise > 0 && walker.eyeY - stream.groundAt(walker.x, walker.z) >= otw::kFlyCeiling - 0.5f) {
             say("Highest you can fly: " + std::to_string(static_cast<int>(otw::kFlyCeiling)) + " m above the ground");
         }

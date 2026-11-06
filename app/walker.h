@@ -229,4 +229,11 @@ struct Bike {
     }
 };
 
+// The speed to show: a rider's real one, or what a walker or a flight is going at with Shift or a full stick.
+inline float shownSpeed(bool flying, const Bike& bike, float cruise, bool hurrying) {
+    if (bike.riding) return std::abs(bike.speed);
+    if (!hurrying) return cruise;
+    return cruise * (flying ? kFlyFastSpeed / kFlySpeed : kRunSpeed / kWalkSpeed);
+}
+
 }  // namespace otw
