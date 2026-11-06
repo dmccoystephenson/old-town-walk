@@ -263,6 +263,14 @@ static void testBike() {
     CHECK(turning.x > 0.1f);
     for (int i = 0; i < 60; ++i) b.ride(w, none, open, -1, 0, false, 0.05f);
     CHECK(b.speed < 0 && b.speed >= -otw::kBikeReverse);  // brakes, then a slow reverse
+    otw::Walker looking;
+    otw::Bike v;
+    v.mount(looking);
+    looking.look(30, 0);
+    for (int i = 0; i < 40; ++i) v.ride(looking, none, open, 1, 0, false, 0.05f);
+    CHECK(std::abs(looking.yawDeg - 30) < 0.01f);  // only the rider moves the view
+    for (int i = 0; i < 20; ++i) v.ride(looking, none, open, 1, 1, false, 0.05f);
+    CHECK(std::abs(std::remainder(looking.yawDeg - v.heading, 360.0f) - 30) < 0.01f);  // and it turns with the bike
     otw::Walker atEdge;
     otw::Bike e;
     e.mount(atEdge);

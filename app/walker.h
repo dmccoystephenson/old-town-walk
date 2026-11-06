@@ -95,9 +95,9 @@ private:
     std::map<TileKey, Set> tiles_;
 };
 
-constexpr float kBikeSpeed = 5.5f, kBikeSprint = 1.6f, kBikeReverse = 1.0f;  // metres a second, and Shift's multiple
-constexpr float kBikeAccel = 2.6f, kBikeBrake = 6.0f, kBikeCoast = 0.5f;  // metres a second, each second
-constexpr float kBikeEye = 1.75f, kBikeTurnRadius = 4.0f, kBikeMaxTurn = 90.0f, kBikeMaxLean = 6.0f;  // m, m, deg/s, deg
+constexpr float kBikeSpeed = 12.0f, kBikeSprint = 2.0f, kBikeReverse = 1.5f;  // metres a second, and Shift's multiple
+constexpr float kBikeAccel = 6.0f, kBikeBrake = 12.0f, kBikeCoast = 0.8f;  // metres a second, each second
+constexpr float kBikeEye = 1.75f, kBikeTurnRadius = 4.0f, kBikeMaxTurn = 70.0f, kBikeMaxLean = 2.0f;  // m, m, deg/s, deg
 
 // Yaw 0 faces north (-z), 90 faces east (+x).
 struct Walker {
@@ -177,7 +177,7 @@ struct Walker {
 };
 
 // A bike goes where its wheels point: it turns in arcs, cannot move sideways, and keeps rolling when you stop pedalling.
-// The view can look away from `heading`, and swings back once moving.
+// The view turns with the bike and otherwise stays where the rider left it: nothing but the rider moves it.
 struct Bike {
     bool riding = false;
     float speed = 0, heading = 0, steer = 0, lean = 0;
@@ -196,7 +196,7 @@ struct Bike {
         const float top = sprint ? cruise * kBikeSprint : cruise;
         if (pedal > 0) {
             if (speed < 0) speed = std::min(0.0f, speed + kBikeBrake * dt);
-            else if (speed < top) speed = std::min(top, speed + kBikeAccel * pedal * dt);
+            else if (speed < top) speed = std::min(top, speed + kBikeAccel * (sprint ? kBikeSprint : 1.0f) * pedal * dt);
             else speed = std::max(top, speed - kBikeCoast * 4 * dt);
         } else if (pedal < 0) {
             if (speed > 0) speed = std::max(0.0f, speed + kBikeBrake * pedal * dt);
@@ -207,12 +207,11 @@ struct Bike {
         steer += (std::clamp(turn, -1.0f, 1.0f) - steer) * std::min(1.0f, dt * 8);
         const float pace = std::abs(speed);
         const float rate = std::min(pace / kBikeTurnRadius * 180.0f / 3.14159265f, kBikeMaxTurn) * (speed < 0 ? -1.0f : 1.0f);
-        float look = std::remainder(w.yawDeg - heading, 360.0f);
-        heading = std::fmod(heading + steer * rate * dt + 360.0f, 360.0f);
-        if (pace > 0.5f) look *= std::exp(-2.0f * dt);
-        w.yawDeg = std::fmod(heading + look + 360.0f, 360.0f);
+        const float turned = steer * rate * dt;
+        heading = std::fmod(heading + turned + 360.0f, 360.0f);
+        w.yawDeg = std::fmod(w.yawDeg + turned + 360.0f, 360.0f);
         const float target = steer * std::min(pace / kBikeSpeed, 1.0f) * kBikeMaxLean;
-        lean += (target - lean) * std::min(1.0f, dt * 6);
+        lean += (target - lean) * std::min(1.0f, dt * 3);
 
         const float yaw = heading * 3.14159265f / 180.0f, want = speed * dt, dx = std::sin(yaw) * want, dz = -std::cos(yaw) * want;
         const float x0 = w.x, z0 = w.z;

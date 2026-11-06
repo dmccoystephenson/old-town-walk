@@ -11,7 +11,7 @@ namespace otw {
 
 constexpr float kMinFlySpeed = 5.0f, kMaxFlySpeed = 800.0f;    // metres a second
 constexpr float kMinWalkSpeed = 0.7f, kMaxWalkSpeed = 14.0f;
-constexpr float kMinBikeSpeed = 2.0f, kMaxBikeSpeed = 12.0f;
+constexpr float kMinBikeSpeed = 3.0f, kMaxBikeSpeed = 40.0f;
 constexpr float kMinSensitivity = 0.03f, kMaxSensitivity = 0.6f;   // degrees a pixel of mouse movement
 constexpr float kMinFov = 40.0f, kMaxFov = 110.0f, kFovStep = 5.0f;  // vertical, in degrees
 constexpr float kSpeedNotch = 1.25f;                           // one wheel notch
@@ -53,7 +53,7 @@ constexpr const char* kHelpText =
 struct Settings {
     float flySpeed = 20, walkSpeed = 1.4f, viewRadius = 700, sensitivity = 0.15f, fov = 70;
     bool panel = true, invertLook = false;
-    float bikeSpeed = 5.5f;
+    float bikeSpeed = 12.0f;
 };
 
 // One "name value" a line. Anything unknown or unreadable keeps its default, and values are held to their ranges, so

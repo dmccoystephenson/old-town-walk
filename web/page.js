@@ -14,10 +14,10 @@
   const stored = StrataKit.store;
 
 
-  const FLY = [5, 800], WALK = [0.7, 14], BIKE = [2, 12], VIEW = [200, 1500], NOTCH = 1.25, VIEW_STEP = 100;
+  const FLY = [5, 800], WALK = [0.7, 14], BIKE = [3, 40], VIEW = [200, 1500], NOTCH = 1.25, VIEW_STEP = 100;
   const SENSITIVITY = [0.03, 0.6];
   const clamp = (v, [low, high]) => Math.min(high, Math.max(low, v));
-  const DEFAULTS = {fly: 20, walk: 1.4, bike: 5.5, view: coarse ? 500 : 700, sensitivity: MOUSE_DEG, invert: false, status: true};
+  const DEFAULTS = {fly: 20, walk: 1.4, ride: 12, view: coarse ? 500 : 700, sensitivity: MOUSE_DEG, invert: false, status: true};
   const settings = {...DEFAULTS};
   function loadSettings() {
     let saved = {};
@@ -25,7 +25,7 @@
     const number = (v, fallback) => (typeof v === "number" && isFinite(v) ? v : fallback);
     settings.fly = clamp(number(saved.fly, DEFAULTS.fly), FLY);
     settings.walk = clamp(number(saved.walk, DEFAULTS.walk), WALK);
-    settings.bike = clamp(number(saved.bike, DEFAULTS.bike), BIKE);
+    settings.ride = clamp(number(saved.ride, DEFAULTS.ride), BIKE);
     settings.view = clamp(number(saved.view, DEFAULTS.view), VIEW);
     settings.sensitivity = clamp(number(saved.sensitivity, DEFAULTS.sensitivity), SENSITIVITY);
     settings.invert = saved.invert === true;
@@ -36,7 +36,7 @@
     document.body.classList.toggle("no-status", !settings.status);
     if (!mod) return;
     mod._otw_set_speeds(settings.fly, settings.walk);
-    mod._otw_set_bike_speed(settings.bike);
+    mod._otw_set_bike_speed(settings.ride);
     mod._otw_set_radius(parseFloat(search.get("reach")) || settings.view);
   }
 
@@ -126,7 +126,7 @@
   }
 
   function changeSpeed(notches) {
-    const key = flying ? "fly" : riding ? "bike" : "walk", range = flying ? FLY : riding ? BIKE : WALK, before = settings[key];
+    const key = flying ? "fly" : riding ? "ride" : "walk", range = flying ? FLY : riding ? BIKE : WALK, before = settings[key];
     settings[key] = clamp(before * Math.pow(NOTCH, notches), range);
     if (settings[key] === before) note(notches > 0 ? "That is the top speed" : "That is the lowest speed");
     applySettings();
@@ -322,10 +322,8 @@
     if (at) {
       const f = mod.HEAPF32, i = at >> 2, c = kit.cam;
       c.yaw = f[i]; c.pitch = f[i + 1]; c.dist = f[i + 2]; c.tx = f[i + 3]; c.ty = f[i + 4]; c.tz = f[i + 5];
-      if (riding) {  // the kit's camera cannot tilt, so the canvas does, half as far, and grows to keep its corners covered
-        const lean = f[i + 6] / 2;
-        canvas.style.transform = `rotate(${(-lean).toFixed(2)}deg) scale(${(1 + Math.abs(lean) * 0.033).toFixed(3)})`;
-      }
+      // The kit's camera cannot tilt, so the canvas does. A steady zoom keeps its corners covered without pumping in turns.
+      if (riding) canvas.style.transform = `rotate(${(-f[i + 6]).toFixed(2)}deg) scale(1.07)`;
     }
     pump();
     if (shown) showStatus(dt);
