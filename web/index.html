@@ -65,6 +65,7 @@
   body.touch #help .fingers { display: grid; }
   #help .fingers { display: none; }
   #start { width: 100%; background: var(--btn-on); border-color: var(--accent); margin-top: 6px; touch-action: manipulation; }
+  body.touch #note { top: 122px; }  /* below the status panel, which a phone is too narrow to pass */
   #note { position: absolute; left: 50%; top: 66px; transform: translateX(-50%); background: var(--panel); border-radius: 10px;
     padding: 6px 12px; display: none; max-width: 90vw; text-align: center; }
 </style>

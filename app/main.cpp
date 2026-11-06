@@ -301,6 +301,7 @@ int main(int argc, char** argv) {
         walker.hop = walker.hopSpeed = 0;
         if (flying) walker.eyeY += otw::kFlyClearance;  // lift off at once
         else walker.clearOfBuildings(stream.solids(), walkableHere);
+        say(flying ? "Flying: E climbs, Q descends, F lands" : "Landed");
     };
     auto stepWalker = [&](float ahead, float right, bool run, float dt, float up = 0) {
         if (flying) {

@@ -96,6 +96,7 @@
 
   function look(dx, dy, deg) { dyaw += dx * deg; dpitch -= (settings.invert ? -dy : dy) * deg; }
 
+  const touching = () => document.body.classList.contains("touch");
   function setFlying(on) {
     flying = on;
     document.body.classList.toggle("flying", on);
@@ -105,6 +106,8 @@
     if (!mod) return;
     setFlying(mod._otw_toggle_fly() === 1);
     setRiding(false);
+    if (flying) note(touching() ? "Flying: \u25B2 climbs, \u25BC descends, Fly lands" : "Flying: E climbs, Q descends, F lands");
+    else note("Landed");
   }
   function setRiding(on) {
     riding = on;
@@ -117,7 +120,8 @@
     const on = mod._otw_toggle_bike() === 1;
     setFlying(false);
     setRiding(on);
-    note(on ? "On the bike: W pedals, S brakes, A and D steer" : "Off the bike");
+    if (!on) note("Off the bike");
+    else note(touching() ? "On the bike: push the stick up to pedal, sideways to steer" : "On the bike: W pedals, S brakes, A and D steer");
   }
 
   function shiftSun(hours) {
@@ -169,7 +173,7 @@
     const clock = `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
     const heading = COMPASS[Math.floor(s.yaw / 45 + 0.5) & 7];
     const lines = [`${riding ? "riding" : flying ? "flying" : s.hurrying ? "running" : "on foot"}  ${formatSpeed(speed)} m/s`, `street  ${s.street || "-"}`];
-    if (!document.body.classList.contains("touch")) {
+    if (!touching()) {
       lines.push(`height  ${Math.round(s.height)} m`, `view    ${settings.view} m`, `facing  ${heading}`, `clock   ${clock}`,
                  `tiles   ${s.tiles}${s.waiting > 0 ? ` +${s.waiting} loading` : ""}`, `${Math.round(fps)} fps  H help`);
     }
@@ -189,7 +193,7 @@
   function useTouch() { document.body.classList.add("touch"); }
 
   function grabMouse() {
-    if (document.body.classList.contains("touch") || locked() || !canvas.requestPointerLock) return;
+    if (touching() || locked() || !canvas.requestPointerLock) return;
     // Refused in a frame without permission: dragging to look still works.
     try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* not allowed */ }
   }
