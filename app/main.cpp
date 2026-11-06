@@ -38,7 +38,7 @@ constexpr const char* kUsage =
     "  --tiles DIR        the tiles to open (default: the tiles folder beside the program)\n"
     "  --radius M         how far detailed tiles load (default 700, or your saved view)\n"
     "  --fly              start in the air, --altitude M above the ground (default 60)\n"
-    "  --east M --north M start this far from the map's start point\n"
+    "  --east M --north M start this far from the usual start\n"
     "  --yaw D --pitch D  start facing this way; yaw 0 is north, 90 is east\n"
     "  --time T           time of day, 0 to 1 (default 0.45)\n"
     "  --width W --height H  window size\n"
@@ -57,7 +57,7 @@ struct Args {
     std::string tiles, screenshot;  // tiles: from --tiles, or found beside the program
     bool fly = false;
     float altitude = 60;  // metres above the ground when --fly starts
-    float time = 0.45f, yaw = 40, pitch = 0, radius = 700, walkAhead = 0, east = 0, north = 0, passEast = 0, passNorth = 0;
+    float time = 0.45f, yaw = otw::kStartYaw, pitch = 0, radius = 700, walkAhead = 0, east = 0, north = 0, passEast = 0, passNorth = 0;
     int width = 1280, height = 720, bench = 0;
     bool headless = false, run = false, hud = false, radiusGiven = false;
 };
@@ -163,7 +163,7 @@ int main(int argc, char** argv) {
     // A render has to come out the same for everyone, so only a window reads or writes saved settings.
     const otw::Settings saved = a.headless ? otw::Settings{} : loadSettings();
     if (!a.radiusGiven && !a.headless) a.radius = saved.viewRadius;
-    const double startEast = manifest.startEast + a.east, startNorth = manifest.startNorth + a.north;
+    const double startEast = manifest.startEast + otw::kStartEast + a.east, startNorth = manifest.startNorth + otw::kStartNorth + a.north;
     const otw::TileKey origin{static_cast<int>(std::floor(startEast / manifest.tileSize)),
                                 static_cast<int>(std::floor(startNorth / manifest.tileSize))};
     otw::StreamConfig config;
@@ -180,8 +180,7 @@ int main(int argc, char** argv) {
     walker.pitchDeg = a.pitch;
     bool ok = stream.update(walker.x, walker.z, 1000);
     if (ok) {
-        // A start point inside a building moves to open ground.
-        for (float r = 0; r < 60 && stream.solids().inside(walker.x, walker.z); r += 1.0f) walker.x += 1.0f;
+        walker.clearOfBuildings(stream.solids(), [&](float x, float z) { return stream.walkable(x, z); });
         walker.eyeY = stream.groundAt(walker.x, walker.z) + otw::kEyeHeight;
     }
 

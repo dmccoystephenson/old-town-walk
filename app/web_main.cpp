@@ -22,8 +22,6 @@ namespace {
 constexpr double kLoadGapSeconds = 0.12;
 // Metres around the start that must be on the GPU before the page shows the map.
 constexpr float kReadyRadius = 150.0f;
-// The map's start point stands beside a wall; a few metres south-west is the open street.
-constexpr double kStartEast = -12, kStartNorth = -8;
 
 struct Game {
     otw::Manifest manifest;
@@ -122,13 +120,13 @@ EMSCRIPTEN_KEEPALIVE int otw_start(const char* manifestText, float radius) {
     game = new Game;
     if (!otw::parseManifest(manifestText, "tiles", game->manifest)) return 0;
     const otw::Manifest& m = game->manifest;
-    const double east = m.startEast + kStartEast, north = m.startNorth + kStartNorth;
+    const double east = m.startEast + otw::kStartEast, north = m.startNorth + otw::kStartNorth;
     game->origin = {static_cast<int>(std::floor(east / m.tileSize)), static_cast<int>(std::floor(north / m.tileSize))};
     game->startX = static_cast<float>(east - game->origin.ix * static_cast<double>(m.tileSize));
     game->startZ = static_cast<float>((game->origin.iy + 1) * static_cast<double>(m.tileSize) - north);
     game->walker.x = game->startX;
     game->walker.z = game->startZ;
-    game->walker.yawDeg = 40;  // north-east, down the street
+    game->walker.yawDeg = otw::kStartYaw;
     makeStream(strata_kit::host().engine, radius);
     return 1;
 }
@@ -158,10 +156,12 @@ EMSCRIPTEN_KEEPALIVE const float* otw_step(float dt, float ahead, float right, f
         if (!s.update(w.x, w.z, 1)) return nullptr;
         if (s.loads() != before) game->sinceLoad = 0;
     }
-    if (!game->placed && s.walkable(w.x, w.z)) {
-        // A start point inside a building moves to open ground.
-        for (float r = 0; r < 60 && s.solids().inside(w.x, w.z); r += 1.0f) w.x += 1.0f;
+    if (!game->placed && s.walkable(w.x, w.z) && startLoaded()) {
+        // Only once everything nearby has loaded: a building in a tile still on its way cannot be stepped out of.
+        w.clearOfBuildings(s.solids(), [&](float x, float z) { return s.walkable(x, z); });
         w.eyeY = s.groundAt(w.x, w.z) + otw::kEyeHeight;
+        game->startX = w.x;  // R comes back here
+        game->startZ = w.z;
         game->placed = true;
     }
     if (!game->ready && game->placed && startLoaded()) game->ready = true;
@@ -207,7 +207,7 @@ EMSCRIPTEN_KEEPALIVE void otw_go_to_start() {
     otw::Walker& w = game->walker;
     w.x = game->startX;
     w.z = game->startZ;
-    w.yawDeg = 40;
+    w.yawDeg = otw::kStartYaw;
     w.pitchDeg = 0;
     w.hop = w.hopSpeed = 0;
     game->flying = false;

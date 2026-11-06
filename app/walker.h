@@ -15,6 +15,11 @@ constexpr float kFlySpeed = 20.0f, kFlyFastSpeed = 80.0f;
 constexpr float kJumpSpeed = 4.7f, kGravity = 9.8f;  // leaves the ground at this speed, for a hop of about 1.1 m
 constexpr float kFlyClearance = 2.0f, kFlyCeiling = 400.0f;  // metres above the ground
 
+// Where every walk begins, in metres from the map's centre: the open crossing at the north-east end of Old Town
+// Square, facing south-west down the square to the bandstand. tests/python/test_start.py keeps it clear of buildings.
+constexpr double kStartEast = 64, kStartNorth = 41;
+constexpr float kStartYaw = 225;
+
 struct SolidOutline {
     std::vector<float> xz;  // world x, z
     float minX, minZ, maxX, maxZ;
