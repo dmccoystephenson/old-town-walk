@@ -198,14 +198,15 @@
     $("status").textContent = lines.join("\n");
   }
 
-  let noteTimer = 0, noteFree = 0;
+  const NOTE_MS = 4000;
+  let noteTimer = 0, noteFree = 0, beforeReset = null, undoUntil = 0;
   function note(text) {
     const n = $("note");
     n.textContent = text;
     n.style.display = "block";
-    noteFree = performance.now() + 4000;
+    noteFree = performance.now() + NOTE_MS;
     clearTimeout(noteTimer);
-    noteTimer = setTimeout(() => { n.style.display = "none"; }, 4000);
+    noteTimer = setTimeout(() => { n.style.display = "none"; }, NOTE_MS);
   }
 
   function useTouch() { document.body.classList.add("touch"); }
@@ -247,11 +248,14 @@
         keepSettings();
       }
       if (!e.repeat && e.code === "Backspace") {
-        Object.assign(settings, DEFAULTS);
+        e.preventDefault();
+        const undo = performance.now() < undoUntil ? beforeReset : null;
+        beforeReset = undo ? null : {...settings};
+        Object.assign(settings, undo || DEFAULTS);
+        undoUntil = undo ? 0 : performance.now() + NOTE_MS;
         applySettings();
         keepSettings();
-        note("Settings back to the defaults");
-        e.preventDefault();
+        note(undo ? "Your settings are back" : "Settings back to the defaults: Backspace again to undo");
       }
       if (e.code === "Minus") changeView(-1);
       if (e.code === "Equal") changeView(1);

@@ -82,7 +82,7 @@ Press **H** in the window to see these at any time. In a browser on a phone, the
 | `[` and `]` | Time of day |
 | P | Save a screenshot |
 | Tab | Hide the status panel |
-| Backspace | Put every setting back to its default |
+| Backspace | Put every setting back to its default. Press it again straight away to undo. |
 | Esc | Free the mouse. A click takes it back, and Esc again quits. |
 
 Your settings are remembered between runs, in `old-town-walk/settings.txt` under your user configuration folder.

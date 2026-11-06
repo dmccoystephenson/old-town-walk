@@ -45,7 +45,7 @@ constexpr const char* kHelpText =
     "R          back to the start\n"
     "P          screenshot\n"
     "Tab        hide the panel\n"
-    "Backspace  default settings\n"
+    "Backspace  reset (again to undo)\n"
     "H          hide this help\n"
     "Esc        free the mouse";
 

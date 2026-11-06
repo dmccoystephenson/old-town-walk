@@ -389,6 +389,9 @@ int main(int argc, char** argv) {
     };
     auto holdMouse = [&](bool hold) { mouseHeld = check(strata_set_relative_mouse_mode(engine, hold ? 1 : 0), "mouse look") && hold; };
     holdMouse(true);
+    auto current = [&]() -> otw::Settings { return {flySpeed, walkSpeed, stream.viewRadius(), sensitivity, fov, hud, invertLook, bikeSpeed}; };
+    otw::Settings beforeReset;
+    float undoLeft = 0;  // seconds a second Backspace still undoes the first
     bool held[256] = {};
     int shots = 0;
     auto last = Clock::now();
@@ -440,16 +443,19 @@ int main(int argc, char** argv) {
                     invertLook = !invertLook;
                     say(invertLook ? "Mouse look inverted" : "Mouse look normal");
                 } else if (e.scancode == kBackspace) {
-                    const otw::Settings d;
-                    flySpeed = d.flySpeed;
-                    walkSpeed = d.walkSpeed;
-                    bikeSpeed = d.bikeSpeed;
-                    sensitivity = d.sensitivity;
-                    fov = d.fov;
-                    invertLook = d.invertLook;
-                    hud = d.panel;
-                    stream.setLoadRadius(d.viewRadius);
-                    say("Settings back to the defaults");
+                    const bool undoing = undoLeft > 0;
+                    const otw::Settings use = undoing ? beforeReset : otw::Settings{};
+                    if (!undoing) beforeReset = current();
+                    undoLeft = undoing ? 0 : 3;
+                    flySpeed = use.flySpeed;
+                    walkSpeed = use.walkSpeed;
+                    bikeSpeed = use.bikeSpeed;
+                    sensitivity = use.sensitivity;
+                    fov = use.fov;
+                    invertLook = use.invertLook;
+                    hud = use.panel;
+                    stream.setLoadRadius(use.viewRadius);
+                    say(undoing ? "Your settings are back" : "Settings back to the defaults: Backspace again to undo");
                 } else if (e.scancode == kR) {
                     bike.dismount();
                     walker.x = startX;
@@ -486,6 +492,7 @@ int main(int argc, char** argv) {
         last = now;
         if (elapsed > 0) fps += (1.0f / elapsed - fps) * std::min(1.0f, elapsed * 2);  // about half a second of smoothing
         noteLeft -= dt;
+        undoLeft -= dt;
         zoom += ((held[kZ] ? 0.3f : 1.0f) - zoom) * std::min(1.0f, dt * 12);
         walker.look(((held[kRight] ? 1.0f : 0.0f) - (held[kLeft] ? 1.0f : 0.0f)) * 90.0f * dt,
                     ((held[kUp] ? 1.0f : 0.0f) - (held[kDown] ? 1.0f : 0.0f)) * 60.0f * dt);
@@ -510,7 +517,7 @@ int main(int argc, char** argv) {
         light.time_of_day -= std::floor(light.time_of_day);
         if (!stream.update(walker.x, walker.z, 1) || !draw() || !check(strata_present(engine), "present")) running = false;
     }
-    saveSettings({flySpeed, walkSpeed, stream.viewRadius(), sensitivity, fov, hud, invertLook, bikeSpeed});
+    saveSettings(current());
     strata_destroy(engine);
     return 0;
 }
