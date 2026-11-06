@@ -210,7 +210,14 @@
       if (!e.repeat && e.code === "KeyB") toggleBike();
       if (e.code === "PageUp") { changeSpeed(1); e.preventDefault(); }
       if (e.code === "PageDown") { changeSpeed(-1); e.preventDefault(); }
-      if (e.code === "Tab") { settings.status = !settings.status; applySettings(); keepSettings(); e.preventDefault(); }
+      if (e.code === "Tab") {
+        e.preventDefault();
+        if (e.repeat) return;
+        settings.status = !settings.status;
+        applySettings();
+        keepSettings();
+        if (!settings.status) note("Panel hidden: Tab brings it back");
+      }
       if (!e.repeat && e.code === "KeyH") $("help").classList.toggle("on");
       if (!e.repeat && e.code === "KeyR") goToStart();
       if (e.code === "Comma") changeSensitivity(-1);

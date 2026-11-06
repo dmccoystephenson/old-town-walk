@@ -435,6 +435,7 @@ int main(int argc, char** argv) {
                     helpAtStart = false;
                 } else if (e.scancode == kTab) {
                     hud = !hud;
+                    if (!hud) say("Panel hidden: Tab brings it back");
                 } else if (e.scancode == kI) {
                     invertLook = !invertLook;
                     say(invertLook ? "Mouse look inverted" : "Mouse look normal");
