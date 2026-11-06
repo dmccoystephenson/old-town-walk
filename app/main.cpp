@@ -506,11 +506,11 @@ int main(int argc, char** argv) {
             say("Highest you can fly: " + std::to_string(static_cast<int>(otw::kFlyCeiling)) + " m above the ground");
         }
         // Say why a move stopped. Looks further than a frame's travel, or fast flight stops short of the edge and never sees it.
-        if (noteLeft <= 0 && (ahead != 0 || right != 0)) {
-            const float yaw = walker.yawDeg * 3.14159265f / 180.0f, fx = std::sin(yaw), fz = -std::cos(yaw);
-            const float reach = std::max(10.0f, (flying ? flySpeed : walkSpeed) * 4 * dt * 2);
-            const float nextX = walker.x + (ahead * fx - right * fz) * reach, nextZ = walker.z + (ahead * fz + right * fx) * reach;
-            if (!stream.overTile(nextX, nextZ)) say("The map ends here");
+        float wayX, wayZ;
+        otw::travelDirection(walker, bike, ahead, right, wayX, wayZ);
+        if (noteLeft <= 0 && (wayX != 0 || wayZ != 0)) {
+            const float reach = std::max(10.0f, (flying ? flySpeed : bike.riding ? bikeSpeed : walkSpeed) * 4 * dt * 2);
+            if (!stream.overTile(walker.x + wayX * reach, walker.z + wayZ * reach)) say("The map ends here");
         }
         if (held[kLeftBracket]) light.time_of_day -= dt * 0.05f;
         if (held[kRightBracket]) light.time_of_day += dt * 0.05f;

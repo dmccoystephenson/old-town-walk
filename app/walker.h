@@ -229,6 +229,21 @@ struct Bike {
     }
 };
 
+// Which way a move is going across the map, from the keys or stick. A rider goes where the wheels point, whichever
+// way the rider looks, and keeps rolling with nothing held; the length of (dx, dz) is zero when nothing is moving.
+inline void travelDirection(const Walker& w, const Bike& bike, float ahead, float right, float& dx, float& dz) {
+    const float degrees = bike.riding ? bike.heading : w.yawDeg, yaw = degrees * 3.14159265f / 180.0f;
+    const float fx = std::sin(yaw), fz = -std::cos(yaw);
+    if (bike.riding) {
+        const float way = bike.speed > 0 ? 1.0f : bike.speed < 0 ? -1.0f : 0.0f;
+        dx = fx * way;
+        dz = fz * way;
+        return;
+    }
+    dx = ahead * fx - right * fz;
+    dz = ahead * fz + right * fx;
+}
+
 // The speed to show: a rider's real one, or what a walker or a flight is going at with Shift or a full stick.
 inline float shownSpeed(bool flying, const Bike& bike, float cruise, bool hurrying) {
     if (bike.riding) return std::abs(bike.speed);

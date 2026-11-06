@@ -251,6 +251,25 @@ static void testShownSpeed() {
     CHECK(otw::shownSpeed(false, bike, 12, true) == 1.5f);
 }
 
+static void testTravelDirection() {
+    otw::Walker w;
+    w.yawDeg = 90;  // looking east
+    otw::Bike bike;
+    float dx = 0, dz = 0;
+    otw::travelDirection(w, bike, 1, 0, dx, dz);
+    CHECK(std::fabs(dx - 1) < 1e-4f && std::fabs(dz) < 1e-4f);
+    bike.mount(w);
+    bike.heading = 0;  // riding north, still looking east
+    otw::travelDirection(w, bike, 1, 1, dx, dz);
+    CHECK(dx == 0 && dz == 0);  // nothing rolling, whatever is held
+    bike.speed = 5;
+    otw::travelDirection(w, bike, 0, 0, dx, dz);
+    CHECK(std::fabs(dx) < 1e-4f && std::fabs(dz + 1) < 1e-4f);  // north, coasting
+    bike.speed = -1;
+    otw::travelDirection(w, bike, 0, 0, dx, dz);
+    CHECK(std::fabs(dz - 1) < 1e-4f);
+}
+
 static void testBike() {
     otw::Solids none;
     auto open = [](float, float) { return true; };
@@ -395,6 +414,7 @@ int main(int argc, char** argv) {
     testStreets();
     testBike();
     testShownSpeed();
+    testTravelDirection();
     if (failures) std::fprintf(stderr, "%d failure(s)\n", failures);
     else std::puts("test_app: all checks passed");
     return failures ? 1 : 0;

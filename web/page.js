@@ -359,7 +359,7 @@
     dyaw = dpitch = 0;
     if (shown && performance.now() > noteFree) {
       // Looks further than a frame's travel, or fast flight stops short of the edge and never sees it.
-      const reach = Math.max(10, (flying ? settings.fly : settings.walk) * 8 * dt);
+      const reach = Math.max(10, (flying ? settings.fly : riding ? settings.ride : settings.walk) * 8 * dt);
       const limit = mod._otw_limit(ahead, right, up, reach);
       if (limit === 1) note("The map ends here");
       if (limit === 2) note("Highest you can fly: 400 m above the ground");
