@@ -82,6 +82,7 @@ button opens. Zoom, field of view and screenshots need a keyboard.
 | I | Invert the mouse's up and down |
 | Z | Hold to zoom in on something far away |
 | B | Get on or off the bike: W pedals, S brakes and backs up, A and D steer, Shift goes faster |
+| M | Browser only: show or hide the map, also with the Map button. Shift+M or a click on the map opens it large, where a click on a spot takes you there. |
 | R | Back to where you started |
 | `[` and `]` | Time of day |
 | P | Save a screenshot, as a download in a browser |

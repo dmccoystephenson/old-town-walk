@@ -86,6 +86,26 @@
   #resetBtn { width: 100%; touch-action: manipulation; }
   #note { position: absolute; left: 50%; top: 66px; transform: translateX(-50%); background: var(--panel); border-radius: 10px;
     padding: 6px 12px; display: none; max-width: 90vw; text-align: center; }
+  /* The whole map in a corner, clear of the status panel and of everything a thumb needs. The height term keeps it above
+     the flying controls on a phone on its side, and a narrow phone has no room beside the panel, so it goes underneath. */
+  #note { pointer-events: none; }
+  #map { --map-size: min(180px, 30vw, calc(100dvh - 120px)); position: absolute; display: none; width: var(--map-size); height: var(--map-size);
+    right: max(8px, env(safe-area-inset-right)); top: calc(max(8px, env(safe-area-inset-top)) + 56px);
+    background: var(--panel); border: 2px solid var(--line); border-radius: 12px; touch-action: none; cursor: pointer; }
+  body.touch #map { --map-size: min(120px, 28vw, calc(100dvh - 240px)); }
+  @media (max-width: 520px) { body.touch #map { top: calc(max(8px, env(safe-area-inset-top)) + 112px); } }
+  @media (max-width: 440px) { body:not(.touch) #map { top: calc(max(8px, env(safe-area-inset-top)) + 192px); } }
+  /* Five things have to fit on the top row of the smallest phone. */
+  @media (max-width: 400px) {
+    #top { gap: 4px; }
+    #top button { padding: 0 6px; }
+    #brand { font-size: 13px; padding: 4px 8px; }
+  }
+  body.map-on #map, body.map-open #map { display: block; }
+  /* Large, it takes the screen, leaving only the way out and the credit. */
+  body.map-open #map { inset: 0; width: 100%; height: 100%; background: var(--bg); border: 0; border-radius: 0; z-index: 2; cursor: crosshair; }
+  body.map-open #top, body.map-open #note, body.map-open #credit { z-index: 3; }
+  body.map-open #top > :not(#mapBtn) { visibility: hidden; }
 </style>
 </head>
 <body>
@@ -95,6 +115,7 @@
     <span id="brand"><a href="https://danielstephenson.dev/play" target="_top" title="More games">Old Town Walk</a></span>
     <button id="bikeBtn" aria-pressed="false" title="Ride a bike (B)">Bike</button>
     <button id="flyBtn" aria-pressed="false" title="Fly (F)">Fly</button>
+    <button id="mapBtn" aria-pressed="false" aria-label="Map" title="Show or hide the map (M)">Map</button>
     <button id="helpBtn" title="Controls and settings" aria-label="Controls and settings">?</button>
   </div>
   <div id="status" aria-hidden="true"></div>
@@ -108,6 +129,7 @@
     <button id="slowerBtn" aria-label="Slower">&minus;</button>
   </div>
   <button id="jumpBtn" aria-label="Jump">Jump</button>
+  <canvas id="map" role="button" aria-label="Map of where you are. Opens the large map"></canvas>
   <div id="note" role="status"></div>
   <div id="credit">Map &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, ODbL. Elevation: USGS.</div>
 </div>
@@ -124,6 +146,7 @@
     <dt>9 0</dt><dd>Narrower / wider field of view</dd>
     <dt>F</dt><dd>Fly or land</dd>
     <dt>B</dt><dd>Get on or off the bike: W pedals, S brakes and backs up, A and D steer</dd>
+    <dt>M</dt><dd>Show or hide the map. Shift+M or a click on it opens it large: click a spot to go there</dd>
     <dt>E or Space, Q</dt><dd>Climb / descend when flying</dd>
     <dt>[ ]</dt><dd>Move the sun</dd>
     <dt>H</dt><dd>Show or hide this list (Esc or a click on the map closes it)</dd>
@@ -141,6 +164,7 @@
     <dt>Jump</dt><dd>Jump</dd>
     <dt>Fly</dt><dd>Fly or land</dd>
     <dt>Bike</dt><dd>Get on or off: push the stick up to pedal, down to brake, sideways to steer</dd>
+    <dt>Map</dt><dd>Show or hide the map. Tap the map to open it large, then tap a spot to go there</dd>
     <dt>&#9650; &#9660;</dt><dd>Climb and descend when flying</dd>
     <dt>+ &minus;</dt><dd>Fly faster or slower</dd>
   </dl>

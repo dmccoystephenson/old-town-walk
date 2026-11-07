@@ -6,7 +6,7 @@
 // through the browser's input layer: walks, runs into nothing silly, looks around, takes off, climbs,
 // lands, and loses and gets back the graphics context. Fails on any page error, on a frame that is
 // flat, and on a tile that fails to download. On the phone, every control is on screen, at least 44
-// CSS px, and none overlaps another. Writes PNGs to <out-dir>.
+// CSS px, and none overlaps another or the map, upright or on its side. Writes PNGs to <out-dir>.
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
@@ -157,6 +157,33 @@ const SOLID = { east: 493580, north: 4492960 };  // inside a building, from the 
   await shoot(groundShot);
   check(colours(groundShot) > 40, 'the street is drawn');
   const shows = (id) => page.locator(id).textContent();
+  const onBody = (name) => page.evaluate((n) => document.body.classList.contains(n), name);
+  const mapShown = () => page.locator('#map').isVisible();
+  const savedMap = () => page.evaluate(() => JSON.parse(localStorage.getItem('old-town-walk-settings') || '{}').map);
+  let tapAt = (x, y) => page.mouse.click(x, y);
+  check(await mapShown(), 'the map shows');
+  await page.waitForFunction(() => {  // the arrow is where the player is: the pixel under the spot is the accent colour
+    const c = document.getElementById('map'), s = window.oldTownWalk.status(), p = window.oldTownWalk.mapPoint(s.east, s.north), k = c.width / c.clientWidth;
+    const [r, g, b, a] = c.getContext('2d').getImageData(Math.round(p.x * k), Math.round(p.y * k), 1, 1).data;
+    return r > 230 && g > 170 && g < 200 && b < 90 && a > 250;
+  }, null, { timeout: 90000 });
+  check(true, 'the map is drawn with its arrow');
+  // Every box that matters, on foot and in the air, pairwise: the map against all of them and the controls against each other.
+  const overlaps = () => page.evaluate(() => {
+    const find = () => ['#brand', '#bikeBtn', '#flyBtn', '#mapBtn', '#helpBtn', '#status', '#stick', '#height', '#speed', '#jumpBtn', '#map']
+      .map((sel) => [sel, document.querySelector(sel).getBoundingClientRect()]).filter(([, b]) => b.width > 0);
+    const clashes = (boxes) => boxes.flatMap(([a, p], i) => boxes.slice(i + 1).filter(([, q]) =>
+      p.left < q.right && q.left < p.right && p.top < q.bottom && q.top < p.bottom).map(([b]) => `${a} on ${b}`));
+    const flying = document.body.classList.contains('flying'), out = [];
+    for (const on of [false, true]) {
+      document.body.classList.toggle('flying', on);
+      const boxes = find();
+      out.push(...clashes(boxes));
+      for (const [sel, b] of boxes) if (b.left < 0 || b.top < 0 || b.right > innerWidth || b.bottom > innerHeight) out.push(`${sel} off screen`);
+    }
+    document.body.classList.toggle('flying', flying);
+    return out;
+  });
   const reset = page.locator('#resetBtn');
   const level = await status();
   check(Math.abs(level.pitch) < 15, `starting does not swing the view (pitch ${level.pitch})`);
@@ -168,11 +195,27 @@ const SOLID = { east: 493580, north: 4492960 };  // inside a building, from the 
       const b = await page.locator(sel).boundingBox();
       return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
     };
-    for (const sel of ['#flyBtn', '#helpBtn', '#stick', '#jumpBtn']) {
+    for (const sel of ['#flyBtn', '#mapBtn', '#helpBtn', '#stick', '#jumpBtn']) {
       const b = await page.locator(sel).boundingBox();
       check(b && b.width >= 44 && b.height >= 44 && b.x >= 0 && b.y >= 0 &&
         b.x + b.width <= 390 && b.y + b.height <= page.viewportSize().height, `${sel} is on screen and big enough`);
     }
+    tapAt = async (x, y) => {
+      await touch('touchStart', [{ x, y, id: 6 }]);
+      await touch('touchEnd', []);
+      await sleep(250);
+    };
+    // The map stays clear of everything on the phones it has to fit, upright and on its side.
+    const profile = page.viewportSize();
+    for (const [width, height] of [[390, 844], [320, 568], [844, 390], [568, 320], [profile.width, profile.height]]) {
+      await page.setViewportSize({ width, height });
+      const clash = await overlaps();
+      check(clash.length === 0 && await mapShown(), `at ${width}x${height} nothing overlaps${clash.length ? ': ' + clash.join(', ') : ''}`);
+    }
+    await tapAt(...Object.values(await middle('#mapBtn')));
+    check(!(await mapShown()) && await savedMap() === false, 'the Map button hides the map, and that is kept');
+    await tapAt(...Object.values(await middle('#mapBtn')));
+    check(await mapShown() && await savedMap() === true, 'and brings it back');
     // Walk with the stick while a second finger looks.
     const c = await middle('#stick');
     const before = await status();
@@ -281,6 +324,20 @@ const SOLID = { east: 493580, north: 4492960 };  // inside a building, from the 
     // Under pointer lock, Playwright's mouse reports absolute jumps that a real one never does, so
     // the locked path gets a known movement, and real mouse input goes through drag to look.
     check(await page.evaluate(() => document.pointerLockElement === document.getElementById('view')), 'clicking takes the mouse');
+    const clash = await overlaps();
+    check(clash.length === 0, `nothing overlaps${clash.length ? ': ' + clash.join(', ') : ''}`);
+    await page.keyboard.press('KeyM');
+    check(!(await mapShown()) && await savedMap() === false, 'M hides the map, and that is kept');
+    await page.keyboard.press('KeyM');
+    check(await mapShown() && await savedMap() === true, 'and M brings it back');
+    await page.keyboard.press('Shift+KeyM');
+    check(await onBody('map-open'), 'Shift+M opens the large map');
+    await page.waitForFunction(() => document.pointerLockElement === null, null, { timeout: 10000 });
+    check(true, 'the large map frees the mouse');
+    await page.keyboard.press('KeyM');
+    check(!(await onBody('map-open')) && await mapShown(), 'M closes it and the small map stays');
+    await page.waitForFunction(() => document.pointerLockElement === document.getElementById('view'), null, { timeout: 10000 });
+    check(true, 'and the mouse goes back');
     await page.evaluate(() => {
       const view = document.getElementById('view');
       for (let i = 0; i < 6; i++) view.dispatchEvent(new PointerEvent('pointermove', { movementX: 40, movementY: 0, bubbles: true }));
@@ -519,14 +576,57 @@ const SOLID = { east: 493580, north: 4492960 };  // inside a building, from the 
   check(Math.hypot(there.east - here.east - 300, there.north - here.north + 200) < 90 && there.yaw === 90, 'and sets the player down there');
   check(!(await page.evaluate(([e, n]) => window.oldTownWalk.travel({east: e + 90000, north: n}), [here.east, here.north])), 'travel refuses a spot off the map');
 
+  // The large map: opening and closing it moves nothing, a tap off the map stays put, and a tap on it goes there.
+  const openMap = async () => {
+    const b = await page.locator('#map').boundingBox();
+    await tapAt(b.x + b.width / 2, b.y + b.height / 2);
+    await page.waitForFunction(() => document.body.classList.contains('map-open'), null, { timeout: 10000 });
+    await sleep(500);  // past the guard against a double tap
+  };
+  await openMap();
+  const fitted = await page.evaluate(() => {
+    const c = document.getElementById('map').getBoundingClientRect();
+    return { width: c.width, height: c.height, screen: [innerWidth, innerHeight] };
+  });
+  check(fitted.width === fitted.screen[0] && fitted.height === fitted.screen[1], 'the large map fills the screen');
+  await page.keyboard.press('Escape');
+  check(!(await onBody('map-open')), 'Esc closes the large map');
+  await sleep(600);
+  const unmoved = await status();
+  check(Math.hypot(unmoved.east - there.east, unmoved.north - there.north) < 2 && unmoved.yaw === there.yaw, 'and nothing moved');
+  await openMap();
+  await page.locator('#mapBtn').click();
+  check(!(await onBody('map-open')), 'the Map button closes it too');
+  await openMap();
+  await tapAt(3, Math.round(fitted.screen[1] / 2));
+  await noted('off the map');
+  check(await onBody('map-open') && (await status()).arriving === 0, 'a tap off the map goes nowhere and leaves it open');
+  const goal = { east: there.east - 300, north: there.north + 200 };
+  const spot = await page.evaluate(({ east, north }) => window.oldTownWalk.mapPoint(east, north), goal);
+  await tapAt(spot.x, spot.y);
+  await page.waitForFunction(() => !document.body.classList.contains('map-open'), null, { timeout: 10000 });
+  await page.waitForFunction(() => window.oldTownWalk.status().arriving === 0, null, { timeout: 120000 });
+  const mapped = await status(), missed = Math.hypot(mapped.east - goal.east, mapped.north - goal.north);
+  check(missed < 90 && mapped.yaw === there.yaw, `a tap on the large map goes there and closes it (${missed.toFixed(1)} m off)`);
+  await page.locator('#mapBtn').click();
+  check(await savedMap() === false, 'the map can be left off');
+  await page.keyboard.press('Backspace');
+  await noted('again to undo');
+  check(await mapShown(), 'and a reset brings it back');
+  await page.keyboard.press('Backspace');
+  await noted('Your settings are back');
+  check(!(await mapShown()), 'which a second Backspace undoes');
+  await page.locator('#mapBtn').click();
+
   // Back to the start first: where a run ends depends on the machine's frame rate, and a wall or pavement filling the
   // frame has too few colours to tell a real picture from a flat one.
   await page.keyboard.press('KeyR');
   await page.waitForFunction(() => Math.abs(window.oldTownWalk.status().pitch) < 1 && window.oldTownWalk.status().flying === 0, null, { timeout: 60000 });
   await sleep(1000);
 
-  // A lost context is rebuilt, and the map comes back.
-  const held = (await status()).tiles;
+  // A lost context is rebuilt, and the map comes back. It reloads what this spot needs, which is what it needed at the
+  // start: the count now can be higher, with tiles left over from travelling that nothing asks for again.
+  const held = first.tiles;
   check(await page.evaluate(() => window.oldTownWalk.kit.loseContext()), 'the context can be lost');
   await page.waitForFunction(() => window.oldTownWalk.kit.lost === true, null, { timeout: 10000 });
   await page.evaluate(() => window.oldTownWalk.kit.restoreContext());
