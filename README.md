@@ -35,7 +35,9 @@ There is nothing to install. It needs OpenGL 4.5, which most PCs from the last d
 The program is not code-signed, so Windows SmartScreen may warn about an unknown publisher. Choose **More info**, then
 **Run anyway**.
 
-Street signs stand at the crossings, and the status panel names the street you are on.
+Street signs stand at the crossings, and the status panel names the street you are on. A handful of public historic
+places, listed with their sources in `data/landmarks.csv`, show their name as you come near and a sentence of history
+when you reach them; in the browser, the Places list in the help panel takes you straight to one.
 
 The bike rides like one: it builds up speed, coasts, turns in arcs, and cannot move sideways.
 

@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "places.h"
 #include "streets.h"
 
 namespace otw {
@@ -55,6 +56,7 @@ struct Manifest {
     double latitude = 0, startEast = 0, startNorth = 0;
     std::vector<TileKey> tiles;
     Streets streets;
+    std::vector<Place> places;
     bool has(TileKey k) const;
     std::string path(TileKey k) const;
 };

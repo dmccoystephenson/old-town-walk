@@ -7,6 +7,7 @@
 
 #include "bike_view.h"
 #include "exe_dir.h"
+#include "places.h"
 #include "settings.h"
 #include "streaming.h"
 #include "tile.h"
@@ -351,6 +352,51 @@ static void testStreets() {
     CHECK(otw::hudText({false, 1.4f, 700, 1.65f, 0, 60, 4, 0, 0.5f}).find("street  -") != std::string::npos);
 }
 
+static void testPlaces() {
+    otw::Manifest m;
+    CHECK(otw::parseManifest("old-town-walk-manifest 1\ntile_size 500\ntile 1 2 3 abc\n"
+                             "place 100.0 0.0 Old Town Square|Once a street, it became a plaza.\n"
+                             "place 170.5 0.0 Avery Block|A corner block.\n"
+                             "place 900.0 0.0 No sentence\nplace broken\nsomething new the viewer has not met\n", "x", m));
+    CHECK(m.places.size() == 2);
+    CHECK(m.tiles.size() == 1);
+    const otw::Place& square = m.places[0];
+    CHECK(square.name == "Old Town Square" && square.sentence == "Once a street, it became a plaza.");
+    CHECK(m.places[1].east == 170.5);
+
+    const auto close = otw::placesNear(m.places, 150, 0, 60, 5);
+    CHECK(close.size() == 2 && close[0]->name == "Avery Block");
+    CHECK(otw::placesNear(m.places, 150, 0, 60, 1).size() == 1);
+    CHECK(otw::placesNear(m.places, 0, 900, 60, 5).empty());
+
+    otw::PlaceWatch beginning;  // starting in a place is not arriving at it, and it stays the place you are at
+    CHECK(beginning.update(m.places, 100, 5) == nullptr);
+    CHECK(beginning.here() == &m.places[0] && beginning.arrivals() == 0);
+
+    otw::PlaceWatch watch;
+    CHECK(watch.update(m.places, -500, 0) == nullptr);  // nowhere in particular
+    CHECK(watch.here() == nullptr);
+    CHECK(watch.update(m.places, 85, 0) == &m.places[0]);  // arrives once,
+    CHECK(watch.update(m.places, 85, 0) == nullptr);       // and says nothing more while standing there
+    CHECK(watch.update(m.places, 100, 10) == nullptr);
+    CHECK(watch.update(m.places, 65, 0) == nullptr);  // just out of reach, and back: still the same visit
+    CHECK(watch.here() == &m.places[0]);
+    CHECK(watch.update(m.places, 85, 0) == nullptr);
+    CHECK(watch.update(m.places, 170, 0) == &m.places[1]);  // on to the next
+    CHECK(watch.here() == &m.places[1]);
+    CHECK(watch.update(m.places, 400, 0) == nullptr);  // away
+    CHECK(watch.here() == nullptr);
+    CHECK(watch.update(m.places, 170, 0) == &m.places[1]);  // a second visit counts
+    CHECK(watch.arrivals() == 3);
+
+    CHECK(otw::wrapped("one two three", 7) == "one two\nthree");
+    CHECK(otw::wrapped("one two three", 40) == "one two three");
+    CHECK(otw::wrapped("unbreakable word", 4) == "unbreakable\nword");
+    CHECK(otw::wrapped("", 8).empty());
+    CHECK(otw::widest("one two\nthree") == 7);
+    CHECK(otw::widest("") == 0);
+}
+
 static void testFiles() {
     otw::Manifest m;
     std::string err;
@@ -427,6 +473,7 @@ int main(int argc, char** argv) {
     testWalking();
     testFiles();
     testStreets();
+    testPlaces();
     testBike();
     testShownSpeed();
     testTravelDirection();

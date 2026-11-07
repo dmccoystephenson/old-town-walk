@@ -154,6 +154,7 @@
     $("homeBtn").hidden = false;
     $("shareBtn").hidden = false;
     $("settings").hidden = false;
+    $("places").hidden = $("placeList").childElementCount === 0;
   }
   const helpOpen = () => $("help").classList.contains("on");
   function setHelp(on) {
@@ -336,6 +337,36 @@
     }
   }
 
+  // The manifest's named places, as buttons in the panel. Coming to one, however you got there, shows its sentence.
+  const placeSentences = new Map();
+  let arrivalsSeen = 0, placeWaiting = "";
+  function listPlaces(manifest) {
+    for (const line of manifest.split("\n")) {
+      const found = /^place (\S+) (\S+) ([^|]+)\|(.*)$/.exec(line);
+      if (!found) continue;
+      const [, east, north, name, sentence] = found;
+      placeSentences.set(name, sentence);
+      const button = document.createElement("button");
+      button.textContent = name;
+      button.addEventListener("click", () => {
+        if (travel({east: parseFloat(east), north: parseFloat(north)})) setHelp(false);
+        else note("That place is not on the map");
+      });
+      $("placeList").append(button);
+    }
+  }
+  function showPlace(s) {
+    if (s.arrivals !== arrivalsSeen) {
+      arrivalsSeen = s.arrivals;
+      placeWaiting = `${s.place}: ${placeSentences.get(s.place) || ""}`;
+    }
+    // Waits its turn, as the panel draws over the messages and the last one may not have been read yet.
+    if (placeWaiting && !helpOpen() && performance.now() > noteFree) {
+      note(placeWaiting, PLACE_NOTE_MS);
+      placeWaiting = "";
+    }
+  }
+
   const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
   let sinceStatus = 1, frames = 0, fps = 0;
   function showStatus(dt) {
@@ -345,6 +376,7 @@
     fps = frames / sinceStatus;
     frames = 0; sinceStatus = 0;
     const s = status();
+    showPlace(s);
     const speed = s.pace;
     const heading = COMPASS[Math.floor(s.yaw / 45 + 0.5) & 7];
     const lines = [`${riding ? "riding" : flying ? "flying" : s.hurrying ? "running" : "on foot"}  ${formatSpeed(speed)} m/s`, `street  ${s.street || "-"}`];
@@ -355,15 +387,15 @@
     $("status").textContent = lines.join("\n");
   }
 
-  const NOTE_MS = 4000;
+  const NOTE_MS = 4000, PLACE_NOTE_MS = 8000;
   let noteTimer = 0, noteFree = 0, beforeReset = null, undoUntil = 0, undoTimer = 0;
-  function note(text) {
+  function note(text, ms = NOTE_MS) {
     const n = $("note");
     n.textContent = text;
     n.style.display = "block";
-    noteFree = performance.now() + NOTE_MS;
+    noteFree = performance.now() + ms;
     clearTimeout(noteTimer);
-    noteTimer = setTimeout(() => { n.style.display = "none"; }, NOTE_MS);
+    noteTimer = setTimeout(() => { n.style.display = "none"; }, ms);
   }
 
   // The canvas alone, so none of the page's panels are in the picture. Taken in the kit's after hook, straight after
@@ -741,7 +773,7 @@
     stepper("sensitivity", changeSensitivity, 1);
     $("resetBtn").addEventListener("click", resetSettings);
     // Opening it near the foot of the panel would otherwise leave it out of sight on a short screen.
-    $("settings").addEventListener("toggle", () => { if ($("settings").open) $("settings").scrollIntoView({block: "nearest"}); });
+    for (const panel of [$("places"), $("settings")]) panel.addEventListener("toggle", () => { if (panel.open) panel.scrollIntoView({block: "nearest"}); });
   }
 
   /* ------------------------------------------------------- frames */
@@ -801,6 +833,7 @@
     if (!answer.ok) throw Object.assign(new Error("The map did not download."), {code: "network"});
     const manifest = await answer.text();
     land = readLand(manifest);
+    listPlaces(manifest);
     kit = StrataKit.create({
       module: mod, canvas, idleOrbit: false, dprCap: coarse ? 1.5 : 2,
       limits: {minPitch: -2, maxPitch: 2, minDist: 0.1, maxDist: 2},

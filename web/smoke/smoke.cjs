@@ -618,6 +618,23 @@ const SOLID = { east: 493580, north: 4492960 };  // inside a building, from the 
   check(!(await mapShown()), 'which a second Backspace undoes');
   await page.locator('#mapBtn').click();
 
+  // The Places list goes to a landmark, closes the panel, names the place and tells its history, once.
+  await page.keyboard.press('KeyH');
+  await page.locator('#places summary').click();
+  const placeButton = page.locator('#placeList button', { hasText: 'Armstrong Hotel' });
+  const placeBox = await placeButton.boundingBox();
+  check(placeBox.height >= 44, `a place's button is big enough to tap (${placeBox.height})`);
+  check(await page.locator('#placeList button').count() >= 8, 'the panel lists the places');
+  const facing = (await status()).yaw;
+  await placeButton.click();
+  check(!(await page.locator('#help').evaluate((e) => e.classList.contains('on'))), 'choosing a place closes the panel');
+  await page.waitForFunction(() => window.oldTownWalk.status().place === 'Armstrong Hotel', null, { timeout: 120000 });
+  await noted('Armstrong Hotel: This three-story');
+  const atPlace = await status();
+  check(atPlace.arriving === 0 && atPlace.yaw === facing, 'the place is named, and the view stays where the player left it');
+  await sleep(2000);
+  check((await status()).arrivals === atPlace.arrivals, 'and it says so once');
+
   // Back to the start first: where a run ends depends on the machine's frame rate, and a wall or pavement filling the
   // frame has too few colours to tell a real picture from a flat one.
   await page.keyboard.press('KeyR');
@@ -642,7 +659,7 @@ const SOLID = { east: 493580, north: 4492960 };  // inside a building, from the 
   // since tiles loaded out here would still be in the count that check waits for.
   await page.evaluate(([e, n]) => window.oldTownWalk.travel({east: e + 300, north: n - 200, yaw: 90}), [first.east, first.north]);
   await page.waitForFunction(() => window.oldTownWalk.status().arriving === 0, null, { timeout: 120000 });
-  const spot = await status();
+  const sharedSpot = await status();
   // Stand-ins for the clipboard and the share sheet, so that a refusal can be tested too.
   await page.evaluate(() => {
     window.sent = [];
@@ -665,7 +682,7 @@ const SOLID = { east: 493580, north: 4492960 };  // inside a building, from the 
   const linked = Object.fromEntries(sharedLink.searchParams);
   check(Object.keys(linked).sort().join() === 'e,h,m,n,p,t,y', `the link holds the spot and nothing else (${sharedLink.search})`);
   check(sharedLink.origin + sharedLink.pathname === new URL(url).origin + new URL(url).pathname, 'the link points to the page itself');
-  check(+linked.e === Math.floor(spot.east) && +linked.n === Math.floor(spot.north) && +linked.y === 90 && +linked.m === 0, 'the link holds where the player is');
+  check(+linked.e === Math.floor(sharedSpot.east) && +linked.n === Math.floor(sharedSpot.north) && +linked.y === 90 && +linked.m === 0, 'the link holds where the player is');
   if (phone) {
     await page.evaluate(() => { window.refuseShare = 'AbortError'; window.sent = []; });
     await shareBtn.click();

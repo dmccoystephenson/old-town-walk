@@ -13,6 +13,7 @@
 
 #include "tile.h"
 #include "bike_view.h"
+#include "place_view.h"
 #include "sign_view.h"
 #include "tile_stream.h"
 #include "walker.h"
@@ -41,6 +42,7 @@ struct Game {
     float camera[7] = {};  // the kit's six, then the bike's lean, which the page shows by turning the canvas
     std::string status;
     otw::SignView signs;
+    otw::PlaceView places;
     int signFrames = 0;
     otw::Bike bike;
     bool hurrying = false;  // this frame, with Shift or a full stick
@@ -126,6 +128,7 @@ void strata_kit_build(strata_kit::Host& h, double) {
     const auto& signs = game->signs.items();
     h.items.insert(h.items.end(), signs.begin(), signs.end());
     for (const otw::SignView::Label& l : game->signs.labels()) h.label(l.at[0], l.at[1], l.at[2], l.text.c_str(), otw::kSignPixels);
+    for (const otw::PlaceView::Label& l : game->places.labels()) h.label(l.at[0], l.at[1], l.at[2], l.text.c_str(), otw::kPlacePixels, {1.0f, 0.85f, 0.45f});
     if (game->bike.riding) {
         const otw::Walker& w = game->walker;
         for (const otw::BikeSegment& s : otw::handlebars(game->bike, w.x, w.eyeY, w.z))
@@ -211,6 +214,7 @@ EMSCRIPTEN_KEEPALIVE const float* otw_step(float dt, float ahead, float right, f
         }
     }
     if (game->placed && game->signFrames++ % 15 == 0) game->signs.update(game->manifest.streets, s, w, game->flying);
+    if (game->placed && !game->arriving && game->signFrames % 15 == 1) game->places.update(game->manifest.places, s, w, game->flying);
     aimCamera();
     return game->camera;
 }
@@ -330,6 +334,8 @@ EMSCRIPTEN_KEEPALIVE const char* otw_status() {
                   static_cast<double>(otw::shownSpeed(game->flying, game->bike, game->flying ? game->flySpeed : game->walkSpeed, game->hurrying)), game->hurrying ? 1 : 0,
                   static_cast<double>(strata_kit::host().opts.fovDegrees), s.east(w.x), s.north(w.z), game->arriving ? 1 : 0);
     game->status = text;
+    game->status.pop_back();  // the closing brace: a place's name has no set length
+    game->status += ",\"place\":\"" + game->places.here() + "\",\"arrivals\":" + std::to_string(game->places.arrivals()) + "}";
     return game->status.c_str();
 }
 

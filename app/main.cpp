@@ -18,6 +18,7 @@
 #include "strata/strata.h"
 #include "tile.h"
 #include "bike_view.h"
+#include "place_view.h"
 #include "sign_view.h"
 #include "tile_stream.h"
 #include "walker.h"
@@ -211,6 +212,8 @@ int main(int argc, char** argv) {
     };
     // One StrataText a line, because a '\n' inside one leaves no gap between lines.
     otw::SignView signs;
+    otw::PlaceView places;
+    std::string placeNote;  // waits for the message before it to finish
     int signFrames = 0;
     otw::Bike bike;
     float bikeSpeed = saved.bikeSpeed;
@@ -233,7 +236,8 @@ int main(int argc, char** argv) {
                                     "Map data (c) OpenStreetMap contributors, ODbL. Elevation: USGS."};
             if (!check(strata_submit_text(engine, &credit, 1), "credit")) return false;
         }
-        if (noteLeft > 0 && !writeLines(centre - static_cast<float>(note.size()) * kGlyph / 2, static_cast<float>(h) - 56, note, yellow)) return false;
+        const float noteRows = static_cast<float>(std::count(note.begin(), note.end(), '\n'));
+        if (noteLeft > 0 && !writeLines(centre - static_cast<float>(otw::widest(note)) * kGlyph / 2, static_cast<float>(h) - 56 - noteRows * kLineGap, note, yellow)) return false;
         if (!a.headless && !mouseHeld) {
             const std::string freed = "Click to look around. Esc again quits.";
             if (!writeLines(centre - static_cast<float>(freed.size()) * kGlyph / 2, 8 * kLineGap + 34, freed, yellow)) return false;
@@ -272,8 +276,27 @@ int main(int argc, char** argv) {
         return check(strata_submit_primitives(engine, items.data(), static_cast<int32_t>(items.size())), "signs") &&
                check(strata_submit_world_text(engine, texts.data(), anchors.data(), static_cast<int32_t>(texts.size())), "sign text");
     };
+    auto drawPlaces = [&]() -> bool {
+        if (places.labels().empty()) return true;
+        std::vector<StrataText> texts;
+        std::vector<float> anchors;
+        for (const otw::PlaceView::Label& l : places.labels()) {
+            texts.push_back({-static_cast<float>(l.text.size()) * otw::kPlacePixels / 2, -otw::kPlacePixels, otw::kPlacePixels,
+                             STRATA_TEXT_SHADOW, {1, 0.85f, 0.45f, 1}, l.text.c_str()});
+            anchors.insert(anchors.end(), l.at, l.at + 3);
+        }
+        return check(strata_submit_world_text(engine, texts.data(), anchors.data(), static_cast<int32_t>(texts.size())), "place text");
+    };
     auto draw = [&]() -> bool {
         if (signFrames++ % 15 == 0) signs.update(manifest.streets, stream, walker, flying);
+        if (signFrames % 15 == 1) {
+            if (const otw::Place* arrived = places.update(manifest.places, stream, walker, flying)) placeNote = arrived->name + ": " + arrived->sentence;
+        }
+        if (!placeNote.empty() && noteLeft <= 0) {
+            say(otw::wrapped(placeNote, static_cast<size_t>(std::max(20, w - 32)) / static_cast<size_t>(kGlyph)));
+            noteLeft = otw::kPlaceNoteSeconds;
+            placeNote.clear();
+        }
         float ahead[3];
         walker.forward(ahead);
         const float eye[3] = {walker.x, walker.eyeY + walker.hop, walker.z};
@@ -289,7 +312,7 @@ int main(int argc, char** argv) {
         return check(strata_set_camera(engine, &c), "camera") && check(strata_set_lighting(engine, &light), "lighting") &&
                check(strata_begin_frame(engine, &fd), "begin_frame") &&
                check(strata_submit_primitives(engine, trees.data(), static_cast<int32_t>(trees.size())), "trees") &&
-               drawSigns() && drawBike() && overlay() &&
+               drawSigns() && drawPlaces() && drawBike() && overlay() &&
                check(strata_end_frame(engine), "end_frame");
     };
     auto walkableHere = [&](float x, float z) { return stream.walkable(x, z); };
