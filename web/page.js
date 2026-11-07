@@ -854,6 +854,8 @@
     applySettings();
     window.oldTownWalk = {status, kit, shiftSun, travel, get sunTime() { return sunTime; }};
     window.oldTownWalk.mapPoint = mapPoint;
+    window.oldTownWalk.night = () => JSON.parse(mod.UTF8ToString(mod._otw_night()));
+    window.oldTownWalk.setLamps = (on) => mod._otw_set_lamps(on ? 1 : 0);
     kit.start();
   }
 

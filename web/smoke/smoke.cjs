@@ -69,6 +69,14 @@ function changed(fileA, fileB) {
   return moved / seen;
 }
 
+// Pixels bright enough to be a light: at night nothing else in the frame comes near, signs apart.
+function brightPixels(file) {
+  const img = decodePng(fs.readFileSync(file));
+  let bright = 0;
+  for (let i = 0; i < img.data.length; i += img.channels) if (img.data[i] > 120 && img.data[i] > img.data[i + 2] * 1.3) bright++;
+  return bright;
+}
+
 // Distinct coarse colours in a screenshot: a flat frame has a handful.
 function colours(file) {
   const img = decodePng(fs.readFileSync(file));
@@ -634,6 +642,28 @@ const SOLID = { east: 493580, north: 4492960 };  // inside a building, from the 
   check(atPlace.arriving === 0 && atPlace.yaw === facing, 'the place is named, and the view stays where the player left it');
   await sleep(2000);
   check((await status()).arrivals === atPlace.arrivals, 'and it says so once');
+  // Street lamps and lit windows: nothing of them by day, and at night they light up what is otherwise black.
+  const night = () => page.evaluate(() => window.oldTownWalk.night());
+  const noon = await night();
+  check(noon.level === 0 && noon.posts === 0 && noon.points === 0 && noon.lights === 0, `no lamps by day (${JSON.stringify(noon)})`);
+  check(noon.lamps > 300, `lamps stand along the streets (${noon.lamps})`);
+  await page.evaluate(([e, n]) => window.oldTownWalk.travel({east: e, north: n, yaw: 90, pitch: -25, mode: 2, height: 95}), [there.east, there.north]);
+  await page.waitForFunction(() => window.oldTownWalk.status().arriving === 0, null, { timeout: 120000 });
+  await page.evaluate(() => window.oldTownWalk.shiftSun(10));
+  await page.waitForFunction(() => window.oldTownWalk.night().level === 1, null, { timeout: 120000 });
+  await page.waitForFunction(() => window.oldTownWalk.night().points > 0, null, { timeout: 120000 });
+  const dark = await night();
+  await sleep(2500);  // the textures and the lights have settled
+  const litShot = path.join(outDir, 'night-lamps.png'), unlitShot = path.join(outDir, 'night-no-lamps.png');
+  await shoot(litShot);
+  await page.evaluate(() => window.oldTownWalk.setLamps(false));
+  await page.waitForFunction(() => window.oldTownWalk.night().level === 0, null, { timeout: 120000 });
+  await sleep(1000);
+  await shoot(unlitShot);
+  await page.evaluate(() => window.oldTownWalk.setLamps(true));
+  await page.evaluate(() => window.oldTownWalk.shiftSun(-10));
+  const lit = brightPixels(litShot), unlit = brightPixels(unlitShot);
+  check(lit > unlit + 200, `lamps and windows light the night (${lit} bright pixels against ${unlit}; ${JSON.stringify(dark)})`);
 
   // Back to the start first: where a run ends depends on the machine's frame rate, and a wall or pavement filling the
   // frame has too few colours to tell a real picture from a flat one.

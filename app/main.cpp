@@ -19,6 +19,7 @@
 #include "tile.h"
 #include "bike_view.h"
 #include "place_view.h"
+#include "night_view.h"
 #include "sign_view.h"
 #include "tile_stream.h"
 #include "walker.h"
@@ -34,6 +35,7 @@ constexpr int kA = 4, kB = 5, kD = 7, kE = 8, kF = 9, kH = 11, kI = 12, kR = 21,
               kRight = 79, kLeft = 80, kDown = 81, kUp = 82;
 
 constexpr float kGlyph = 16, kLineGap = 22;  // HUD text, in pixels
+constexpr size_t kPointLights = 8;
 
 constexpr const char* kUsage =
     "old-town-walk: walk or fly through Old Town Fort Collins\n"
@@ -215,6 +217,7 @@ int main(int argc, char** argv) {
     otw::PlaceView places;
     std::string placeNote;  // waits for the message before it to finish
     int signFrames = 0;
+    otw::NightView night;
     otw::Bike bike;
     float bikeSpeed = saved.bikeSpeed;
     auto writeLines = [&](float x, float y, const std::string& text, const float color[4]) -> bool {
@@ -287,7 +290,17 @@ int main(int argc, char** argv) {
         }
         return check(strata_submit_world_text(engine, texts.data(), anchors.data(), static_cast<int32_t>(texts.size())), "place text");
     };
+    auto drawLamps = [&]() -> bool {
+        const auto& items = night.items();
+        const auto& points = night.points();
+        return (items.empty() || check(strata_submit_primitives(engine, items.data(), static_cast<int32_t>(items.size())), "lamp posts")) &&
+               (points.empty() || check(strata_submit_points(engine, points.data(), static_cast<int32_t>(points.size())), "lamps"));
+    };
     auto draw = [&]() -> bool {
+        if (signFrames % otw::kNightLooks == 0) {
+            night.setSun(otw::sunElevation(light.time_of_day, light.latitude_degrees));
+            night.update(stream, walker, flying, kPointLights);
+        }
         if (signFrames++ % 15 == 0) signs.update(manifest.streets, stream, walker, flying);
         if (signFrames % 15 == 1) {
             if (const otw::Place* arrived = places.update(manifest.places, stream, walker, flying)) placeNote = arrived->name + ": " + arrived->sentence;
@@ -309,10 +322,16 @@ int main(int argc, char** argv) {
         StrataFrameDesc fd{};
         fd.clear_flags = STRATA_CLEAR_COLOR | STRATA_CLEAR_DEPTH | STRATA_CLEAR_SKY;
         const auto& trees = stream.trees();
+        const auto& lamps = night.lights();
+        const float noTint[3] = {1, 1, 1};
+        float moonlight[3];
+        night.lift(moonlight);
         return check(strata_set_camera(engine, &c), "camera") && check(strata_set_lighting(engine, &light), "lighting") &&
+               check(strata_set_ambient(engine, noTint, moonlight), "ambient") &&
+               check(strata_set_point_lights(engine, lamps.data(), static_cast<int32_t>(lamps.size())), "lamp lights") &&
                check(strata_begin_frame(engine, &fd), "begin_frame") &&
                check(strata_submit_primitives(engine, trees.data(), static_cast<int32_t>(trees.size())), "trees") &&
-               drawSigns() && drawPlaces() && drawBike() && overlay() &&
+               drawLamps() && drawSigns() && drawPlaces() && drawBike() && overlay() &&
                check(strata_end_frame(engine), "end_frame");
     };
     auto walkableHere = [&](float x, float z) { return stream.walkable(x, z); };
@@ -539,6 +558,7 @@ int main(int argc, char** argv) {
         if (held[kLeftBracket]) light.time_of_day -= dt * 0.05f;
         if (held[kRightBracket]) light.time_of_day += dt * 0.05f;
         light.time_of_day -= std::floor(light.time_of_day);
+        night.tick(dt);
         if (!stream.update(walker.x, walker.z, 1) || !draw() || !check(strata_present(engine), "present")) running = false;
     }
     saveSettings(current());

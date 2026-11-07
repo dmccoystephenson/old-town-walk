@@ -86,7 +86,7 @@ button opens. Zoom, field of view and screenshots need a keyboard.
 | B | Get on or off the bike: W pedals, S brakes and backs up, A and D steer, Shift goes faster |
 | M | Browser only: show or hide the map, also with the Map button. Shift+M or a click on the map opens it large, where a click on a spot takes you there. |
 | R | Back to where you started |
-| `[` and `]` | Time of day |
+| `[` and `]` | Time of day. Street lamps and lit windows come on as the sun goes down. |
 | P | Save a screenshot, as a download in a browser |
 | L | Browser only: share a link to where you are, with your view, mode and the time of day. The controls panel has a button for it. |
 | Tab | Hide the status panel |

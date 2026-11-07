@@ -14,6 +14,7 @@
 #include "tile.h"
 #include "bike_view.h"
 #include "place_view.h"
+#include "night_view.h"
 #include "sign_view.h"
 #include "tile_stream.h"
 #include "walker.h"
@@ -40,10 +41,11 @@ struct Game {
     double sinceLoad = 1;
     float startX = 0, startZ = 0;
     float camera[7] = {};  // the kit's six, then the bike's lean, which the page shows by turning the canvas
-    std::string status;
+    std::string status, nightStatus;
     otw::SignView signs;
     otw::PlaceView places;
     int signFrames = 0;
+    otw::NightView night;
     otw::Bike bike;
     bool hurrying = false;  // this frame, with Shift or a full stick
     bool arriving = false;  // travelled, and waiting for the map to load there
@@ -110,9 +112,10 @@ void strata_kit_configure(strata_kit::Options& o) {
     o.farPlane = 1600.0f;
     o.shadowDistanceMin = 220.0f;
     o.shadowDistancePerDist = 0.0f;
-    o.tiers[0] = {0, 1024, 0, false};
-    o.tiers[1] = {1, 1024, 0, false};
-    o.tiers[2] = {3, 2048, 0, false};
+    // Point lights are the lamps' nearest few; every tier has some, and the pools carry the rest.
+    o.tiers[0] = {0, 1024, 3, false};
+    o.tiers[1] = {1, 1024, 4, false};
+    o.tiers[2] = {3, 2048, 8, false};
 }
 
 // Runs at the start and again after a lost context: nothing survives on the new one, so tiles load
@@ -136,6 +139,13 @@ void strata_kit_build(strata_kit::Host& h, double) {
                        STRATA_LINES_ON_TOP | STRATA_LINES_ROUND_CAPS);
     }
     h.meshes = game->stream->meshes();
+    const otw::NightView& night = game->night;
+    h.items.insert(h.items.end(), night.items().begin(), night.items().end());
+    h.points.insert(h.points.end(), night.points().begin(), night.points().end());
+    for (const StrataPointLight& l : night.lights()) h.light(l);
+    float moonlight[3];
+    night.lift(moonlight);
+    h.ambientLift = {moonlight[0], moonlight[1], moonlight[2]};
 }
 
 extern "C" {
@@ -213,6 +223,12 @@ EMSCRIPTEN_KEEPALIVE const float* otw_step(float dt, float ahead, float right, f
             w.stepHop(dt);
         }
     }
+    if (game->placed && game->signFrames % otw::kNightLooks == 0) {
+        const strata_kit::Host& h = strata_kit::host();
+        game->night.setSun(h.sunElevation);  // the page moves the sun through the kit
+        game->night.update(s, w, game->flying, static_cast<size_t>(h.tier().maxLights));
+    }
+    game->night.tick(dt);
     if (game->placed && game->signFrames++ % 15 == 0) game->signs.update(game->manifest.streets, s, w, game->flying);
     if (game->placed && !game->arriving && game->signFrames % 15 == 1) game->places.update(game->manifest.places, s, w, game->flying);
     aimCamera();
@@ -298,6 +314,22 @@ EMSCRIPTEN_KEEPALIVE void otw_set_bike_speed(float speed) {
 // context, so this is all a field of view that changes in play needs. The page calls it once a frame.
 EMSCRIPTEN_KEEPALIVE void otw_set_fov(float degrees) {
     strata_kit::host().opts.fovDegrees = degrees;
+}
+
+// The lamps and lit windows, off for a comparison. Takes effect at the next look, a few frames on.
+EMSCRIPTEN_KEEPALIVE void otw_set_lamps(int on) {
+    if (game) game->night.setOn(on != 0);
+}
+
+// For the page's tests: how far night has come, and what the lamps put in a frame.
+EMSCRIPTEN_KEEPALIVE const char* otw_night() {
+    if (!game || !game->stream) return "{}";
+    char text[120];
+    std::snprintf(text, sizeof text, "{\"level\":%.3f,\"lamps\":%d,\"posts\":%d,\"points\":%d,\"lights\":%d}", static_cast<double>(game->night.level()),
+                  static_cast<int>(game->stream->lamps().size()), static_cast<int>(game->night.items().size()),
+                  static_cast<int>(game->night.points().size()), static_cast<int>(game->night.lights().size()));
+    game->nightStatus = text;
+    return game->nightStatus.c_str();
 }
 
 EMSCRIPTEN_KEEPALIVE int otw_toggle_fly() {
