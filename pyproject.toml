@@ -1,6 +1,6 @@
 [project]
 name = "old-town-walk"
-version = "0.3.0"
+version = "0.4.0"
 description = "Open map and elevation data as streamed 3D tiles, rendered with Strata"
 requires-python = ">=3.12,<3.13"
 dependencies = ["numpy>=1.26", "pyproj>=3.6", "tifffile>=2024.1.30", "mapbox-earcut>=1.0"]
