@@ -182,6 +182,21 @@ static void testWalking() {
             const otw::Settings bad = otw::parseSettings("fly_speed 99999\nfov banana\nmystery 3\nview_radius -5\n");
             CHECK(bad.flySpeed == otw::kMaxFlySpeed && bad.fov == 70 && bad.viewRadius == otw::kMinViewRadius);
             CHECK(otw::parseSettings("").flySpeed == 20);
+            // Reduced motion is off until asked for, and the longest possible file still reaches it.
+            CHECK(!otw::Settings{}.reduceMotion && !otw::parseSettings("").reduceMotion);
+            CHECK(otw::parseSettings("reduce_motion 1\n").reduceMotion && !otw::parseSettings("reduce_motion 0\n").reduceMotion);
+            CHECK(!otw::parseSettings("reduce_motion banana\n").reduceMotion);
+            CHECK(!otw::parseSettings(otw::formatSettings(otw::Settings{})).reduceMotion);
+            otw::Settings longest;
+            longest.flySpeed = otw::kMaxFlySpeed;
+            longest.walkSpeed = otw::kMaxWalkSpeed;
+            longest.viewRadius = otw::kMaxViewRadius;
+            longest.sensitivity = otw::kMaxSensitivity;
+            longest.fov = otw::kMaxFov;
+            longest.bikeSpeed = otw::kMaxBikeSpeed;
+            longest.reduceMotion = true;
+            const otw::Settings kept = otw::parseSettings(otw::formatSettings(longest));
+            CHECK(kept.reduceMotion && kept.bikeSpeed == otw::kMaxBikeSpeed);
         }
         CHECK(otw::frameStep(0.016f) == 0.016f && otw::frameStep(0.2f) == 0.2f && otw::frameStep(3.0f) == 0.25f);
         CHECK(std::string(otw::compass(0)) == "N" && std::string(otw::compass(359)) == "N");

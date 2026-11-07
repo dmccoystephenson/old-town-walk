@@ -199,7 +199,7 @@ int main(int argc, char** argv) {
     light.fog = 1;
 
     int w = a.width, h = a.height;
-    bool flying = a.fly, hud = a.hud || (!a.headless && saved.panel), invertLook = saved.invertLook;
+    bool flying = a.fly, hud = a.hud || (!a.headless && saved.panel), invertLook = saved.invertLook, reduceMotion = saved.reduceMotion;
     float flySpeed = saved.flySpeed, walkSpeed = saved.walkSpeed, sensitivity = saved.sensitivity, fov = saved.fov, zoom = 1, fps = 60;
     bool helpOpen = !a.headless, helpAtStart = helpOpen, mouseHeld = false, hurrying = false;
     std::string note;  // a passing message: what just happened, or why it did not
@@ -278,8 +278,8 @@ int main(int argc, char** argv) {
         walker.forward(ahead);
         const float eye[3] = {walker.x, walker.eyeY + walker.hop, walker.z};
         const float look[3] = {eye[0] + ahead[0], eye[1] + ahead[1], eye[2] + ahead[2]};
-        // A rider leans into a turn. Tilting the camera's up shows it.
-        const float tilt = bike.lean * 3.14159265f / 180.0f, side = walker.yawDeg * 3.14159265f / 180.0f;
+        // A rider leans into a turn. Tilting the camera's up shows it, unless the player asked for less motion.
+        const float tilt = (reduceMotion ? 0.0f : bike.lean) * 3.14159265f / 180.0f, side = walker.yawDeg * 3.14159265f / 180.0f;
         const float up[3] = {std::cos(side) * std::sin(tilt), std::cos(tilt), std::sin(side) * std::sin(tilt)};
         StrataCamera c{};
         strata_camera_look_at(eye, look, up, fov * zoom, static_cast<float>(w) / static_cast<float>(std::max(1, h)), 0.1f, 1600.0f, &c);
@@ -389,7 +389,7 @@ int main(int argc, char** argv) {
     };
     auto holdMouse = [&](bool hold) { mouseHeld = check(strata_set_relative_mouse_mode(engine, hold ? 1 : 0), "mouse look") && hold; };
     holdMouse(true);
-    auto current = [&]() -> otw::Settings { return {flySpeed, walkSpeed, stream.viewRadius(), sensitivity, fov, hud, invertLook, bikeSpeed}; };
+    auto current = [&]() -> otw::Settings { return {flySpeed, walkSpeed, stream.viewRadius(), sensitivity, fov, hud, invertLook, bikeSpeed, reduceMotion}; };
     otw::Settings beforeReset;
     float undoLeft = 0;  // seconds a second Backspace still undoes the first
     bool held[256] = {};
@@ -453,6 +453,7 @@ int main(int argc, char** argv) {
                     sensitivity = use.sensitivity;
                     fov = use.fov;
                     invertLook = use.invertLook;
+                    reduceMotion = use.reduceMotion;
                     hud = use.panel;
                     stream.setLoadRadius(use.viewRadius);
                     say(undoing ? "Your settings are back" : "Settings back to the defaults: Backspace again to undo");

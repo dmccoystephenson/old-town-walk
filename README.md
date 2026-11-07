@@ -84,13 +84,14 @@ button opens. Zoom, field of view and screenshots need a keyboard.
 | B | Get on or off the bike: W pedals, S brakes and backs up, A and D steer, Shift goes faster |
 | R | Back to where you started |
 | `[` and `]` | Time of day |
-| P | Save a screenshot |
+| P | Save a screenshot, as a download in a browser |
 | Tab | Hide the status panel |
 | Backspace | Put every setting back to its default. Press it again straight away to undo. |
 | Esc | Free the mouse. A click takes it back. On the desktop, Esc again quits. |
 
 The desktop viewer remembers your settings between runs, in `old-town-walk/settings.txt` under your user configuration
-folder.
+folder. To keep the view level on the bike, add a line `reduce_motion 1` there while the game is closed. The browser
+follows your system's reduced-motion setting instead.
 `old-town-walk --help` lists the command-line options.
 
 ## Building it

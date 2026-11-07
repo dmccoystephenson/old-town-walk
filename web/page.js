@@ -12,6 +12,9 @@
   const search = new URLSearchParams(location.search);
   const coarse = matchMedia("(pointer: coarse)").matches || search.get("touch") === "1";
   const stored = StrataKit.store;
+  // Whoever has asked their system for less motion gets a level view on the bike, from the moment they ask.
+  const lessMotion = matchMedia("(prefers-reduced-motion: reduce)");
+  lessMotion.addEventListener("change", () => { if (lessMotion.matches) canvas.style.transform = ""; });
 
 
   const FLY = [5, 800], WALK = [0.7, 14], BIKE = [3, 40], VIEW = [200, 1500], NOTCH = 1.25, VIEW_STEP = 100;
@@ -458,7 +461,7 @@
       const f = mod.HEAPF32, i = at >> 2, c = kit.cam;
       c.yaw = f[i]; c.pitch = f[i + 1]; c.dist = f[i + 2]; c.tx = f[i + 3]; c.ty = f[i + 4]; c.tz = f[i + 5];
       // The kit's camera cannot tilt, so the canvas does. A steady zoom keeps its corners covered without pumping in turns.
-      if (riding) canvas.style.transform = `rotate(${(-f[i + 6]).toFixed(2)}deg) scale(1.07)`;
+      if (riding && !lessMotion.matches) canvas.style.transform = `rotate(${(-f[i + 6]).toFixed(2)}deg) scale(1.07)`;
     }
     pump();
     if (shown) showStatus(dt);
