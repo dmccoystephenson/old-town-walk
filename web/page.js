@@ -12,12 +12,16 @@
   const search = new URLSearchParams(location.search);
   const coarse = matchMedia("(pointer: coarse)").matches || search.get("touch") === "1";
   const stored = StrataKit.store;
+  // Whoever has asked their system for less motion gets a level view on the bike, from the moment they ask.
+  const lessMotion = matchMedia("(prefers-reduced-motion: reduce)");
+  lessMotion.addEventListener("change", () => { if (lessMotion.matches) canvas.style.transform = ""; });
 
 
   const FLY = [5, 800], WALK = [0.7, 14], BIKE = [3, 40], VIEW = [200, 1500], NOTCH = 1.25, VIEW_STEP = 100;
   const SENSITIVITY = [0.03, 0.6];
+  const FOV = [40, 110], FOV_STEP = 5, ZOOMED = 0.3;
   const clamp = (v, [low, high]) => Math.min(high, Math.max(low, v));
-  const DEFAULTS = {fly: 20, walk: 1.4, ride: 12, view: coarse ? 500 : 700, sensitivity: MOUSE_DEG, invert: false, status: true};
+  const DEFAULTS = {fly: 20, walk: 1.4, ride: 12, view: coarse ? 500 : 700, sensitivity: MOUSE_DEG, fov: 70, invert: false, status: true};
   const settings = {...DEFAULTS};
   function loadSettings() {
     let saved = {};
@@ -28,10 +32,14 @@
     settings.ride = clamp(number(saved.ride, DEFAULTS.ride), BIKE);
     settings.view = clamp(number(saved.view, DEFAULTS.view), VIEW);
     settings.sensitivity = clamp(number(saved.sensitivity, DEFAULTS.sensitivity), SENSITIVITY);
+    settings.fov = clamp(number(saved.fov, DEFAULTS.fov), FOV);
     settings.invert = saved.invert === true;
     settings.status = saved.status !== false;
   }
-  function keepSettings() { stored.set("old-town-walk-settings", JSON.stringify(settings)); }
+  function keepSettings() {
+    stored.set("old-town-walk-settings", JSON.stringify(settings));
+    showSettings();
+  }
   function applySettings() {
     document.body.classList.toggle("no-status", !settings.status);
     if (!mod) return;
@@ -99,18 +107,20 @@
   const held = new Set();
   const move = {ahead: 0, right: 0, run: false};  // the stick
   const lift = {up: false, down: false};
-  let dyaw = 0, dpitch = 0, lookId = null, lookX = 0, lookY = 0, settling = 0;
+  let dyaw = 0, dpitch = 0, lookId = null, lookX = 0, lookY = 0, settling = 0, zoom = 1;
 
   const keyed = (a, b) => (held.has(a) ? 1 : 0) - (held.has(b) ? 1 : 0);
   const locked = () => document.pointerLockElement === canvas;
 
-  function look(dx, dy, deg) { dyaw += dx * deg; dpitch -= (settings.invert ? -dy : dy) * deg; }
+  // Zoomed in, the same hand movement turns less, as on the desktop.
+  function look(dx, dy, deg) { dyaw += dx * deg * zoom; dpitch -= (settings.invert ? -dy : dy) * deg * zoom; }
 
   const touching = () => document.body.classList.contains("touch");
   function setFlying(on) {
     flying = on;
     document.body.classList.toggle("flying", on);
     $("flyBtn").setAttribute("aria-pressed", String(on));
+    showSettings();
   }
   function toggleFly() {
     if (!mod) return;
@@ -124,6 +134,7 @@
     document.body.classList.toggle("riding", on);
     $("bikeBtn").setAttribute("aria-pressed", String(on));
     if (!on) canvas.style.transform = "";
+    showSettings();
   }
   function toggleBike() {
     if (!mod) return;
@@ -137,11 +148,13 @@
   function started() {  // the panel is now a pause, not a welcome
     $("start").textContent = "Back to the walk";
     $("homeBtn").hidden = false;
+    $("settings").hidden = false;
   }
   const helpOpen = () => $("help").classList.contains("on");
   function setHelp(on) {
     $("help").classList.toggle("on", on);
     if (on) {
+      showSettings();
       if (locked()) document.exitPointerLock();  // the panel's buttons need a cursor
       $("start").focus();
     } else {
@@ -155,14 +168,17 @@
   function shiftSun(hours) {
     sunTime += hours * 3600;
     if (kit) kit.setSun(sunTime, PLACE.lat, PLACE.lon);
+    showSettings();
   }
 
   const formatSpeed = (speed) => speed.toFixed(speed < 10 ? 1 : 0);
+  const speedMode = () => (flying ? {key: "fly", range: FLY, name: "Flying speed"} :
+    riding ? {key: "ride", range: BIKE, name: "Bike top speed"} : {key: "walk", range: WALK, name: "Walking speed"});
   function changeSpeed(notches) {
-    const key = flying ? "fly" : riding ? "ride" : "walk", range = flying ? FLY : riding ? BIKE : WALK, before = settings[key];
+    const {key, range, name} = speedMode(), before = settings[key];
     settings[key] = clamp(before * Math.pow(NOTCH, notches), range);
     if (settings[key] === before) note(notches > 0 ? "That is the top speed" : "That is the lowest speed");
-    else note(`${flying ? "Flying" : riding ? "Bike top" : "Walking"} speed ${formatSpeed(settings[key])} m/s`);
+    else note(`${name} ${formatSpeed(settings[key])} m/s`);
     applySettings();
     keepSettings();
   }
@@ -174,10 +190,28 @@
     applySettings();
     keepSettings();
   }
+  function changeFov(steps) {
+    const before = settings.fov;
+    settings.fov = clamp(before + steps * FOV_STEP, FOV);
+    if (settings.fov === before) note(steps > 0 ? "That is the widest view" : "That is the narrowest view");
+    else note(`Field of view ${settings.fov}`);
+    keepSettings();
+  }
   function changeSensitivity(notches) {
     settings.sensitivity = clamp(settings.sensitivity * Math.pow(NOTCH, notches), SENSITIVITY);
     note(`Mouse sensitivity ${settings.sensitivity.toFixed(2)}`);
     keepSettings();
+  }
+  function resetSettings() {  // a second go within the undo window puts everything back
+    const undo = performance.now() < undoUntil ? beforeReset : null;
+    beforeReset = undo ? null : {...settings};
+    Object.assign(settings, undo || DEFAULTS);
+    undoUntil = undo ? 0 : performance.now() + NOTE_MS;
+    clearTimeout(undoTimer);
+    if (!undo) undoTimer = setTimeout(() => { undoUntil = 0; showSettings(); }, NOTE_MS);
+    applySettings();
+    keepSettings();
+    note(undo ? "Your settings are back" : `Settings back to the defaults${helpOpen() ? "" : ": Backspace again to undo"}`);
   }
   function goToStart() {
     if (!mod) return;
@@ -185,6 +219,30 @@
     setFlying(false);
     setRiding(false);
     note("Back at the start");
+  }
+
+  function clockTime() {
+    const minutes = Math.floor(((sunTime / 60 - 360) % 1440 + 1440) % 1440);  // Mountain Daylight Time
+    return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+  }
+
+  // The panel draws over the messages, so its controls have to say for themselves where they stand. A
+  // button at the end of its range stays focusable: a disabled one would drop the keyboard's place.
+  function showSettings() {
+    const {key, range, name} = speedMode();
+    const atEnds = (down, up, value, [low, high]) => {
+      $(down).setAttribute("aria-disabled", String(value <= low));
+      $(up).setAttribute("aria-disabled", String(value >= high));
+    };
+    $("speedName").textContent = name;
+    $("speedValue").textContent = `${formatSpeed(settings[key])} m/s`;
+    atEnds("speedDown", "speedUp", settings[key], range);
+    $("viewValue").textContent = `${settings.view} m`;
+    atEnds("viewDown", "viewUp", settings.view, VIEW);
+    $("timeValue").textContent = clockTime();
+    $("sensitivityValue").textContent = settings.sensitivity.toFixed(2);
+    atEnds("sensitivityDown", "sensitivityUp", settings.sensitivity, SENSITIVITY);
+    $("resetBtn").textContent = performance.now() < undoUntil ? "Undo reset" : "Reset to defaults";
   }
 
   const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
@@ -197,19 +255,17 @@
     frames = 0; sinceStatus = 0;
     const s = status();
     const speed = s.pace;
-    const minutes = Math.floor(((sunTime / 60 - 360) % 1440 + 1440) % 1440);  // Mountain Daylight Time
-    const clock = `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
     const heading = COMPASS[Math.floor(s.yaw / 45 + 0.5) & 7];
     const lines = [`${riding ? "riding" : flying ? "flying" : s.hurrying ? "running" : "on foot"}  ${formatSpeed(speed)} m/s`, `street  ${s.street || "-"}`];
     if (!touching()) {
-      lines.push(`height  ${Math.round(s.height)} m`, `view    ${settings.view} m`, `facing  ${heading}`, `clock   ${clock}`,
+      lines.push(`height  ${Math.round(s.height)} m`, `view    ${settings.view} m`, `facing  ${heading}`, `clock   ${clockTime()}`,
                  `tiles   ${s.tiles}${s.waiting > 0 ? ` +${s.waiting} loading` : ""}`, `${Math.round(fps)} fps  H help`);
     }
     $("status").textContent = lines.join("\n");
   }
 
   const NOTE_MS = 4000;
-  let noteTimer = 0, noteFree = 0, beforeReset = null, undoUntil = 0;
+  let noteTimer = 0, noteFree = 0, beforeReset = null, undoUntil = 0, undoTimer = 0;
   function note(text) {
     const n = $("note");
     n.textContent = text;
@@ -217,6 +273,24 @@
     noteFree = performance.now() + NOTE_MS;
     clearTimeout(noteTimer);
     noteTimer = setTimeout(() => { n.style.display = "none"; }, NOTE_MS);
+  }
+
+  // The canvas alone, so none of the page's panels are in the picture. Taken in the kit's after hook, straight after
+  // a draw, so it is the view as it stands, and a lost context, which draws nothing, cannot save a blank picture.
+  let shotWanted = false, shots = 0;
+  function takeShot() {
+    if (!shotWanted) return;
+    shotWanted = false;
+    const name = `old-town-walk-${String(shots++).padStart(3, "0")}.png`;
+    canvas.toBlob((blob) => {
+      if (!blob) { note("The picture could not be saved"); return; }
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = name;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 60000);
+      note(`Saved ${name}`);
+    }, "image/png");
   }
 
   function useTouch() { document.body.classList.add("touch"); }
@@ -236,6 +310,15 @@
   function wireInput() {
     window.addEventListener("keydown", (e) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;  // the browser's own shortcuts: Ctrl+F is find, not take off
+      if (e.code === "Tab" && helpOpen()) return;  // Tab goes through the panel's controls
+      if ($("help").contains(e.target)) {  // these belong to the focused control, not to the walker
+        if (e.code === "Space" || e.code === "Enter" || e.code === "NumpadEnter") {
+          // A key held since before the panel opened, or held on Reset, must not press it over and over.
+          if (e.repeat && !e.target.closest(".setting")) e.preventDefault();
+          return;
+        }
+        if (e.code.startsWith("Arrow")) return;  // scrolls the panel
+      }
       if (!e.repeat && e.code === "KeyF") toggleFly();
       if (!e.repeat && e.code === "KeyB") toggleBike();
       if (e.code === "PageUp") { changeSpeed(1); e.preventDefault(); }
@@ -253,6 +336,9 @@
       if (!e.repeat && e.code === "KeyR") goToStart();
       if (e.code === "Comma") changeSensitivity(-1);
       if (e.code === "Period") changeSensitivity(1);
+      if (e.code === "Digit9") changeFov(-1);
+      if (e.code === "Digit0") changeFov(1);
+      if (!e.repeat && e.code === "KeyP" && shown) shotWanted = true;
       if (!e.repeat && e.code === "KeyI") {
         settings.invert = !settings.invert;
         note(settings.invert ? "Mouse look inverted" : "Mouse look normal");
@@ -260,13 +346,7 @@
       }
       if (!e.repeat && e.code === "Backspace") {
         e.preventDefault();
-        const undo = performance.now() < undoUntil ? beforeReset : null;
-        beforeReset = undo ? null : {...settings};
-        Object.assign(settings, undo || DEFAULTS);
-        undoUntil = undo ? 0 : performance.now() + NOTE_MS;
-        applySettings();
-        keepSettings();
-        note(undo ? "Your settings are back" : "Settings back to the defaults: Backspace again to undo");
+        resetSettings();
       }
       if (e.code === "Minus") changeView(-1);
       if (e.code === "Equal") changeView(1);
@@ -344,6 +424,17 @@
     $("helpBtn").addEventListener("click", () => setHelp(!helpOpen()));
     $("start").addEventListener("click", () => setHelp(false));
     $("homeBtn").addEventListener("click", () => { goToStart(); setHelp(false); });
+    const stepper = (name, change, step) => {
+      $(name + "Down").addEventListener("click", () => change(-step));
+      $(name + "Up").addEventListener("click", () => change(step));
+    };
+    stepper("speed", changeSpeed, 1);
+    stepper("view", changeView, 1);
+    stepper("time", shiftSun, 0.5);
+    stepper("sensitivity", changeSensitivity, 1);
+    $("resetBtn").addEventListener("click", resetSettings);
+    // Opening it near the foot of the panel would otherwise leave it out of sight on a short screen.
+    $("settings").addEventListener("toggle", () => { if ($("settings").open) $("settings").scrollIntoView({block: "nearest"}); });
   }
 
   /* ------------------------------------------------------- frames */
@@ -355,6 +446,8 @@
     if (!flying && held.has("Space")) mod._otw_jump();
     dyaw += keyed("ArrowRight", "ArrowLeft") * KEY_DEG * dt;
     dpitch += keyed("ArrowUp", "ArrowDown") * KEY_DEG * 0.66 * dt;
+    zoom += ((held.has("KeyZ") ? ZOOMED : 1) - zoom) * Math.min(1, dt * 12);
+    mod._otw_set_fov(settings.fov * zoom);
     const at = mod._otw_step(dt, ahead, right, up, run ? 1 : 0, dyaw, dpitch);
     dyaw = dpitch = 0;
     if (shown && performance.now() > noteFree) {
@@ -368,7 +461,7 @@
       const f = mod.HEAPF32, i = at >> 2, c = kit.cam;
       c.yaw = f[i]; c.pitch = f[i + 1]; c.dist = f[i + 2]; c.tx = f[i + 3]; c.ty = f[i + 4]; c.tz = f[i + 5];
       // The kit's camera cannot tilt, so the canvas does. A steady zoom keeps its corners covered without pumping in turns.
-      if (riding) canvas.style.transform = `rotate(${(-f[i + 6]).toFixed(2)}deg) scale(1.07)`;
+      if (riding && !lessMotion.matches) canvas.style.transform = `rotate(${(-f[i + 6]).toFixed(2)}deg) scale(1.07)`;
     }
     pump();
     if (shown) showStatus(dt);
@@ -402,6 +495,7 @@
       limits: {minPitch: -2, maxPitch: 2, minDist: 0.1, maxDist: 2},
       camera: {yaw: 0, pitch: 0, dist: 1, tx: 0, ty: 2, tz: 0},
       frame,
+      after: takeShot,
       onSlow: () => StrataLoader.slow(),
       onFatal: (code, message) => StrataLoader.fallback(code, message),
       onRestore: () => note("Reloading the map."),

@@ -56,12 +56,16 @@ python3 -m http.server 8000 --directory web-site
 ```
 
 Tiles are downloaded as they are needed, gzipped, and the page unpacks them, so the map costs about 3 MB to start and
-11 MB if you walk all of it. The page stores nothing beyond having shown the controls once, and reports nothing.
+11 MB if you walk all of it. Your settings, and a note that you have seen the controls, are kept in that browser only,
+and nothing is reported.
 `web/smoke/smoke.cjs` plays it in headless Chromium, on a desktop and a phone profile, with real input.
 
 ## Controls
 
-Press **H** in the window to see these at any time. In a browser on a phone, the on-screen stick and buttons do the same.
+Press **H** to see these at any time. They work in the desktop viewer and in a browser with a keyboard.
+
+On a touch screen, use the on-screen stick and buttons, plus the Settings section of the controls panel, which the **?**
+button opens. Zoom, field of view and screenshots need a keyboard.
 
 | Key | What it does |
 |---|---|
@@ -80,12 +84,14 @@ Press **H** in the window to see these at any time. In a browser on a phone, the
 | B | Get on or off the bike: W pedals, S brakes and backs up, A and D steer, Shift goes faster |
 | R | Back to where you started |
 | `[` and `]` | Time of day |
-| P | Save a screenshot |
+| P | Save a screenshot, as a download in a browser |
 | Tab | Hide the status panel |
 | Backspace | Put every setting back to its default. Press it again straight away to undo. |
-| Esc | Free the mouse. A click takes it back, and Esc again quits. |
+| Esc | Free the mouse. A click takes it back. On the desktop, Esc again quits. |
 
-Your settings are remembered between runs, in `old-town-walk/settings.txt` under your user configuration folder.
+The desktop viewer remembers your settings between runs, in `old-town-walk/settings.txt` under your user configuration
+folder. To keep the view level on the bike, add a line `reduce_motion 1` there while the game is closed. The browser
+follows your system's reduced-motion setting instead.
 `old-town-walk --help` lists the command-line options.
 
 ## Building it

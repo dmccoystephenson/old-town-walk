@@ -68,6 +68,16 @@
   body.touch #note { top: 122px; }  /* below the status panel, which a phone is too narrow to pass */
   #homeBtn { width: 100%; margin-top: 8px; touch-action: manipulation; }
   #homeBtn[hidden] { display: none; }
+  #settings { margin: 10px 0 4px; border-top: 1px solid var(--line); scroll-margin-bottom: 28px; }  /* the next button peeks out, so it is plain there is more */
+  #settings summary { padding: 14px 4px; font-weight: 700; cursor: pointer; touch-action: manipulation; }
+  #settings summary:focus-visible { outline: 3px solid var(--accent); }
+  /* Unlike the buttons on the map, these sit in a panel that scrolls, so a finger on one must still pan it. */
+  .setting { display: grid; grid-template-columns: minmax(0, 1fr) 48px 68px 48px; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .setting button { padding: 0; font-size: 20px; touch-action: manipulation; }
+  .setting button[aria-disabled="true"] { opacity: 0.45; }
+  .setting output { text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  body.touch #sensitivityRow { display: none; }
+  #resetBtn { width: 100%; touch-action: manipulation; }
   #note { position: absolute; left: 50%; top: 66px; transform: translateX(-50%); background: var(--panel); border-radius: 10px;
     padding: 6px 12px; display: none; max-width: 90vw; text-align: center; }
 </style>
@@ -79,7 +89,7 @@
     <span id="brand"><a href="https://danielstephenson.dev/play" target="_top" title="More games">Old Town Walk</a></span>
     <button id="bikeBtn" aria-pressed="false" title="Ride a bike (B)">Bike</button>
     <button id="flyBtn" aria-pressed="false" title="Fly (F)">Fly</button>
-    <button id="helpBtn" title="Controls" aria-label="Controls">?</button>
+    <button id="helpBtn" title="Controls and settings" aria-label="Controls and settings">?</button>
   </div>
   <div id="status" aria-hidden="true"></div>
   <div id="stick" aria-label="Move"><div id="knob"></div></div>
@@ -95,7 +105,7 @@
   <div id="note" role="status"></div>
   <div id="credit">Map &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, ODbL. Elevation: USGS.</div>
 </div>
-<div id="help" role="dialog" aria-label="Controls">
+<div id="help" role="dialog" aria-label="Controls and settings">
   <h1>Old Town Walk</h1>
   <p>A 2 km square of Old Town Fort Collins, built from open map and elevation data.</p>
   <dl class="keys">
@@ -104,12 +114,15 @@
     <dt>Space</dt><dd>Jump</dd>
     <dt>Wheel</dt><dd>Slower / faster (Page Up, Page Down). On the bike, this sets its top speed</dd>
     <dt>- =</dt><dd>Shorter / longer view</dd>
+    <dt>Z</dt><dd>Hold to zoom</dd>
+    <dt>9 0</dt><dd>Narrower / wider field of view</dd>
     <dt>F</dt><dd>Fly or land</dd>
     <dt>B</dt><dd>Get on or off the bike: W pedals, S brakes and backs up, A and D steer</dd>
     <dt>E or Space, Q</dt><dd>Climb / descend when flying</dd>
     <dt>[ ]</dt><dd>Move the sun</dd>
     <dt>H</dt><dd>Show or hide this list (Esc or a click on the map closes it)</dd>
     <dt>R</dt><dd>Back to the start</dd>
+    <dt>P</dt><dd>Save a picture of the view</dd>
     <dt>, .</dt><dd>Mouse sensitivity</dd>
     <dt>I</dt><dd>Invert the mouse</dd>
     <dt>Tab</dt><dd>Hide the status panel</dd>
@@ -124,6 +137,34 @@
     <dt>&#9650; &#9660;</dt><dd>Climb and descend when flying</dd>
     <dt>+ &minus;</dt><dd>Fly faster or slower</dd>
   </dl>
+  <details id="settings" hidden>
+    <summary>Settings</summary>
+    <div class="setting" role="group" aria-labelledby="speedName">
+      <span id="speedName">Walking speed</span>
+      <button id="speedDown" aria-label="Slower">&minus;</button>
+      <output id="speedValue"></output>
+      <button id="speedUp" aria-label="Faster">+</button>
+    </div>
+    <div class="setting" role="group" aria-labelledby="viewName">
+      <span id="viewName">View distance</span>
+      <button id="viewDown" aria-label="Shorter view">&minus;</button>
+      <output id="viewValue"></output>
+      <button id="viewUp" aria-label="Longer view">+</button>
+    </div>
+    <div class="setting" role="group" aria-labelledby="timeName">
+      <span id="timeName">Time of day</span>
+      <button id="timeDown" aria-label="Earlier">&minus;</button>
+      <output id="timeValue"></output>
+      <button id="timeUp" aria-label="Later">+</button>
+    </div>
+    <div class="setting" id="sensitivityRow" role="group" aria-labelledby="sensitivityName">
+      <span id="sensitivityName">Mouse sensitivity</span>
+      <button id="sensitivityDown" aria-label="Less sensitive">&minus;</button>
+      <output id="sensitivityValue"></output>
+      <button id="sensitivityUp" aria-label="More sensitive">+</button>
+    </div>
+    <button id="resetBtn">Reset to defaults</button>
+  </details>
   <button id="start">Start walking</button>
   <button id="homeBtn" hidden>Back to the start</button>
 </div>

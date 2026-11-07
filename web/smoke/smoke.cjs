@@ -59,6 +59,16 @@ function decodePng(buf) {
   return { width, height, channels, data: out };
 }
 
+// The share of two same-sized pictures that differs by more than a little.
+function changed(fileA, fileB) {
+  const a = decodePng(fs.readFileSync(fileA)), b = decodePng(fs.readFileSync(fileB));
+  let moved = 0, seen = 0;
+  for (let i = 0; i < a.data.length; i += a.channels * 7, seen++) {
+    if (Math.abs(a.data[i] - b.data[i]) + Math.abs(a.data[i + 1] - b.data[i + 1]) + Math.abs(a.data[i + 2] - b.data[i + 2]) > 30) moved++;
+  }
+  return moved / seen;
+}
+
 // Distinct coarse colours in a screenshot: a flat frame has a handful.
 function colours(file) {
   const img = decodePng(fs.readFileSync(file));
@@ -134,6 +144,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   const help = page.locator('#help');
   check(await help.isVisible(), 'the controls show without a keyboard');
+  check(!(await page.locator('#settings').isVisible()), 'the welcome leaves Settings out of the way');
   await page.locator('#start').click();
   check(!(await help.isVisible()), 'Start closes them');
   const noted = (text) => page.waitForFunction((t) => {
@@ -144,6 +155,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const groundShot = path.join(outDir, 'ground.png');
   await shoot(groundShot);
   check(colours(groundShot) > 40, 'the street is drawn');
+  const shows = (id) => page.locator(id).textContent();
+  const reset = page.locator('#resetBtn');
   const level = await status();
   check(Math.abs(level.pitch) < 15, `starting does not swing the view (pitch ${level.pitch})`);
 
@@ -217,6 +230,39 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     check((await status()).flying === 0, 'Fly lands');
     await tap('#helpBtn');
     check(await page.locator('#homeBtn').isVisible(), 'the controls offer a way back to the start');
+    // Settings by finger: every control is big enough, inside the panel, and answers a tap.
+    const fingerTap = async (sel) => {
+      await page.locator(sel).scrollIntoViewIfNeeded();
+      await tap(sel);
+    };
+    await fingerTap('#settings summary');
+    check(await page.locator('#viewUp').isVisible(), 'a tap opens Settings');
+    check(!(await page.locator('#sensitivityRow').isVisible()), 'a touch screen is not offered mouse sensitivity');
+    const edges = await page.evaluate(() => {
+      const panel = document.getElementById('help'), box = panel.getBoundingClientRect();
+      return {
+        sideways: panel.scrollWidth > panel.clientWidth || document.documentElement.scrollWidth > innerWidth,
+        tall: box.height > innerHeight * 0.9 + 1,
+        controls: [...panel.querySelectorAll('#settings summary, #settings button')].filter((c) => c.offsetParent).map((c) => {
+          const b = c.getBoundingClientRect();
+          return {height: b.height, inside: b.left >= box.left && b.right <= box.right};
+        }),
+      };
+    });
+    check(!edges.sideways && !edges.tall, 'the panel fits the screen and scrolls only up and down');
+    check(edges.controls.every((c) => c.height >= 44 && c.inside), `all ${edges.controls.length} settings controls are at least 44 px and inside the panel`);
+    const walking = await shows('#speedValue'), reach = await shows('#viewValue'), hour = await shows('#timeValue');
+    await fingerTap('#speedUp');
+    await fingerTap('#viewDown');
+    await fingerTap('#timeUp');
+    check(await shows('#speedValue') !== walking, `the speed stepper changes the speed (${await shows('#speedValue')})`);
+    check(await shows('#viewValue') !== reach, `the view stepper changes the view (${await shows('#viewValue')})`);
+    check(await shows('#timeValue') !== hour, `the time stepper moves the sun (${await shows('#timeValue')})`);
+    const changed = await shows('#viewValue');
+    await fingerTap('#resetBtn');
+    check(await shows('#resetBtn') === 'Undo reset' && await shows('#viewValue') === reach, 'Reset goes to the defaults and offers to undo');
+    await fingerTap('#resetBtn');
+    check(await shows('#viewValue') === changed, 'tapping again undoes it');
     await page.locator('#homeBtn').click();
     await noted('Back at the start');
     check(!(await help.isVisible()), 'and it closes them');
@@ -290,6 +336,23 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await page.keyboard.up('KeyW');
     await shoot(path.join(outDir, 'bike.png'));
     check(true, 'D steers the bike');
+    // Asked for less motion mid-ride, the lean goes at once and the steering stays. The first wait shows it was there to go.
+    const roll = () => new DOMMatrix(getComputedStyle(document.getElementById('view')).transform).b;
+    await page.keyboard.down('KeyW');
+    await page.keyboard.down('KeyD');
+    await page.waitForFunction(`(${roll})() !== 0`, null, { timeout: 60000 });
+    check(true, 'the bike leans the canvas');
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.waitForFunction(() => getComputedStyle(document.getElementById('view')).transform === 'none', null, { timeout: 30000 });
+    const level = await status();
+    await page.waitForFunction((yaw) => Math.abs(window.oldTownWalk.status().yaw - yaw) > 5, level.yaw, { timeout: 60000 });
+    check((await status()).riding === 1, 'the bike still steers with reduced motion');
+    check(await page.evaluate(() => getComputedStyle(document.getElementById('view')).transform === 'none'), 'reduced motion keeps the canvas level through a turn');
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.waitForFunction(`(${roll})() !== 0`, null, { timeout: 30000 });
+    check(true, 'the lean comes back with the preference');
+    await page.keyboard.up('KeyD');
+    await page.keyboard.up('KeyW');
     await page.keyboard.press('PageUp');
     await noted('Bike top speed 15 m/s');
     check(true, 'a speed change says the new top speed');
@@ -339,6 +402,51 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await page.keyboard.press('KeyH');
     await page.keyboard.press('Escape');
     check(!(await help.isVisible()), 'Esc hides them too');
+    // Settings with the mouse and keys: keys show in the panel, and a focused control keeps its keys.
+    await page.keyboard.press('KeyH');
+    await page.locator('#settings summary').click();
+    check(await page.locator('#sensitivityRow').isVisible(), 'a mouse is offered sensitivity');
+    const reach = parseInt(await shows('#viewValue'));
+    await page.keyboard.press('Equal');
+    check(parseInt(await shows('#viewValue')) === reach + 100, 'a key changes what the panel shows');
+    await page.keyboard.press('KeyF');
+    check(await shows('#speedName') === 'Flying speed', 'the panel follows the mode');
+    await page.keyboard.press('KeyF');
+    const hour = await shows('#timeValue');
+    await page.keyboard.press('BracketRight');
+    check(await shows('#timeValue') !== hour, '] shows in the panel');
+    await page.keyboard.press('BracketLeft');
+    await sleep(1000);
+    const steady = await status();
+    await page.locator('#viewUp').click();
+    check(parseInt(await shows('#viewValue')) === reach + 200, 'a click steps the view');
+    await page.keyboard.press('Enter');
+    check(parseInt(await shows('#viewValue')) === reach + 300, 'Enter on a focused stepper steps it once');
+    await page.keyboard.press('Space');
+    check(parseInt(await shows('#viewValue')) === reach + 400, 'Space on a focused stepper steps it once');
+    await page.keyboard.down('ArrowLeft');
+    await sleep(800);
+    await page.keyboard.up('ArrowLeft');
+    await sleep(400);
+    const still = await status();
+    check(still.yaw === steady.yaw && Math.abs(still.height - steady.height) < 0.3, 'keys on a focused stepper neither turn the view nor jump');
+    await page.keyboard.press('Tab');
+    check(await page.evaluate(() => document.activeElement.id === 'resetBtn' || document.activeElement.id === 'timeDown'), 'Tab moves to the next control');
+    check(!(await page.evaluate(() => document.body.classList.contains('no-status'))), 'and leaves the status panel alone');
+    await reset.focus();
+    await page.keyboard.down('Enter');
+    await page.keyboard.down('Enter');  // the rest come through as repeats
+    await page.keyboard.down('Enter');
+    await page.keyboard.up('Enter');
+    check(await shows('#resetBtn') === 'Undo reset', 'holding Enter on Reset presses it once');
+    await reset.click();
+    check(parseInt(await shows('#viewValue')) === reach + 400, 'clicking Undo reset brings the settings back');
+    await page.keyboard.press('Backspace');
+    check(await shows('#resetBtn') === 'Undo reset', 'Backspace and the button are the same reset');
+    await page.waitForFunction(() => document.getElementById('resetBtn').textContent === 'Reset to defaults', null, { timeout: 30000 });
+    check(true, 'the offer to undo goes away');
+    await page.keyboard.press('Escape');
+    check(await page.evaluate(() => document.activeElement === document.getElementById('view')), 'closing the panel gives the keys back to the map');
     await page.keyboard.press('KeyR');
     await page.waitForFunction(() => document.getElementById('note').textContent.includes('start'), null, { timeout: 30000 });
     check(true, 'R goes back to the start');
@@ -347,6 +455,58 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const sun = await page.evaluate(() => window.oldTownWalk.sunTime);
     await page.keyboard.press('BracketRight');
     check((await page.evaluate(() => window.oldTownWalk.sunTime)) > sun, '] moves the sun');
+    // Zoom, field of view and the saved picture, from the start, where there is plenty in the frame.
+    check((await status()).fov === 70, 'the field of view starts at 70');
+    const drawn = () => page.evaluate(() => window.oldTownWalk.kit.stats().frames);
+    const drag = async () => {  // two frames later, every step of the drag has reached the walker
+      const from = (await status()).yaw;
+      await page.mouse.move(640, 360);
+      await page.mouse.down();
+      await page.mouse.move(760, 360, { steps: 8 });
+      await page.mouse.up();
+      await page.waitForFunction((f) => window.oldTownWalk.kit.stats().frames >= f, (await drawn()) + 2, { timeout: 30000 });
+      return Math.abs((((await status()).yaw - from + 540) % 360) - 180);
+    };
+    const wideTurn = await drag();
+    const wideShot = path.join(outDir, 'wide.png'), zoomShot = path.join(outDir, 'zoomed.png');
+    await shoot(wideShot);
+    await page.keyboard.down('KeyZ');
+    await page.waitForFunction(() => window.oldTownWalk.status().fov < 21.5, null, { timeout: 30000 });
+    await shoot(zoomShot);
+    const zoomTurn = await drag();
+    await page.keyboard.up('KeyZ');
+    check(changed(wideShot, zoomShot) > 0.2, 'holding Z closes in on the picture');
+    check(zoomTurn > wideTurn * 0.2 && zoomTurn < wideTurn * 0.45, `zoomed, the mouse turns less (${zoomTurn.toFixed(1)} against ${wideTurn.toFixed(1)} degrees)`);
+    await page.waitForFunction(() => window.oldTownWalk.status().fov > 69.5, null, { timeout: 30000 });
+    check(true, 'letting go of Z goes back to the full view');
+    await page.keyboard.press('Digit0');
+    await noted('Field of view 75');
+    await page.waitForFunction(() => window.oldTownWalk.status().fov === 75, null, { timeout: 30000 });
+    check(true, '0 widens the view');
+    check(JSON.parse(await page.evaluate(() => localStorage.getItem('old-town-walk-settings'))).fov === 75, 'the field of view is kept with the settings');
+    await page.keyboard.press('Backspace');
+    await noted('again to undo');
+    await page.waitForFunction(() => window.oldTownWalk.status().fov === 70, null, { timeout: 30000 });
+    await page.keyboard.press('Backspace');
+    await noted('Your settings are back');
+    await page.waitForFunction(() => window.oldTownWalk.status().fov === 75, null, { timeout: 30000 });
+    check(true, 'Backspace resets the field of view and a second one undoes it');
+    await page.keyboard.press('Digit9');
+    await noted('Field of view 70');
+    for (let i = 0; i < 7; i++) await page.keyboard.press('Digit9');  // six reach 40, and the seventh finds the end
+    await noted('That is the narrowest view');
+    await page.waitForFunction(() => window.oldTownWalk.status().fov === 40, null, { timeout: 30000 });
+    check(true, '9 stops at the desktop\'s narrowest');
+    for (let i = 0; i < 6; i++) await page.keyboard.press('Digit0');
+    await noted('Field of view 70');
+    const [saved] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.keyboard.press('KeyP')]);
+    check(saved.suggestedFilename() === 'old-town-walk-000.png', 'P saves a numbered PNG');
+    await noted('Saved old-town-walk-000.png');
+    const savedFile = path.join(outDir, 'saved.png');
+    await saved.saveAs(savedFile);
+    const savedSize = decodePng(fs.readFileSync(savedFile)), viewSize = await page.evaluate(() => [document.getElementById('view').width, document.getElementById('view').height]);
+    check(savedSize.width === viewSize[0] && savedSize.height === viewSize[1], `the picture is the game view alone (${savedSize.width}x${savedSize.height})`);
+    check(colours(savedFile) > 25, 'the picture is not blank');
   }
 
   // Back to the start first: where a run ends depends on the machine's frame rate, and a wall or pavement filling the

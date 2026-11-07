@@ -54,6 +54,7 @@ struct Settings {
     float flySpeed = 20, walkSpeed = 1.4f, viewRadius = 700, sensitivity = 0.15f, fov = 70;
     bool panel = true, invertLook = false;
     float bikeSpeed = 12.0f;
+    bool reduceMotion = false;  // keeps the view level on the bike
 };
 
 // One "name value" a line. Anything unknown or unreadable keeps its default, and values are held to their ranges, so
@@ -78,15 +79,16 @@ inline Settings parseSettings(const std::string& text) {
         else if (name == "panel") s.panel = value != 0;
         else if (name == "invert_look") s.invertLook = value != 0;
         else if (name == "bike_speed") s.bikeSpeed = std::clamp(value, kMinBikeSpeed, kMaxBikeSpeed);
+        else if (name == "reduce_motion") s.reduceMotion = value != 0;
     }
     return s;
 }
 
 inline std::string formatSettings(const Settings& s) {
     char text[240];
-    std::snprintf(text, sizeof text, "fly_speed %.2f\nwalk_speed %.2f\nview_radius %.0f\nsensitivity %.3f\nfov %.0f\npanel %d\ninvert_look %d\n\nbike_speed %.2f",
+    std::snprintf(text, sizeof text, "fly_speed %.2f\nwalk_speed %.2f\nview_radius %.0f\nsensitivity %.3f\nfov %.0f\npanel %d\ninvert_look %d\n\nbike_speed %.2f\nreduce_motion %d",
                   static_cast<double>(s.flySpeed), static_cast<double>(s.walkSpeed), static_cast<double>(s.viewRadius),
-                  static_cast<double>(s.sensitivity), static_cast<double>(s.fov), s.panel ? 1 : 0, s.invertLook ? 1 : 0, static_cast<double>(s.bikeSpeed));
+                  static_cast<double>(s.sensitivity), static_cast<double>(s.fov), s.panel ? 1 : 0, s.invertLook ? 1 : 0, static_cast<double>(s.bikeSpeed), s.reduceMotion ? 1 : 0);
     return text;
 }
 
