@@ -642,10 +642,10 @@ const SOLID = { east: 493580, north: 4492960 };  // inside a building, from the 
   check(atPlace.arriving === 0 && atPlace.yaw === facing, 'the place is named, and the view stays where the player left it');
   await sleep(2000);
   check((await status()).arrivals === atPlace.arrivals, 'and it says so once');
-  // Street lamps and lit windows: nothing of them by day, and at night they light up what is otherwise black.
+  // Street lamps and lit windows: only the posts by day, and at night they light up what is otherwise black.
   const night = () => page.evaluate(() => window.oldTownWalk.night());
   const noon = await night();
-  check(noon.level === 0 && noon.posts === 0 && noon.points === 0 && noon.lights === 0, `no lamps by day (${JSON.stringify(noon)})`);
+  check(noon.level === 0 && noon.posts > 0 && noon.points === 0 && noon.lights === 0, `lamp posts stand unlit by day (${JSON.stringify(noon)})`);
   check(noon.lamps > 300, `lamps stand along the streets (${noon.lamps})`);
   await page.evaluate(([e, n]) => window.oldTownWalk.travel({east: e, north: n, yaw: 90, pitch: -25, mode: 2, height: 95}), [there.east, there.north]);
   await page.waitForFunction(() => window.oldTownWalk.status().arriving === 0, null, { timeout: 120000 });

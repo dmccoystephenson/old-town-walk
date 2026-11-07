@@ -16,7 +16,8 @@ namespace otw {
 
 constexpr float kLampsOnFoot = 320, kLampsFlying = 800;  // how far away a lamp shows
 constexpr float kPolesOnFoot = 160, kPolesFlying = 320;  // and its pole, too thin to see from further
-constexpr size_t kMostLampsShown = 360, kMostPoles = 48;  // a pole is one item, a lamp shown two points
+constexpr size_t kMostLampsShown = 360, kMostPoles = 48;  // a post is two items, a lamp shown two points
+constexpr float kPoleWidth = 0.09f, kHeadWidth = 0.34f, kHeadDepth = 0.22f;  // metres
 constexpr float kLightRange = 34, kLightIntensity = 0.85f;
 constexpr float kLightReach = 110;   // real lights go to lamps this close to the player
 constexpr float kLightCeiling = 40;  // and above this height the pools do the work alone
@@ -38,11 +39,11 @@ public:
         items_.clear();
         points_.clear();
         at_.clear();
-        if (level_ <= 0) {
+        const bool lit = level_ > 0;  // the posts stand all day, and everything else waits for dusk
+        if (!lit) {
             slots_.clear();
             lights_.clear();
             started_ = false;
-            return;
         }
         const std::vector<Lamp>& lamps = stream.lamps();
         const double originEast = stream.east(0), originNorth = stream.north(0);
@@ -65,42 +66,51 @@ public:
             if (d > reach || !stream.walkable(x, z) || stream.solids().inside(x, z)) continue;
             shown_.push_back({d, i});
             const float toLight = std::hypot(x - aheadX, z - aheadZ);
-            if (!lightsWanted || toLight > kLightReach) continue;
+            if (!lit || !lightsWanted || toLight > kLightReach) continue;
             const bool held = std::any_of(slots.begin(), slots.end(), [&](const LightSlots::Slot& s) { return s.lamp == i; });
             closest_.push_back({held ? toLight * kLightHold : toLight, i});
         }
         std::sort(shown_.begin(), shown_.end());
         std::sort(closest_.begin(), closest_.end());
         if (shown_.size() > kMostLampsShown) shown_.resize(kMostLampsShown);
-        chosen_.clear();
-        for (const auto& c : closest_) chosen_.push_back(c.second);
-        slots_.choose(chosen_, budget);
-        if (!started_) slots_.settle();
-        started_ = true;
+        if (lit) {
+            chosen_.clear();
+            for (const auto& c : closest_) chosen_.push_back(c.second);
+            slots_.choose(chosen_, budget);
+            if (!started_) slots_.settle();
+            started_ = true;
+        }
 
-        // A pole has no alpha, so it thins in at the first of the dusk, while the light is still good and the lamps faint.
-        const float poleWidth = 0.09f * smoothBetween(0, 0.3f, level_);
+        size_t posts = 0;
         for (const auto& s : shown_) {
             float x, z;
             spot(s.second, x, z);
             const float ground = stream.groundAt(x, z), head = ground + kLampHeight;
             const float fade = level_ * smoothBetween(reach, reach * 0.8f, s.first);  // no edge to the lamps shown
-            if (s.first < poleReach && items_.size() < kMostPoles && poleWidth > 0.005f) {
+            if (s.first < poleReach && posts < kMostPoles) {
+                ++posts;
                 StrataRenderItem item{};
                 item.kind = STRATA_PRIMITIVE_CYLINDER;
                 item.position[0] = x;
                 item.position[1] = ground + kLampHeight * 0.5f;
                 item.position[2] = z;
-                item.scale[0] = item.scale[2] = poleWidth;
+                item.scale[0] = item.scale[2] = kPoleWidth;
                 item.scale[1] = kLampHeight * 0.5f;
                 item.color[0] = item.color[1] = 0.05f;
                 item.color[2] = 0.055f;
                 item.color[3] = 1;
                 items_.push_back(item);
+                item.kind = STRATA_PRIMITIVE_CUBE;  // the lamp itself, dark by day, so a post does not read as a bare stick
+                item.position[1] = head;
+                item.scale[0] = item.scale[2] = kHeadWidth;
+                item.scale[1] = kHeadDepth;
+                items_.push_back(item);
             }
+            if (!lit) continue;
             points_.push_back({{x, head, z}, 14, 5.5f, {1.0f, 0.66f, 0.32f, 0.5f * fade}, STRATA_POINT_SOFT});
             points_.push_back({{x, head, z}, 3, 0.5f, {1.0f, 0.9f, 0.72f, fade}, 0});
         }
+        if (!lit) return;
         for (const LightSlots::Slot& s : slots) {
             float x = 0, z = 0;
             if (s.lamp >= 0) spot(s.lamp, x, z);
