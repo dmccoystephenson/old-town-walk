@@ -447,13 +447,13 @@ int main(int argc, char** argv) {
                     const otw::Settings use = undoing ? beforeReset : otw::Settings{};
                     if (!undoing) beforeReset = current();
                     undoLeft = undoing ? 0 : 3;
+                    // Not reduceMotion: a comfort need, with no key to turn it back on, is not a preference to lose to a stray key.
                     flySpeed = use.flySpeed;
                     walkSpeed = use.walkSpeed;
                     bikeSpeed = use.bikeSpeed;
                     sensitivity = use.sensitivity;
                     fov = use.fov;
                     invertLook = use.invertLook;
-                    reduceMotion = use.reduceMotion;
                     hud = use.panel;
                     stream.setLoadRadius(use.viewRadius);
                     say(undoing ? "Your settings are back" : "Settings back to the defaults: Backspace again to undo");
