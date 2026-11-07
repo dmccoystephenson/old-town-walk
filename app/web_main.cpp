@@ -24,6 +24,8 @@ namespace {
 constexpr double kLoadGapSeconds = 0.12;
 // Metres around the start that must be on the GPU before the page shows the map.
 constexpr float kReadyRadius = 150.0f;
+// And around a place the player travels to, before they are set down on it.
+constexpr float kArriveRadius = 60.0f;
 
 struct Game {
     otw::Manifest manifest;
@@ -42,6 +44,8 @@ struct Game {
     int signFrames = 0;
     otw::Bike bike;
     bool hurrying = false;  // this frame, with Shift or a full stick
+    bool arriving = false;  // travelled, and waiting for the map to load there
+    float arriveHeight = 0;  // metres above the ground, when arriving in flight
 };
 
 Game* game = nullptr;
@@ -81,17 +85,19 @@ void aimCamera() {
     game->camera[6] = game->bike.lean;
 }
 
-// Everything within the ready radius of the start that the map has.
-bool startLoaded() {
+// Everything the map has within this far of a spot.
+bool loadedAround(float x, float z, float radius) {
     const otw::Stream& s = *game->stream;
-    const double east = s.east(game->startX), north = s.north(game->startZ);
+    const double east = s.east(x), north = s.north(z);
     for (const otw::TileKey& k : game->manifest.tiles) {
-        if (otw::tileDistance(k, east, north, game->manifest.tileSize) > kReadyRadius) continue;
-        const float x = s.offsetX(k) + game->manifest.tileSize * 0.5f, z = s.offsetZ(k) + game->manifest.tileSize * 0.5f;
-        if (!s.walkable(x, z)) return false;
+        if (otw::tileDistance(k, east, north, game->manifest.tileSize) > radius) continue;
+        const float cx = s.offsetX(k) + game->manifest.tileSize * 0.5f, cz = s.offsetZ(k) + game->manifest.tileSize * 0.5f;
+        if (!s.walkable(cx, cz)) return false;
     }
     return true;
 }
+
+bool startLoaded() { return loadedAround(game->startX, game->startZ, kReadyRadius); }
 
 }  // namespace
 
@@ -166,7 +172,7 @@ EMSCRIPTEN_KEEPALIVE const float* otw_step(float dt, float ahead, float right, f
     otw::Stream& s = *game->stream;
     otw::Walker& w = game->walker;
     game->sinceLoad += dt;
-    const bool hurry = !game->ready;  // nothing is on screen yet, so a stall costs nothing
+    const bool hurry = !game->ready || game->arriving;  // nothing to see yet, so a stall costs nothing
     if (hurry || game->sinceLoad >= kLoadGapSeconds) {
         const int before = s.loads();
         if (!s.update(w.x, w.z, 1)) return nullptr;
@@ -181,9 +187,15 @@ EMSCRIPTEN_KEEPALIVE const float* otw_step(float dt, float ahead, float right, f
         game->placed = true;
     }
     if (!game->ready && game->placed && startLoaded()) game->ready = true;
+    if (game->arriving && s.walkable(w.x, w.z) && loadedAround(w.x, w.z, kArriveRadius)) {
+        if (!game->flying) w.clearOfBuildings(s.solids(), [&](float x, float z) { return s.walkable(x, z); });
+        const float ground = s.groundAt(w.x, w.z);
+        w.eyeY = ground + (game->flying ? std::clamp(game->arriveHeight, otw::kFlyClearance, otw::kFlyCeiling) : game->bike.riding ? otw::kBikeEye : otw::kEyeHeight);
+        game->arriving = false;
+    }
     game->hurrying = run != 0 && (ahead != 0 || right != 0 || (game->flying && up != 0));
     w.look(dyaw, dpitch);
-    if (s.walkable(w.x, w.z)) {  // false for a moment after a lost context, while tiles come back
+    if (s.walkable(w.x, w.z) && !game->arriving) {  // false for a moment after a lost context, while tiles come back
         auto walkable = [&](float x, float z) { return s.walkable(x, z); };
         if (game->flying) {
             w.fly(walkable, [&](float x, float z) { return s.groundAt(x, z); }, ahead, right, up, run != 0, dt, game->flySpeed);
@@ -234,8 +246,31 @@ EMSCRIPTEN_KEEPALIVE void otw_go_to_start() {
     w.pitchDeg = 0;
     w.hop = w.hopSpeed = 0;
     game->flying = false;
+    game->arriving = false;
     game->bike.dismount();
     w.eyeY = game->stream->groundAt(w.x, w.z) + otw::kEyeHeight;
+}
+
+// Moves the player to a spot, in manifest eastings and northings, for the map, landmarks and shared links. mode is 0 on
+// foot, 1 on the bike, 2 flying, height metres above the ground. Returns 0 for a spot off the map. The map may have to
+// load first, so the player is set down, clear of any building, a few frames later; the status says "arriving" until then.
+EMSCRIPTEN_KEEPALIVE int otw_travel(double east, double north, float yaw, float pitch, int mode, float height) {
+    if (!game || !game->stream) return 0;
+    const otw::Stream& s = *game->stream;
+    const float x = static_cast<float>(east - s.east(0)), z = static_cast<float>(s.north(0) - north);
+    if (!s.overTile(x, z)) return 0;
+    otw::Walker& w = game->walker;
+    w.x = x;
+    w.z = z;
+    w.yawDeg = std::fmod(std::fmod(yaw, 360.0f) + 360.0f, 360.0f);
+    w.pitchDeg = std::clamp(pitch, -85.0f, 85.0f);
+    w.hop = w.hopSpeed = 0;
+    game->flying = mode == 2;
+    game->bike.dismount();
+    if (mode == 1) game->bike.mount(w);
+    game->arriveHeight = height;
+    game->arriving = true;
+    return 1;
 }
 
 // Gets on or off the bike, landing first if need be. Returns 1 when riding.
@@ -284,16 +319,16 @@ EMSCRIPTEN_KEEPALIVE const char* otw_status() {
     if (!game || !game->stream) return "{}";
     const otw::Stream& s = *game->stream;
     const otw::Walker& w = game->walker;
-    char text[560];
+    char text[640];
     std::snprintf(text, sizeof text,
                   "{\"ready\":%d,\"x\":%.2f,\"y\":%.2f,\"z\":%.2f,\"yaw\":%.1f,\"pitch\":%.1f,\"flying\":%d,\"tiles\":%d,"
-                  "\"meshes\":%d,\"peak\":%d,\"loads\":%d,\"unloads\":%d,\"worstMs\":%.1f,\"waiting\":%d,\"height\":%.1f,\"street\":\"%s\",\"signs\":%d,\"riding\":%d,\"speed\":%.1f,\"pace\":%.2f,\"hurrying\":%d,\"fov\":%.1f}",
+                  "\"meshes\":%d,\"peak\":%d,\"loads\":%d,\"unloads\":%d,\"worstMs\":%.1f,\"waiting\":%d,\"height\":%.1f,\"street\":\"%s\",\"signs\":%d,\"riding\":%d,\"speed\":%.1f,\"pace\":%.2f,\"hurrying\":%d,\"fov\":%.1f,\"east\":%.2f,\"north\":%.2f,\"arriving\":%d}",
                   game->ready ? 1 : 0, static_cast<double>(w.x), static_cast<double>(w.eyeY), static_cast<double>(w.z),
                   static_cast<double>(w.yawDeg), static_cast<double>(w.pitchDeg), game->flying ? 1 : 0, s.tileCount(), s.meshes(),
                   s.peakMeshes(), s.loads(), s.unloads(), s.worstLoadMs(), s.waiting(), static_cast<double>(w.eyeY + w.hop - s.groundAt(w.x, w.z)),
                   game->signs.street().c_str(), static_cast<int>(game->signs.labels().size()), game->bike.riding ? 1 : 0, static_cast<double>(game->bike.speed),
                   static_cast<double>(otw::shownSpeed(game->flying, game->bike, game->flying ? game->flySpeed : game->walkSpeed, game->hurrying)), game->hurrying ? 1 : 0,
-                  static_cast<double>(strata_kit::host().opts.fovDegrees));
+                  static_cast<double>(strata_kit::host().opts.fovDegrees), s.east(w.x), s.north(w.z), game->arriving ? 1 : 0);
     game->status = text;
     return game->status.c_str();
 }

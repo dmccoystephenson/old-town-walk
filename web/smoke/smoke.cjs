@@ -509,6 +509,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     check(colours(savedFile) > 25, 'the picture is not blank');
   }
 
+  // Travel sets the player down clear of any building, and refuses a spot off the map.
+  const here = await status();
+  const went = await page.evaluate(([e, n]) => window.oldTownWalk.travel({east: e + 300, north: n - 200, yaw: 90}), [here.east, here.north]);
+  check(went, 'travel goes to a spot on the map');
+  await page.waitForFunction(() => window.oldTownWalk.status().arriving === 0, null, { timeout: 120000 });
+  const there = await status();
+  check(Math.hypot(there.east - here.east - 300, there.north - here.north + 200) < 90 && there.yaw === 90, 'and sets the player down there');
+  check(!(await page.evaluate(([e, n]) => window.oldTownWalk.travel({east: e + 90000, north: n}), [here.east, here.north])), 'travel refuses a spot off the map');
+
   // Back to the start first: where a run ends depends on the machine's frame rate, and a wall or pavement filling the
   // frame has too few colours to tell a real picture from a flat one.
   await page.keyboard.press('KeyR');

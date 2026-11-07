@@ -245,6 +245,15 @@
     $("resetBtn").textContent = performance.now() < undoUntil ? "Undo reset" : "Reset to defaults";
   }
 
+  // Goes to a spot in manifest eastings and northings. mode: 0 on foot, 1 on the bike, 2 flying. False when it is off the map.
+  function travel({east, north, yaw, pitch = 0, mode = 0, height = 60}) {
+    if (!mod) return false;
+    if (!mod._otw_travel(east, north, yaw === undefined ? status().yaw : yaw, pitch, mode, height)) return false;
+    setFlying(mode === 2);
+    setRiding(mode === 1);
+    return true;
+  }
+
   const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
   let sinceStatus = 1, frames = 0, fps = 0;
   function showStatus(dt) {
@@ -508,7 +517,7 @@
     mod._free(text);
     if (!started) throw Object.assign(new Error("The map could not be read."), {code: "engine"});
     applySettings();
-    window.oldTownWalk = {status, kit, shiftSun, get sunTime() { return sunTime; }};
+    window.oldTownWalk = {status, kit, shiftSun, travel, get sunTime() { return sunTime; }};
     kit.start();
   }
 
