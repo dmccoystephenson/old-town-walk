@@ -16,8 +16,9 @@
 
   const FLY = [5, 800], WALK = [0.7, 14], BIKE = [3, 40], VIEW = [200, 1500], NOTCH = 1.25, VIEW_STEP = 100;
   const SENSITIVITY = [0.03, 0.6];
+  const FOV = [40, 110], FOV_STEP = 5, ZOOMED = 0.3;
   const clamp = (v, [low, high]) => Math.min(high, Math.max(low, v));
-  const DEFAULTS = {fly: 20, walk: 1.4, ride: 12, view: coarse ? 500 : 700, sensitivity: MOUSE_DEG, invert: false, status: true};
+  const DEFAULTS = {fly: 20, walk: 1.4, ride: 12, view: coarse ? 500 : 700, sensitivity: MOUSE_DEG, fov: 70, invert: false, status: true};
   const settings = {...DEFAULTS};
   function loadSettings() {
     let saved = {};
@@ -28,6 +29,7 @@
     settings.ride = clamp(number(saved.ride, DEFAULTS.ride), BIKE);
     settings.view = clamp(number(saved.view, DEFAULTS.view), VIEW);
     settings.sensitivity = clamp(number(saved.sensitivity, DEFAULTS.sensitivity), SENSITIVITY);
+    settings.fov = clamp(number(saved.fov, DEFAULTS.fov), FOV);
     settings.invert = saved.invert === true;
     settings.status = saved.status !== false;
   }
@@ -99,12 +101,13 @@
   const held = new Set();
   const move = {ahead: 0, right: 0, run: false};  // the stick
   const lift = {up: false, down: false};
-  let dyaw = 0, dpitch = 0, lookId = null, lookX = 0, lookY = 0, settling = 0;
+  let dyaw = 0, dpitch = 0, lookId = null, lookX = 0, lookY = 0, settling = 0, zoom = 1;
 
   const keyed = (a, b) => (held.has(a) ? 1 : 0) - (held.has(b) ? 1 : 0);
   const locked = () => document.pointerLockElement === canvas;
 
-  function look(dx, dy, deg) { dyaw += dx * deg; dpitch -= (settings.invert ? -dy : dy) * deg; }
+  // Zoomed in, the same hand movement turns less, as on the desktop.
+  function look(dx, dy, deg) { dyaw += dx * deg * zoom; dpitch -= (settings.invert ? -dy : dy) * deg * zoom; }
 
   const touching = () => document.body.classList.contains("touch");
   function setFlying(on) {
@@ -174,6 +177,13 @@
     applySettings();
     keepSettings();
   }
+  function changeFov(steps) {
+    const before = settings.fov;
+    settings.fov = clamp(before + steps * FOV_STEP, FOV);
+    if (settings.fov === before) note(steps > 0 ? "That is the widest view" : "That is the narrowest view");
+    else note(`Field of view ${settings.fov}`);
+    keepSettings();
+  }
   function changeSensitivity(notches) {
     settings.sensitivity = clamp(settings.sensitivity * Math.pow(NOTCH, notches), SENSITIVITY);
     note(`Mouse sensitivity ${settings.sensitivity.toFixed(2)}`);
@@ -219,6 +229,24 @@
     noteTimer = setTimeout(() => { n.style.display = "none"; }, NOTE_MS);
   }
 
+  // The canvas alone, so none of the page's panels are in the picture. Taken in the kit's after hook, straight after
+  // a draw, so it is the view as it stands, and a lost context, which draws nothing, cannot save a blank picture.
+  let shotWanted = false, shots = 0;
+  function takeShot() {
+    if (!shotWanted) return;
+    shotWanted = false;
+    const name = `old-town-walk-${String(shots++).padStart(3, "0")}.png`;
+    canvas.toBlob((blob) => {
+      if (!blob) { note("The picture could not be saved"); return; }
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = name;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 60000);
+      note(`Saved ${name}`);
+    }, "image/png");
+  }
+
   function useTouch() { document.body.classList.add("touch"); }
 
   function grabMouse() {
@@ -253,6 +281,9 @@
       if (!e.repeat && e.code === "KeyR") goToStart();
       if (e.code === "Comma") changeSensitivity(-1);
       if (e.code === "Period") changeSensitivity(1);
+      if (e.code === "Digit9") changeFov(-1);
+      if (e.code === "Digit0") changeFov(1);
+      if (!e.repeat && e.code === "KeyP" && shown) shotWanted = true;
       if (!e.repeat && e.code === "KeyI") {
         settings.invert = !settings.invert;
         note(settings.invert ? "Mouse look inverted" : "Mouse look normal");
@@ -355,6 +386,8 @@
     if (!flying && held.has("Space")) mod._otw_jump();
     dyaw += keyed("ArrowRight", "ArrowLeft") * KEY_DEG * dt;
     dpitch += keyed("ArrowUp", "ArrowDown") * KEY_DEG * 0.66 * dt;
+    zoom += ((held.has("KeyZ") ? ZOOMED : 1) - zoom) * Math.min(1, dt * 12);
+    mod._otw_set_fov(settings.fov * zoom);
     const at = mod._otw_step(dt, ahead, right, up, run ? 1 : 0, dyaw, dpitch);
     dyaw = dpitch = 0;
     if (shown && performance.now() > noteFree) {
@@ -402,6 +435,7 @@
       limits: {minPitch: -2, maxPitch: 2, minDist: 0.1, maxDist: 2},
       camera: {yaw: 0, pitch: 0, dist: 1, tx: 0, ty: 2, tz: 0},
       frame,
+      after: takeShot,
       onSlow: () => StrataLoader.slow(),
       onFatal: (code, message) => StrataLoader.fallback(code, message),
       onRestore: () => note("Reloading the map."),

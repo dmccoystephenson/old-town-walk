@@ -59,6 +59,16 @@ function decodePng(buf) {
   return { width, height, channels, data: out };
 }
 
+// The share of two same-sized pictures that differs by more than a little.
+function changed(fileA, fileB) {
+  const a = decodePng(fs.readFileSync(fileA)), b = decodePng(fs.readFileSync(fileB));
+  let moved = 0, seen = 0;
+  for (let i = 0; i < a.data.length; i += a.channels * 7, seen++) {
+    if (Math.abs(a.data[i] - b.data[i]) + Math.abs(a.data[i + 1] - b.data[i + 1]) + Math.abs(a.data[i + 2] - b.data[i + 2]) > 30) moved++;
+  }
+  return moved / seen;
+}
+
 // Distinct coarse colours in a screenshot: a flat frame has a handful.
 function colours(file) {
   const img = decodePng(fs.readFileSync(file));
@@ -347,6 +357,58 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const sun = await page.evaluate(() => window.oldTownWalk.sunTime);
     await page.keyboard.press('BracketRight');
     check((await page.evaluate(() => window.oldTownWalk.sunTime)) > sun, '] moves the sun');
+    // Zoom, field of view and the saved picture, from the start, where there is plenty in the frame.
+    check((await status()).fov === 70, 'the field of view starts at 70');
+    const drawn = () => page.evaluate(() => window.oldTownWalk.kit.stats().frames);
+    const drag = async () => {  // two frames later, every step of the drag has reached the walker
+      const from = (await status()).yaw;
+      await page.mouse.move(640, 360);
+      await page.mouse.down();
+      await page.mouse.move(760, 360, { steps: 8 });
+      await page.mouse.up();
+      await page.waitForFunction((f) => window.oldTownWalk.kit.stats().frames >= f, (await drawn()) + 2, { timeout: 30000 });
+      return Math.abs((((await status()).yaw - from + 540) % 360) - 180);
+    };
+    const wideTurn = await drag();
+    const wideShot = path.join(outDir, 'wide.png'), zoomShot = path.join(outDir, 'zoomed.png');
+    await shoot(wideShot);
+    await page.keyboard.down('KeyZ');
+    await page.waitForFunction(() => window.oldTownWalk.status().fov < 21.5, null, { timeout: 30000 });
+    await shoot(zoomShot);
+    const zoomTurn = await drag();
+    await page.keyboard.up('KeyZ');
+    check(changed(wideShot, zoomShot) > 0.2, 'holding Z closes in on the picture');
+    check(zoomTurn > wideTurn * 0.2 && zoomTurn < wideTurn * 0.45, `zoomed, the mouse turns less (${zoomTurn.toFixed(1)} against ${wideTurn.toFixed(1)} degrees)`);
+    await page.waitForFunction(() => window.oldTownWalk.status().fov > 69.5, null, { timeout: 30000 });
+    check(true, 'letting go of Z goes back to the full view');
+    await page.keyboard.press('Digit0');
+    await noted('Field of view 75');
+    await page.waitForFunction(() => window.oldTownWalk.status().fov === 75, null, { timeout: 30000 });
+    check(true, '0 widens the view');
+    check(JSON.parse(await page.evaluate(() => localStorage.getItem('old-town-walk-settings'))).fov === 75, 'the field of view is kept with the settings');
+    await page.keyboard.press('Backspace');
+    await noted('again to undo');
+    await page.waitForFunction(() => window.oldTownWalk.status().fov === 70, null, { timeout: 30000 });
+    await page.keyboard.press('Backspace');
+    await noted('Your settings are back');
+    await page.waitForFunction(() => window.oldTownWalk.status().fov === 75, null, { timeout: 30000 });
+    check(true, 'Backspace resets the field of view and a second one undoes it');
+    await page.keyboard.press('Digit9');
+    await noted('Field of view 70');
+    for (let i = 0; i < 7; i++) await page.keyboard.press('Digit9');  // six reach 40, and the seventh finds the end
+    await noted('That is the narrowest view');
+    await page.waitForFunction(() => window.oldTownWalk.status().fov === 40, null, { timeout: 30000 });
+    check(true, '9 stops at the desktop\'s narrowest');
+    for (let i = 0; i < 6; i++) await page.keyboard.press('Digit0');
+    await noted('Field of view 70');
+    const [saved] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.keyboard.press('KeyP')]);
+    check(saved.suggestedFilename() === 'old-town-walk-000.png', 'P saves a numbered PNG');
+    await noted('Saved old-town-walk-000.png');
+    const savedFile = path.join(outDir, 'saved.png');
+    await saved.saveAs(savedFile);
+    const savedSize = decodePng(fs.readFileSync(savedFile)), viewSize = await page.evaluate(() => [document.getElementById('view').width, document.getElementById('view').height]);
+    check(savedSize.width === viewSize[0] && savedSize.height === viewSize[1], `the picture is the game view alone (${savedSize.width}x${savedSize.height})`);
+    check(colours(savedFile) > 25, 'the picture is not blank');
   }
 
   // Back to the start first: where a run ends depends on the machine's frame rate, and a wall or pavement filling the

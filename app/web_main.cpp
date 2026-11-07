@@ -255,6 +255,12 @@ EMSCRIPTEN_KEEPALIVE void otw_set_bike_speed(float speed) {
     if (game) game->bikeSpeed = speed;
 }
 
+// Vertical degrees, as on the desktop. The kit reads its options afresh every frame and keeps them through a lost
+// context, so this is all a field of view that changes in play needs. The page calls it once a frame.
+EMSCRIPTEN_KEEPALIVE void otw_set_fov(float degrees) {
+    strata_kit::host().opts.fovDegrees = degrees;
+}
+
 EMSCRIPTEN_KEEPALIVE int otw_toggle_fly() {
     if (!game || !game->stream) return 0;
     otw::Stream& s = *game->stream;
@@ -278,15 +284,16 @@ EMSCRIPTEN_KEEPALIVE const char* otw_status() {
     if (!game || !game->stream) return "{}";
     const otw::Stream& s = *game->stream;
     const otw::Walker& w = game->walker;
-    char text[520];
+    char text[560];
     std::snprintf(text, sizeof text,
                   "{\"ready\":%d,\"x\":%.2f,\"y\":%.2f,\"z\":%.2f,\"yaw\":%.1f,\"pitch\":%.1f,\"flying\":%d,\"tiles\":%d,"
-                  "\"meshes\":%d,\"peak\":%d,\"loads\":%d,\"unloads\":%d,\"worstMs\":%.1f,\"waiting\":%d,\"height\":%.1f,\"street\":\"%s\",\"signs\":%d,\"riding\":%d,\"speed\":%.1f,\"pace\":%.2f,\"hurrying\":%d}",
+                  "\"meshes\":%d,\"peak\":%d,\"loads\":%d,\"unloads\":%d,\"worstMs\":%.1f,\"waiting\":%d,\"height\":%.1f,\"street\":\"%s\",\"signs\":%d,\"riding\":%d,\"speed\":%.1f,\"pace\":%.2f,\"hurrying\":%d,\"fov\":%.1f}",
                   game->ready ? 1 : 0, static_cast<double>(w.x), static_cast<double>(w.eyeY), static_cast<double>(w.z),
                   static_cast<double>(w.yawDeg), static_cast<double>(w.pitchDeg), game->flying ? 1 : 0, s.tileCount(), s.meshes(),
                   s.peakMeshes(), s.loads(), s.unloads(), s.worstLoadMs(), s.waiting(), static_cast<double>(w.eyeY + w.hop - s.groundAt(w.x, w.z)),
                   game->signs.street().c_str(), static_cast<int>(game->signs.labels().size()), game->bike.riding ? 1 : 0, static_cast<double>(game->bike.speed),
-                  static_cast<double>(otw::shownSpeed(game->flying, game->bike, game->flying ? game->flySpeed : game->walkSpeed, game->hurrying)), game->hurrying ? 1 : 0);
+                  static_cast<double>(otw::shownSpeed(game->flying, game->bike, game->flying ? game->flySpeed : game->walkSpeed, game->hurrying)), game->hurrying ? 1 : 0,
+                  static_cast<double>(strata_kit::host().opts.fovDegrees));
     game->status = text;
     return game->status.c_str();
 }
