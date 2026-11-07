@@ -33,7 +33,10 @@
     settings.invert = saved.invert === true;
     settings.status = saved.status !== false;
   }
-  function keepSettings() { stored.set("old-town-walk-settings", JSON.stringify(settings)); }
+  function keepSettings() {
+    stored.set("old-town-walk-settings", JSON.stringify(settings));
+    showSettings();
+  }
   function applySettings() {
     document.body.classList.toggle("no-status", !settings.status);
     if (!mod) return;
@@ -114,6 +117,7 @@
     flying = on;
     document.body.classList.toggle("flying", on);
     $("flyBtn").setAttribute("aria-pressed", String(on));
+    showSettings();
   }
   function toggleFly() {
     if (!mod) return;
@@ -127,6 +131,7 @@
     document.body.classList.toggle("riding", on);
     $("bikeBtn").setAttribute("aria-pressed", String(on));
     if (!on) canvas.style.transform = "";
+    showSettings();
   }
   function toggleBike() {
     if (!mod) return;
@@ -140,11 +145,13 @@
   function started() {  // the panel is now a pause, not a welcome
     $("start").textContent = "Back to the walk";
     $("homeBtn").hidden = false;
+    $("settings").hidden = false;
   }
   const helpOpen = () => $("help").classList.contains("on");
   function setHelp(on) {
     $("help").classList.toggle("on", on);
     if (on) {
+      showSettings();
       if (locked()) document.exitPointerLock();  // the panel's buttons need a cursor
       $("start").focus();
     } else {
@@ -158,14 +165,17 @@
   function shiftSun(hours) {
     sunTime += hours * 3600;
     if (kit) kit.setSun(sunTime, PLACE.lat, PLACE.lon);
+    showSettings();
   }
 
   const formatSpeed = (speed) => speed.toFixed(speed < 10 ? 1 : 0);
+  const speedMode = () => (flying ? {key: "fly", range: FLY, name: "Flying speed"} :
+    riding ? {key: "ride", range: BIKE, name: "Bike top speed"} : {key: "walk", range: WALK, name: "Walking speed"});
   function changeSpeed(notches) {
-    const key = flying ? "fly" : riding ? "ride" : "walk", range = flying ? FLY : riding ? BIKE : WALK, before = settings[key];
+    const {key, range, name} = speedMode(), before = settings[key];
     settings[key] = clamp(before * Math.pow(NOTCH, notches), range);
     if (settings[key] === before) note(notches > 0 ? "That is the top speed" : "That is the lowest speed");
-    else note(`${flying ? "Flying" : riding ? "Bike top" : "Walking"} speed ${formatSpeed(settings[key])} m/s`);
+    else note(`${name} ${formatSpeed(settings[key])} m/s`);
     applySettings();
     keepSettings();
   }
@@ -189,12 +199,47 @@
     note(`Mouse sensitivity ${settings.sensitivity.toFixed(2)}`);
     keepSettings();
   }
+  function resetSettings() {  // a second go within the undo window puts everything back
+    const undo = performance.now() < undoUntil ? beforeReset : null;
+    beforeReset = undo ? null : {...settings};
+    Object.assign(settings, undo || DEFAULTS);
+    undoUntil = undo ? 0 : performance.now() + NOTE_MS;
+    clearTimeout(undoTimer);
+    if (!undo) undoTimer = setTimeout(() => { undoUntil = 0; showSettings(); }, NOTE_MS);
+    applySettings();
+    keepSettings();
+    note(undo ? "Your settings are back" : `Settings back to the defaults${helpOpen() ? "" : ": Backspace again to undo"}`);
+  }
   function goToStart() {
     if (!mod) return;
     mod._otw_go_to_start();
     setFlying(false);
     setRiding(false);
     note("Back at the start");
+  }
+
+  function clockTime() {
+    const minutes = Math.floor(((sunTime / 60 - 360) % 1440 + 1440) % 1440);  // Mountain Daylight Time
+    return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+  }
+
+  // The panel draws over the messages, so its controls have to say for themselves where they stand. A
+  // button at the end of its range stays focusable: a disabled one would drop the keyboard's place.
+  function showSettings() {
+    const {key, range, name} = speedMode();
+    const atEnds = (down, up, value, [low, high]) => {
+      $(down).setAttribute("aria-disabled", String(value <= low));
+      $(up).setAttribute("aria-disabled", String(value >= high));
+    };
+    $("speedName").textContent = name;
+    $("speedValue").textContent = `${formatSpeed(settings[key])} m/s`;
+    atEnds("speedDown", "speedUp", settings[key], range);
+    $("viewValue").textContent = `${settings.view} m`;
+    atEnds("viewDown", "viewUp", settings.view, VIEW);
+    $("timeValue").textContent = clockTime();
+    $("sensitivityValue").textContent = settings.sensitivity.toFixed(2);
+    atEnds("sensitivityDown", "sensitivityUp", settings.sensitivity, SENSITIVITY);
+    $("resetBtn").textContent = performance.now() < undoUntil ? "Undo reset" : "Reset to defaults";
   }
 
   const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
@@ -207,19 +252,17 @@
     frames = 0; sinceStatus = 0;
     const s = status();
     const speed = s.pace;
-    const minutes = Math.floor(((sunTime / 60 - 360) % 1440 + 1440) % 1440);  // Mountain Daylight Time
-    const clock = `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
     const heading = COMPASS[Math.floor(s.yaw / 45 + 0.5) & 7];
     const lines = [`${riding ? "riding" : flying ? "flying" : s.hurrying ? "running" : "on foot"}  ${formatSpeed(speed)} m/s`, `street  ${s.street || "-"}`];
     if (!touching()) {
-      lines.push(`height  ${Math.round(s.height)} m`, `view    ${settings.view} m`, `facing  ${heading}`, `clock   ${clock}`,
+      lines.push(`height  ${Math.round(s.height)} m`, `view    ${settings.view} m`, `facing  ${heading}`, `clock   ${clockTime()}`,
                  `tiles   ${s.tiles}${s.waiting > 0 ? ` +${s.waiting} loading` : ""}`, `${Math.round(fps)} fps  H help`);
     }
     $("status").textContent = lines.join("\n");
   }
 
   const NOTE_MS = 4000;
-  let noteTimer = 0, noteFree = 0, beforeReset = null, undoUntil = 0;
+  let noteTimer = 0, noteFree = 0, beforeReset = null, undoUntil = 0, undoTimer = 0;
   function note(text) {
     const n = $("note");
     n.textContent = text;
@@ -264,6 +307,15 @@
   function wireInput() {
     window.addEventListener("keydown", (e) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;  // the browser's own shortcuts: Ctrl+F is find, not take off
+      if (e.code === "Tab" && helpOpen()) return;  // Tab goes through the panel's controls
+      if ($("help").contains(e.target)) {  // these belong to the focused control, not to the walker
+        if (e.code === "Space" || e.code === "Enter" || e.code === "NumpadEnter") {
+          // A key held since before the panel opened, or held on Reset, must not press it over and over.
+          if (e.repeat && !e.target.closest(".setting")) e.preventDefault();
+          return;
+        }
+        if (e.code.startsWith("Arrow")) return;  // scrolls the panel
+      }
       if (!e.repeat && e.code === "KeyF") toggleFly();
       if (!e.repeat && e.code === "KeyB") toggleBike();
       if (e.code === "PageUp") { changeSpeed(1); e.preventDefault(); }
@@ -291,13 +343,7 @@
       }
       if (!e.repeat && e.code === "Backspace") {
         e.preventDefault();
-        const undo = performance.now() < undoUntil ? beforeReset : null;
-        beforeReset = undo ? null : {...settings};
-        Object.assign(settings, undo || DEFAULTS);
-        undoUntil = undo ? 0 : performance.now() + NOTE_MS;
-        applySettings();
-        keepSettings();
-        note(undo ? "Your settings are back" : "Settings back to the defaults: Backspace again to undo");
+        resetSettings();
       }
       if (e.code === "Minus") changeView(-1);
       if (e.code === "Equal") changeView(1);
@@ -375,6 +421,17 @@
     $("helpBtn").addEventListener("click", () => setHelp(!helpOpen()));
     $("start").addEventListener("click", () => setHelp(false));
     $("homeBtn").addEventListener("click", () => { goToStart(); setHelp(false); });
+    const stepper = (name, change, step) => {
+      $(name + "Down").addEventListener("click", () => change(-step));
+      $(name + "Up").addEventListener("click", () => change(step));
+    };
+    stepper("speed", changeSpeed, 1);
+    stepper("view", changeView, 1);
+    stepper("time", shiftSun, 0.5);
+    stepper("sensitivity", changeSensitivity, 1);
+    $("resetBtn").addEventListener("click", resetSettings);
+    // Opening it near the foot of the panel would otherwise leave it out of sight on a short screen.
+    $("settings").addEventListener("toggle", () => { if ($("settings").open) $("settings").scrollIntoView({block: "nearest"}); });
   }
 
   /* ------------------------------------------------------- frames */

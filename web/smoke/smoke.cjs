@@ -144,6 +144,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   const help = page.locator('#help');
   check(await help.isVisible(), 'the controls show without a keyboard');
+  check(!(await page.locator('#settings').isVisible()), 'the welcome leaves Settings out of the way');
   await page.locator('#start').click();
   check(!(await help.isVisible()), 'Start closes them');
   const noted = (text) => page.waitForFunction((t) => {
@@ -154,6 +155,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const groundShot = path.join(outDir, 'ground.png');
   await shoot(groundShot);
   check(colours(groundShot) > 40, 'the street is drawn');
+  const shows = (id) => page.locator(id).textContent();
+  const reset = page.locator('#resetBtn');
   const level = await status();
   check(Math.abs(level.pitch) < 15, `starting does not swing the view (pitch ${level.pitch})`);
 
@@ -227,6 +230,39 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     check((await status()).flying === 0, 'Fly lands');
     await tap('#helpBtn');
     check(await page.locator('#homeBtn').isVisible(), 'the controls offer a way back to the start');
+    // Settings by finger: every control is big enough, inside the panel, and answers a tap.
+    const fingerTap = async (sel) => {
+      await page.locator(sel).scrollIntoViewIfNeeded();
+      await tap(sel);
+    };
+    await fingerTap('#settings summary');
+    check(await page.locator('#viewUp').isVisible(), 'a tap opens Settings');
+    check(!(await page.locator('#sensitivityRow').isVisible()), 'a touch screen is not offered mouse sensitivity');
+    const edges = await page.evaluate(() => {
+      const panel = document.getElementById('help'), box = panel.getBoundingClientRect();
+      return {
+        sideways: panel.scrollWidth > panel.clientWidth || document.documentElement.scrollWidth > innerWidth,
+        tall: box.height > innerHeight * 0.9 + 1,
+        controls: [...panel.querySelectorAll('#settings summary, #settings button')].filter((c) => c.offsetParent).map((c) => {
+          const b = c.getBoundingClientRect();
+          return {height: b.height, inside: b.left >= box.left && b.right <= box.right};
+        }),
+      };
+    });
+    check(!edges.sideways && !edges.tall, 'the panel fits the screen and scrolls only up and down');
+    check(edges.controls.every((c) => c.height >= 44 && c.inside), `all ${edges.controls.length} settings controls are at least 44 px and inside the panel`);
+    const walking = await shows('#speedValue'), reach = await shows('#viewValue'), hour = await shows('#timeValue');
+    await fingerTap('#speedUp');
+    await fingerTap('#viewDown');
+    await fingerTap('#timeUp');
+    check(await shows('#speedValue') !== walking, `the speed stepper changes the speed (${await shows('#speedValue')})`);
+    check(await shows('#viewValue') !== reach, `the view stepper changes the view (${await shows('#viewValue')})`);
+    check(await shows('#timeValue') !== hour, `the time stepper moves the sun (${await shows('#timeValue')})`);
+    const changed = await shows('#viewValue');
+    await fingerTap('#resetBtn');
+    check(await shows('#resetBtn') === 'Undo reset' && await shows('#viewValue') === reach, 'Reset goes to the defaults and offers to undo');
+    await fingerTap('#resetBtn');
+    check(await shows('#viewValue') === changed, 'tapping again undoes it');
     await page.locator('#homeBtn').click();
     await noted('Back at the start');
     check(!(await help.isVisible()), 'and it closes them');
@@ -349,6 +385,51 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await page.keyboard.press('KeyH');
     await page.keyboard.press('Escape');
     check(!(await help.isVisible()), 'Esc hides them too');
+    // Settings with the mouse and keys: keys show in the panel, and a focused control keeps its keys.
+    await page.keyboard.press('KeyH');
+    await page.locator('#settings summary').click();
+    check(await page.locator('#sensitivityRow').isVisible(), 'a mouse is offered sensitivity');
+    const reach = parseInt(await shows('#viewValue'));
+    await page.keyboard.press('Equal');
+    check(parseInt(await shows('#viewValue')) === reach + 100, 'a key changes what the panel shows');
+    await page.keyboard.press('KeyF');
+    check(await shows('#speedName') === 'Flying speed', 'the panel follows the mode');
+    await page.keyboard.press('KeyF');
+    const hour = await shows('#timeValue');
+    await page.keyboard.press('BracketRight');
+    check(await shows('#timeValue') !== hour, '] shows in the panel');
+    await page.keyboard.press('BracketLeft');
+    await sleep(1000);
+    const steady = await status();
+    await page.locator('#viewUp').click();
+    check(parseInt(await shows('#viewValue')) === reach + 200, 'a click steps the view');
+    await page.keyboard.press('Enter');
+    check(parseInt(await shows('#viewValue')) === reach + 300, 'Enter on a focused stepper steps it once');
+    await page.keyboard.press('Space');
+    check(parseInt(await shows('#viewValue')) === reach + 400, 'Space on a focused stepper steps it once');
+    await page.keyboard.down('ArrowLeft');
+    await sleep(800);
+    await page.keyboard.up('ArrowLeft');
+    await sleep(400);
+    const still = await status();
+    check(still.yaw === steady.yaw && Math.abs(still.height - steady.height) < 0.3, 'keys on a focused stepper neither turn the view nor jump');
+    await page.keyboard.press('Tab');
+    check(await page.evaluate(() => document.activeElement.id === 'resetBtn' || document.activeElement.id === 'timeDown'), 'Tab moves to the next control');
+    check(!(await page.evaluate(() => document.body.classList.contains('no-status'))), 'and leaves the status panel alone');
+    await reset.focus();
+    await page.keyboard.down('Enter');
+    await page.keyboard.down('Enter');  // the rest come through as repeats
+    await page.keyboard.down('Enter');
+    await page.keyboard.up('Enter');
+    check(await shows('#resetBtn') === 'Undo reset', 'holding Enter on Reset presses it once');
+    await reset.click();
+    check(parseInt(await shows('#viewValue')) === reach + 400, 'clicking Undo reset brings the settings back');
+    await page.keyboard.press('Backspace');
+    check(await shows('#resetBtn') === 'Undo reset', 'Backspace and the button are the same reset');
+    await page.waitForFunction(() => document.getElementById('resetBtn').textContent === 'Reset to defaults', null, { timeout: 30000 });
+    check(true, 'the offer to undo goes away');
+    await page.keyboard.press('Escape');
+    check(await page.evaluate(() => document.activeElement === document.getElementById('view')), 'closing the panel gives the keys back to the map');
     await page.keyboard.press('KeyR');
     await page.waitForFunction(() => document.getElementById('note').textContent.includes('start'), null, { timeout: 30000 });
     check(true, 'R goes back to the start');
