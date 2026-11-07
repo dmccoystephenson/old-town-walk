@@ -95,6 +95,10 @@ private:
     std::map<TileKey, Set> tiles_;
 };
 
+constexpr float kBikeSpeed = 12.0f, kBikeSprint = 2.0f, kBikeReverse = 1.5f;  // metres a second, and Shift's multiple
+constexpr float kBikeAccel = 6.0f, kBikeBrake = 12.0f, kBikeCoast = 0.8f;  // metres a second, each second
+constexpr float kBikeEye = 1.75f, kBikeTurnRadius = 4.0f, kBikeMaxTurn = 70.0f, kBikeMaxLean = 2.0f;  // m, m, deg/s, deg
+
 // Yaw 0 faces north (-z), 90 faces east (+x).
 struct Walker {
     float x = 0, z = 0, yawDeg = 0, pitchDeg = 0, eyeY = 0;
@@ -171,5 +175,80 @@ struct Walker {
         }
     }
 };
+
+// A bike goes where its wheels point: it turns in arcs, cannot move sideways, and keeps rolling when you stop pedalling.
+// The view turns with the bike and otherwise stays where the rider left it: nothing but the rider moves it.
+struct Bike {
+    bool riding = false;
+    float speed = 0, heading = 0, steer = 0, lean = 0;
+
+    void mount(Walker& w) {
+        *this = Bike{};
+        riding = true;
+        heading = w.yawDeg;
+        w.hop = w.hopSpeed = 0;
+    }
+    void dismount() { *this = Bike{}; }
+
+    // pedal is -1 (brake, then a slow reverse) to 1; turn is -1 (left) to 1.
+    template <typename Walkable>
+    void ride(Walker& w, const Solids& solids, Walkable&& walkable, float pedal, float turn, bool sprint, float dt, float cruise = kBikeSpeed) {
+        const float top = sprint ? cruise * kBikeSprint : cruise;
+        if (pedal > 0) {
+            if (speed < 0) speed = std::min(0.0f, speed + kBikeBrake * dt);
+            else if (speed < top) speed = std::min(top, speed + kBikeAccel * (sprint ? kBikeSprint : 1.0f) * pedal * dt);
+            else speed = std::max(top, speed - kBikeCoast * 4 * dt);
+        } else if (pedal < 0) {
+            if (speed > 0) speed = std::max(0.0f, speed + kBikeBrake * pedal * dt);
+            else speed = std::max(-kBikeReverse, speed + kBikeAccel * pedal * dt);
+        } else {
+            speed = speed > 0 ? std::max(0.0f, speed - kBikeCoast * dt) : std::min(0.0f, speed + kBikeCoast * dt);
+        }
+        steer += (std::clamp(turn, -1.0f, 1.0f) - steer) * std::min(1.0f, dt * 8);
+        const float pace = std::abs(speed);
+        const float rate = std::min(pace / kBikeTurnRadius * 180.0f / 3.14159265f, kBikeMaxTurn) * (speed < 0 ? -1.0f : 1.0f);
+        const float turned = steer * rate * dt;
+        heading = std::fmod(heading + turned + 360.0f, 360.0f);
+        w.yawDeg = std::fmod(w.yawDeg + turned + 360.0f, 360.0f);
+        const float target = steer * std::min(pace / kBikeSpeed, 1.0f) * kBikeMaxLean;
+        lean += (target - lean) * std::min(1.0f, dt * 3);
+
+        const float yaw = heading * 3.14159265f / 180.0f, want = speed * dt, dx = std::sin(yaw) * want, dz = -std::cos(yaw) * want;
+        const float x0 = w.x, z0 = w.z;
+        const int steps = std::max(1, static_cast<int>(std::ceil(std::abs(want) / (kBodyRadius * 0.5f))));
+        for (int i = 0; i < steps; ++i) {
+            float nx = w.x + dx / static_cast<float>(steps), nz = w.z + dz / static_cast<float>(steps);
+            for (int pass = 0; pass < 3; ++pass) solids.pushOut(nx, nz);
+            if (walkable(nx, nz)) {
+                w.x = nx;
+                w.z = nz;
+            }
+        }
+        // Whatever the wheels could not cover was a wall: a glancing touch slows you, and a head-on one stops you.
+        if (std::abs(want) > 1e-4f) speed *= std::min(1.0f, std::hypot(w.x - x0, w.z - z0) / std::abs(want));
+    }
+};
+
+// Which way a move is going across the map, from the keys or stick. A rider goes where the wheels point, whichever
+// way the rider looks, and keeps rolling with nothing held; the length of (dx, dz) is zero when nothing is moving.
+inline void travelDirection(const Walker& w, const Bike& bike, float ahead, float right, float& dx, float& dz) {
+    const float degrees = bike.riding ? bike.heading : w.yawDeg, yaw = degrees * 3.14159265f / 180.0f;
+    const float fx = std::sin(yaw), fz = -std::cos(yaw);
+    if (bike.riding) {
+        const float way = bike.speed > 0 ? 1.0f : bike.speed < 0 ? -1.0f : 0.0f;
+        dx = fx * way;
+        dz = fz * way;
+        return;
+    }
+    dx = ahead * fx - right * fz;
+    dz = ahead * fz + right * fx;
+}
+
+// The speed to show: a rider's real one, or what a walker or a flight is going at with Shift or a full stick.
+inline float shownSpeed(bool flying, const Bike& bike, float cruise, bool hurrying) {
+    if (bike.riding) return std::abs(bike.speed);
+    if (!hurrying) return cruise;
+    return cruise * (flying ? kFlyFastSpeed / kFlySpeed : kRunSpeed / kWalkSpeed);
+}
 
 }  // namespace otw

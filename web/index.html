@@ -15,7 +15,7 @@
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); overflow: hidden;
     font: 15px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
     -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
-  #stage { position: fixed; inset: 0; }
+  #stage { position: fixed; inset: 0; overflow: hidden; }
   canvas#view { display: block; width: 100%; height: 100%; touch-action: none; outline: none; background: #000; cursor: grab; }
   button { font: inherit; color: var(--text); background: var(--btn); border: 2px solid var(--line); border-radius: 14px;
     min-width: 48px; min-height: 48px; padding: 0 12px; cursor: pointer; touch-action: none; font-weight: 700; }
@@ -50,7 +50,7 @@
   body.touch.flying #height { display: flex; }
   #jumpBtn { position: absolute; display: none; width: 76px; height: 76px; border-radius: 50%; padding: 0;
     right: max(18px, env(safe-area-inset-right)); bottom: max(32px, env(safe-area-inset-bottom)); }
-  body.touch:not(.flying) #jumpBtn { display: block; }
+  body.touch:not(.flying):not(.riding) #jumpBtn { display: block; }
   #help { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(92vw, 420px);
     max-height: 90dvh; overflow-y: auto; background: var(--panel); border: 2px solid var(--line); border-radius: 18px;
     padding: 16px 18px; display: none; z-index: 4; }
@@ -65,6 +65,9 @@
   body.touch #help .fingers { display: grid; }
   #help .fingers { display: none; }
   #start { width: 100%; background: var(--btn-on); border-color: var(--accent); margin-top: 6px; touch-action: manipulation; }
+  body.touch #note { top: 122px; }  /* below the status panel, which a phone is too narrow to pass */
+  #homeBtn { width: 100%; margin-top: 8px; touch-action: manipulation; }
+  #homeBtn[hidden] { display: none; }
   #note { position: absolute; left: 50%; top: 66px; transform: translateX(-50%); background: var(--panel); border-radius: 10px;
     padding: 6px 12px; display: none; max-width: 90vw; text-align: center; }
 </style>
@@ -74,6 +77,7 @@
   <canvas id="view" tabindex="0" aria-label="A 3D view of Old Town Fort Collins"></canvas>
   <div id="top">
     <span id="brand"><a href="https://danielstephenson.dev/play" target="_top" title="More games">Old Town Walk</a></span>
+    <button id="bikeBtn" aria-pressed="false" title="Ride a bike (B)">Bike</button>
     <button id="flyBtn" aria-pressed="false" title="Fly (F)">Fly</button>
     <button id="helpBtn" title="Controls" aria-label="Controls">?</button>
   </div>
@@ -95,30 +99,33 @@
   <h1>Old Town Walk</h1>
   <p>A 2 km square of Old Town Fort Collins, built from open map and elevation data.</p>
   <dl class="keys">
-    <dt>W A S D</dt><dd>Walk (Shift runs)</dd>
-    <dt>Mouse</dt><dd>Look. Esc frees the mouse</dd>
+    <dt>W A S D</dt><dd>Walk. Shift goes faster</dd>
+    <dt>Mouse, arrows</dt><dd>Look. Esc frees the mouse</dd>
     <dt>Space</dt><dd>Jump</dd>
-    <dt>Wheel</dt><dd>Slower / faster (Page Up, Page Down)</dd>
+    <dt>Wheel</dt><dd>Slower / faster (Page Up, Page Down). On the bike, this sets its top speed</dd>
     <dt>- =</dt><dd>Shorter / longer view</dd>
     <dt>F</dt><dd>Fly or land</dd>
-    <dt>E / Q</dt><dd>Climb / descend when flying</dd>
+    <dt>B</dt><dd>Get on or off the bike: W pedals, S brakes and backs up, A and D steer</dd>
+    <dt>E or Space, Q</dt><dd>Climb / descend when flying</dd>
     <dt>[ ]</dt><dd>Move the sun</dd>
-    <dt>H</dt><dd>Show or hide this list</dd>
+    <dt>H</dt><dd>Show or hide this list (Esc or a click on the map closes it)</dd>
     <dt>R</dt><dd>Back to the start</dd>
     <dt>, .</dt><dd>Mouse sensitivity</dd>
     <dt>I</dt><dd>Invert the mouse</dd>
     <dt>Tab</dt><dd>Hide the status panel</dd>
-    <dt>Backspace</dt><dd>Default settings</dd>
+    <dt>Backspace</dt><dd>Default settings (again to undo)</dd>
   </dl>
   <dl class="fingers">
-    <dt>Left stick</dt><dd>Walk. Push it all the way to run</dd>
+    <dt>Left stick</dt><dd>Walk. Push it all the way to go faster</dd>
     <dt>Drag</dt><dd>Look around</dd>
     <dt>Jump</dt><dd>Jump</dd>
     <dt>Fly</dt><dd>Fly or land</dd>
+    <dt>Bike</dt><dd>Get on or off: push the stick up to pedal, down to brake, sideways to steer</dd>
     <dt>&#9650; &#9660;</dt><dd>Climb and descend when flying</dd>
     <dt>+ &minus;</dt><dd>Fly faster or slower</dd>
   </dl>
   <button id="start">Start walking</button>
+  <button id="homeBtn" hidden>Back to the start</button>
 </div>
 <script src="strata-loader.js"></script>
 <script src="strata-kit.js"></script>

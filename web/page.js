@@ -8,16 +8,16 @@
   const MORE = {href: "https://danielstephenson.dev/play", text: "More games"};
   const PLACE = {lat: 40.5877, lon: -105.0761};  // Old Town, for where the sun stands
   const MIDSUMMER_AFTERNOON = Date.UTC(2026, 6, 15, 21, 0) / 1000;
-  const MOUSE_DEG = 0.15, TOUCH_DEG = 0.3, KEY_DEG = 90, MAX_MOUSE_STEP = 300, CONCURRENT = 3, RETRIES = 3;
+  const MOUSE_DEG = 0.15, TOUCH_DEG = 0.3, KEY_DEG = 90, MAX_MOUSE_STEP = 300, CONCURRENT = 3, RETRIES = 3, RETRY_MS = 5000, RETRY_MAX_MS = 60000;
   const search = new URLSearchParams(location.search);
   const coarse = matchMedia("(pointer: coarse)").matches || search.get("touch") === "1";
   const stored = StrataKit.store;
 
 
-  const FLY = [5, 800], WALK = [0.7, 14], VIEW = [200, 1500], NOTCH = 1.25, VIEW_STEP = 100;
+  const FLY = [5, 800], WALK = [0.7, 14], BIKE = [3, 40], VIEW = [200, 1500], NOTCH = 1.25, VIEW_STEP = 100;
   const SENSITIVITY = [0.03, 0.6];
   const clamp = (v, [low, high]) => Math.min(high, Math.max(low, v));
-  const DEFAULTS = {fly: 20, walk: 1.4, view: coarse ? 500 : 700, sensitivity: MOUSE_DEG, invert: false, status: true};
+  const DEFAULTS = {fly: 20, walk: 1.4, ride: 12, view: coarse ? 500 : 700, sensitivity: MOUSE_DEG, invert: false, status: true};
   const settings = {...DEFAULTS};
   function loadSettings() {
     let saved = {};
@@ -25,6 +25,7 @@
     const number = (v, fallback) => (typeof v === "number" && isFinite(v) ? v : fallback);
     settings.fly = clamp(number(saved.fly, DEFAULTS.fly), FLY);
     settings.walk = clamp(number(saved.walk, DEFAULTS.walk), WALK);
+    settings.ride = clamp(number(saved.ride, DEFAULTS.ride), BIKE);
     settings.view = clamp(number(saved.view, DEFAULTS.view), VIEW);
     settings.sensitivity = clamp(number(saved.sensitivity, DEFAULTS.sensitivity), SENSITIVITY);
     settings.invert = saved.invert === true;
@@ -35,10 +36,11 @@
     document.body.classList.toggle("no-status", !settings.status);
     if (!mod) return;
     mod._otw_set_speeds(settings.fly, settings.walk);
+    mod._otw_set_bike_speed(settings.ride);
     mod._otw_set_radius(parseFloat(search.get("reach")) || settings.view);
   }
 
-  let mod = null, kit = null, sunTime = MIDSUMMER_AFTERNOON, flying = false, shown = false, failed = false;
+  let mod = null, kit = null, sunTime = MIDSUMMER_AFTERNOON, flying = false, riding = false, shown = false, failed = false;
 
   /* ------------------------------------------------------- tiles */
   const queue = [];
@@ -70,14 +72,24 @@
     return false;
   }
 
+  // A tile that never arrives is an invisible wall, so keep asking, less often the longer it goes on.
+  const missing = new Map();
+  function tryAgainLater(ix, iy) {
+    const key = `${ix}_${iy}`, tries = missing.get(key) || 0;
+    missing.set(key, tries + 1);
+    note("Part of the map did not download. Trying again.");
+    setTimeout(() => { queue.push([ix, iy]); pump(); }, Math.min(RETRY_MS * 2 ** tries, RETRY_MAX_MS));
+  }
+
   function pump() {
     while (downloading < CONCURRENT && queue.length) {
       const [ix, iy] = queue.shift();
       downloading++;
       download(ix, iy).then((ok) => {
         downloading--;
-        if (!ok) note("Part of the map did not download.");
         if (!ok && !shown && !failed) { failed = true; StrataLoader.fallback("network", "The map did not download."); }
+        if (!ok && shown) tryAgainLater(ix, iy);
+        if (ok && missing.delete(`${ix}_${iy}`) && missing.size === 0) note("The missing part of the map has arrived");
         pump();
       });
     }
@@ -94,22 +106,63 @@
 
   function look(dx, dy, deg) { dyaw += dx * deg; dpitch -= (settings.invert ? -dy : dy) * deg; }
 
+  const touching = () => document.body.classList.contains("touch");
   function setFlying(on) {
     flying = on;
     document.body.classList.toggle("flying", on);
     $("flyBtn").setAttribute("aria-pressed", String(on));
   }
-  function toggleFly() { if (mod) setFlying(mod._otw_toggle_fly() === 1); }
+  function toggleFly() {
+    if (!mod) return;
+    setFlying(mod._otw_toggle_fly() === 1);
+    setRiding(false);
+    if (flying) note(touching() ? "Flying: \u25B2 climbs, \u25BC descends, Fly lands" : "Flying: E climbs, Q descends, F lands");
+    else note("Landed");
+  }
+  function setRiding(on) {
+    riding = on;
+    document.body.classList.toggle("riding", on);
+    $("bikeBtn").setAttribute("aria-pressed", String(on));
+    if (!on) canvas.style.transform = "";
+  }
+  function toggleBike() {
+    if (!mod) return;
+    const on = mod._otw_toggle_bike() === 1;
+    setFlying(false);
+    setRiding(on);
+    if (!on) note("Off the bike");
+    else note(touching() ? "On the bike: push the stick up to pedal, sideways to steer" : "On the bike: W pedals, S brakes, A and D steer");
+  }
+
+  function started() {  // the panel is now a pause, not a welcome
+    $("start").textContent = "Back to the walk";
+    $("homeBtn").hidden = false;
+  }
+  const helpOpen = () => $("help").classList.contains("on");
+  function setHelp(on) {
+    $("help").classList.toggle("on", on);
+    if (on) {
+      if (locked()) document.exitPointerLock();  // the panel's buttons need a cursor
+      $("start").focus();
+    } else {
+      stored.set("old-town-walk-seen", "1");
+      started();
+      canvas.focus();
+      grabMouse();
+    }
+  }
 
   function shiftSun(hours) {
     sunTime += hours * 3600;
     if (kit) kit.setSun(sunTime, PLACE.lat, PLACE.lon);
   }
 
+  const formatSpeed = (speed) => speed.toFixed(speed < 10 ? 1 : 0);
   function changeSpeed(notches) {
-    const key = flying ? "fly" : "walk", range = flying ? FLY : WALK, before = settings[key];
+    const key = flying ? "fly" : riding ? "ride" : "walk", range = flying ? FLY : riding ? BIKE : WALK, before = settings[key];
     settings[key] = clamp(before * Math.pow(NOTCH, notches), range);
     if (settings[key] === before) note(notches > 0 ? "That is the top speed" : "That is the lowest speed");
+    else note(`${flying ? "Flying" : riding ? "Bike top" : "Walking"} speed ${formatSpeed(settings[key])} m/s`);
     applySettings();
     keepSettings();
   }
@@ -117,6 +170,7 @@
     const before = settings.view;
     settings.view = clamp((Math.round(before / VIEW_STEP) + steps) * VIEW_STEP, VIEW);
     if (settings.view === before) note(steps > 0 ? "That is the longest view" : "That is the shortest view");
+    else note(`View ${settings.view} m`);
     applySettings();
     keepSettings();
   }
@@ -129,6 +183,7 @@
     if (!mod) return;
     mod._otw_go_to_start();
     setFlying(false);
+    setRiding(false);
     note("Back at the start");
   }
 
@@ -141,32 +196,33 @@
     fps = frames / sinceStatus;
     frames = 0; sinceStatus = 0;
     const s = status();
-    const speed = flying ? settings.fly : settings.walk;
+    const speed = s.pace;
     const minutes = Math.floor(((sunTime / 60 - 360) % 1440 + 1440) % 1440);  // Mountain Daylight Time
     const clock = `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
     const heading = COMPASS[Math.floor(s.yaw / 45 + 0.5) & 7];
-    const lines = [`${flying ? "flying" : "on foot"}  ${speed.toFixed(speed < 10 ? 1 : 0)} m/s`, `street  ${s.street || "-"}`];
-    if (!document.body.classList.contains("touch")) {
+    const lines = [`${riding ? "riding" : flying ? "flying" : s.hurrying ? "running" : "on foot"}  ${formatSpeed(speed)} m/s`, `street  ${s.street || "-"}`];
+    if (!touching()) {
       lines.push(`height  ${Math.round(s.height)} m`, `view    ${settings.view} m`, `facing  ${heading}`, `clock   ${clock}`,
                  `tiles   ${s.tiles}${s.waiting > 0 ? ` +${s.waiting} loading` : ""}`, `${Math.round(fps)} fps  H help`);
     }
     $("status").textContent = lines.join("\n");
   }
 
-  let noteTimer = 0, noteFree = 0;
+  const NOTE_MS = 4000;
+  let noteTimer = 0, noteFree = 0, beforeReset = null, undoUntil = 0;
   function note(text) {
     const n = $("note");
     n.textContent = text;
     n.style.display = "block";
-    noteFree = performance.now() + 4000;
+    noteFree = performance.now() + NOTE_MS;
     clearTimeout(noteTimer);
-    noteTimer = setTimeout(() => { n.style.display = "none"; }, 4000);
+    noteTimer = setTimeout(() => { n.style.display = "none"; }, NOTE_MS);
   }
 
   function useTouch() { document.body.classList.add("touch"); }
 
   function grabMouse() {
-    if (document.body.classList.contains("touch") || locked() || !canvas.requestPointerLock) return;
+    if (touching() || locked() || !canvas.requestPointerLock) return;
     // Refused in a frame without permission: dragging to look still works.
     try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* not allowed */ }
   }
@@ -179,11 +235,21 @@
 
   function wireInput() {
     window.addEventListener("keydown", (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;  // the browser's own shortcuts: Ctrl+F is find, not take off
       if (!e.repeat && e.code === "KeyF") toggleFly();
+      if (!e.repeat && e.code === "KeyB") toggleBike();
       if (e.code === "PageUp") { changeSpeed(1); e.preventDefault(); }
       if (e.code === "PageDown") { changeSpeed(-1); e.preventDefault(); }
-      if (e.code === "Tab") { settings.status = !settings.status; applySettings(); keepSettings(); e.preventDefault(); }
-      if (!e.repeat && e.code === "KeyH") $("help").classList.toggle("on");
+      if (e.code === "Tab") {
+        e.preventDefault();
+        if (e.repeat) return;
+        settings.status = !settings.status;
+        applySettings();
+        keepSettings();
+        if (!settings.status) note("Panel hidden: Tab brings it back");
+      }
+      if (!e.repeat && e.code === "KeyH") setHelp(!helpOpen());
+      if (e.code === "Escape" && helpOpen()) setHelp(false);
       if (!e.repeat && e.code === "KeyR") goToStart();
       if (e.code === "Comma") changeSensitivity(-1);
       if (e.code === "Period") changeSensitivity(1);
@@ -193,11 +259,14 @@
         keepSettings();
       }
       if (!e.repeat && e.code === "Backspace") {
-        Object.assign(settings, DEFAULTS);
+        e.preventDefault();
+        const undo = performance.now() < undoUntil ? beforeReset : null;
+        beforeReset = undo ? null : {...settings};
+        Object.assign(settings, undo || DEFAULTS);
+        undoUntil = undo ? 0 : performance.now() + NOTE_MS;
         applySettings();
         keepSettings();
-        note("Settings back to the defaults");
-        e.preventDefault();
+        note(undo ? "Your settings are back" : "Settings back to the defaults: Backspace again to undo");
       }
       if (e.code === "Minus") changeView(-1);
       if (e.code === "Equal") changeView(1);
@@ -216,6 +285,7 @@
 
     canvas.addEventListener("pointerdown", (e) => {
       if (e.pointerType === "touch") useTouch();
+      if (helpOpen()) setHelp(false);
       if (e.pointerType === "mouse") grabMouse();
       if (lookId === null) { lookId = e.pointerId; lookX = e.clientX; lookY = e.clientY; }
     });
@@ -232,7 +302,7 @@
     });
     document.addEventListener("pointerlockchange", () => {
       settling = 3; lookId = null;
-      if (!locked() && shown && !$("help").classList.contains("on")) note("Click to look around");
+      if (!locked() && shown && !helpOpen()) note("Click to look around");
     });
     const endLook = (e) => { if (e.pointerId === lookId) lookId = null; };
     canvas.addEventListener("pointerup", endLook);
@@ -270,20 +340,17 @@
     $("fasterBtn").addEventListener("click", () => changeSpeed(2));
     $("slowerBtn").addEventListener("click", () => changeSpeed(-2));
     $("flyBtn").addEventListener("click", () => { toggleFly(); canvas.focus(); });
-    $("helpBtn").addEventListener("click", () => $("help").classList.toggle("on"));
-    $("start").addEventListener("click", () => {
-      $("help").classList.remove("on");
-      stored.set("old-town-walk-seen", "1");
-      canvas.focus();
-      grabMouse();
-    });
+    $("bikeBtn").addEventListener("click", () => { toggleBike(); canvas.focus(); });
+    $("helpBtn").addEventListener("click", () => setHelp(!helpOpen()));
+    $("start").addEventListener("click", () => setHelp(false));
+    $("homeBtn").addEventListener("click", () => { goToStart(); setHelp(false); });
   }
 
   /* ------------------------------------------------------- frames */
   function frame(t, now, dt) {
     const ahead = move.ahead + keyed("KeyW", "KeyS"), right = move.right + keyed("KeyD", "KeyA");
     const up = (lift.up ? 1 : 0) - (lift.down ? 1 : 0) +
-      (held.has("KeyE") || held.has("Space") ? 1 : 0) - (held.has("KeyQ") || held.has("ControlLeft") ? 1 : 0);
+      (held.has("KeyE") || held.has("Space") ? 1 : 0) - (held.has("KeyQ") ? 1 : 0);
     const run = move.run || held.has("ShiftLeft") || held.has("ShiftRight");
     if (!flying && held.has("Space")) mod._otw_jump();
     dyaw += keyed("ArrowRight", "ArrowLeft") * KEY_DEG * dt;
@@ -292,7 +359,7 @@
     dyaw = dpitch = 0;
     if (shown && performance.now() > noteFree) {
       // Looks further than a frame's travel, or fast flight stops short of the edge and never sees it.
-      const reach = Math.max(10, (flying ? settings.fly : settings.walk) * 8 * dt);
+      const reach = Math.max(10, (flying ? settings.fly : riding ? settings.ride : settings.walk) * 8 * dt);
       const limit = mod._otw_limit(ahead, right, up, reach);
       if (limit === 1) note("The map ends here");
       if (limit === 2) note("Highest you can fly: 400 m above the ground");
@@ -300,6 +367,8 @@
     if (at) {
       const f = mod.HEAPF32, i = at >> 2, c = kit.cam;
       c.yaw = f[i]; c.pitch = f[i + 1]; c.dist = f[i + 2]; c.tx = f[i + 3]; c.ty = f[i + 4]; c.tz = f[i + 5];
+      // The kit's camera cannot tilt, so the canvas does. A steady zoom keeps its corners covered without pumping in turns.
+      if (riding) canvas.style.transform = `rotate(${(-f[i + 6]).toFixed(2)}deg) scale(1.07)`;
     }
     pump();
     if (shown) showStatus(dt);
@@ -308,7 +377,8 @@
       if (status().ready) {
         shown = true;
         StrataLoader.done();
-        if (stored.get("old-town-walk-seen") !== "1") $("help").classList.add("on");
+        if (stored.get("old-town-walk-seen") !== "1") setHelp(true);
+        else started();
       }
     }
   }

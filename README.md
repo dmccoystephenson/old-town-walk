@@ -37,6 +37,8 @@ The program is not code-signed, so Windows SmartScreen may warn about an unknown
 
 Street signs stand at the crossings, and the status panel names the street you are on.
 
+The bike rides like one: it builds up speed, coasts, turns in arcs, and cannot move sideways.
+
 ## Play in a browser
 
 Play it now at **[old-town-walk.play.danielstephenson.dev](https://old-town-walk.play.danielstephenson.dev)**.
@@ -65,21 +67,22 @@ Press **H** in the window to see these at any time. In a browser on a phone, the
 |---|---|
 | WASD | Move. On foot you stop at walls; in the air you follow your view. |
 | Mouse or arrow keys | Look |
-| Shift | Go four times faster |
+| Shift | Go faster: run, fly four times as fast, or sprint on the bike. The panel shows the speed you are going. |
 | Space | Jump. In the air, Space climbs. |
-| F | Fly, or land on the ground outside any building |
-| E or Space, Q or Ctrl | Climb and descend while flying |
-| Mouse wheel, or Page Up and Page Down | Set your speed: 5 to 800 m/s flying, 0.7 to 14 m/s on foot |
+| F | Fly, or land on the ground outside any building. On the bike, either F or R gets you off. |
+| E or Space, Q | Climb and descend while flying. Ctrl descends too, on the desktop. |
+| Mouse wheel, or Page Up and Page Down | Set your speed: 5 to 800 m/s flying, 3 to 40 m/s on the bike, 0.7 to 14 m/s on foot |
 | `-` and `=` | Shorten or lengthen the view, 200 to 1,500 m |
 | `,` and `.` | Mouse sensitivity |
 | 9 and 0 | Field of view, 40 to 110 degrees |
 | I | Invert the mouse's up and down |
 | Z | Hold to zoom in on something far away |
+| B | Get on or off the bike: W pedals, S brakes and backs up, A and D steer, Shift goes faster |
 | R | Back to where you started |
 | `[` and `]` | Time of day |
 | P | Save a screenshot |
 | Tab | Hide the status panel |
-| Backspace | Put every setting back to its default |
+| Backspace | Put every setting back to its default. Press it again straight away to undo. |
 | Esc | Free the mouse. A click takes it back, and Esc again quits. |
 
 Your settings are remembered between runs, in `old-town-walk/settings.txt` under your user configuration folder.

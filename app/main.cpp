@@ -17,6 +17,7 @@
 #include "streaming.h"
 #include "strata/strata.h"
 #include "tile.h"
+#include "bike_view.h"
 #include "sign_view.h"
 #include "tile_stream.h"
 #include "walker.h"
@@ -28,7 +29,7 @@ using otw::Clock;
 using otw::Stream;
 double ms(Clock::time_point from) { return otw::msSince(from); }
 
-constexpr int kA = 4, kD = 7, kE = 8, kF = 9, kH = 11, kI = 12, kR = 21, kZ = 29, k9 = 38, k0 = 39, kBackspace = 42, kTab = 43, kMinus = 45, kEquals = 46, kComma = 54, kPeriod = 55, kPageUp = 75, kPageDown = 78, kP = 19, kQ = 20, kSpace = 44, kLeftCtrl = 224, kS = 22, kW = 26, kEscape = 41, kLeftBracket = 47, kRightBracket = 48,
+constexpr int kA = 4, kB = 5, kD = 7, kE = 8, kF = 9, kH = 11, kI = 12, kR = 21, kZ = 29, k9 = 38, k0 = 39, kBackspace = 42, kTab = 43, kMinus = 45, kEquals = 46, kComma = 54, kPeriod = 55, kPageUp = 75, kPageDown = 78, kP = 19, kQ = 20, kSpace = 44, kLeftCtrl = 224, kS = 22, kW = 26, kEscape = 41, kLeftBracket = 47, kRightBracket = 48,
               kRight = 79, kLeft = 80, kDown = 81, kUp = 82;
 
 constexpr float kGlyph = 16, kLineGap = 22;  // HUD text, in pixels
@@ -38,6 +39,7 @@ constexpr const char* kUsage =
     "\n"
     "  --tiles DIR        the tiles to open (default: the tiles folder beside the program)\n"
     "  --radius M         how far detailed tiles load (default 700, or your saved view)\n"
+    "  --bike             start on the bike\n"
     "  --fly              start in the air, --altitude M above the ground (default 60)\n"
     "  --east M --north M start this far from the usual start\n"
     "  --yaw D --pitch D  start facing this way; yaw 0 is north, 90 is east\n"
@@ -56,7 +58,7 @@ constexpr const char* kUsage =
 
 struct Args {
     std::string tiles, screenshot;  // tiles: from --tiles, or found beside the program
-    bool fly = false;
+    bool bike = false, fly = false;
     float altitude = 60;  // metres above the ground when --fly starts
     float time = 0.45f, yaw = otw::kStartYaw, pitch = 0, radius = 700, walkAhead = 0, east = 0, north = 0, passEast = 0, passNorth = 0;
     int width = 1280, height = 720, bench = 0;
@@ -93,7 +95,7 @@ bool parse(int argc, char** argv, Args& a) {
             std::fputs(kUsage, stdout);
             std::exit(0);
         }
-        const bool flag = k == "--fly" || k == "--headless" || k == "--run" || k == "--hud";
+        const bool flag = k == "--bike" || k == "--fly" || k == "--headless" || k == "--run" || k == "--hud";
         if (!flag && k.rfind("--", 0) == 0 && i + 1 >= argc) {
             std::fprintf(stderr, "old-town-walk: %s needs a value (--help lists the options)\n", k.c_str());
             return false;
@@ -104,6 +106,7 @@ bool parse(int argc, char** argv, Args& a) {
         else if (k == "--yaw") a.yaw = static_cast<float>(std::atof(val()));
         else if (k == "--pitch") a.pitch = static_cast<float>(std::atof(val()));
         else if (k == "--fly") a.fly = true;
+        else if (k == "--bike") a.bike = true;
         else if (k == "--altitude") a.altitude = static_cast<float>(std::atof(val()));
         else if (k == "--radius") {
             a.radius = static_cast<float>(std::atof(val()));
@@ -198,7 +201,7 @@ int main(int argc, char** argv) {
     int w = a.width, h = a.height;
     bool flying = a.fly, hud = a.hud || (!a.headless && saved.panel), invertLook = saved.invertLook;
     float flySpeed = saved.flySpeed, walkSpeed = saved.walkSpeed, sensitivity = saved.sensitivity, fov = saved.fov, zoom = 1, fps = 60;
-    bool helpOpen = !a.headless, helpAtStart = helpOpen, mouseHeld = false;
+    bool helpOpen = !a.headless, helpAtStart = helpOpen, mouseHeld = false, hurrying = false;
     std::string note;  // a passing message: what just happened, or why it did not
     float noteLeft = 0;
     auto say = [&](const std::string& text) {
@@ -209,6 +212,8 @@ int main(int argc, char** argv) {
     // One StrataText a line, because a '\n' inside one leaves no gap between lines.
     otw::SignView signs;
     int signFrames = 0;
+    otw::Bike bike;
+    float bikeSpeed = saved.bikeSpeed;
     auto writeLines = [&](float x, float y, const std::string& text, const float color[4]) -> bool {
         std::vector<std::string> lines(1);
         for (char c : text) {
@@ -234,16 +239,25 @@ int main(int argc, char** argv) {
             if (!writeLines(centre - static_cast<float>(freed.size()) * kGlyph / 2, 8 * kLineGap + 34, freed, yellow)) return false;
         }
         if (helpOpen) {
-            const StrataRect panel{static_cast<float>(w) - 33 * kGlyph - 24, 8, 33 * kGlyph + 16, 19 * kLineGap + 10, {0, 0, 0, 0.5f}};
+            const StrataRect panel{static_cast<float>(w) - 33 * kGlyph - 24, 8, 33 * kGlyph + 16, 20 * kLineGap + 10, {0, 0, 0, 0.5f}};
             if (!check(strata_submit_rects(engine, &panel, 1), "help panel") || !writeLines(panel.x + 8, 14, otw::kHelpText, white)) return false;
         }
         if (!hud) return true;
-        const otw::HudState state{flying, flying ? flySpeed : walkSpeed, stream.viewRadius(),
+        const otw::HudState state{flying, otw::shownSpeed(flying, bike, flying ? flySpeed : walkSpeed, hurrying), stream.viewRadius(),
                                   walker.eyeY + walker.hop - stream.groundAt(walker.x, walker.z), walker.yawDeg, fps,
-                                  stream.tileCount(), stream.waiting(), light.time_of_day, signs.street()};
+                                  stream.tileCount(), stream.waiting(), light.time_of_day, signs.street(), bike.riding, hurrying && !flying && !bike.riding};
         const std::string text = otw::hudText(state);
         const StrataRect panel{8, 8, 26 * kGlyph + 16, 8 * kLineGap + 10, {0, 0, 0, 0.5f}};
         return check(strata_submit_rects(engine, &panel, 1), "status panel") && writeLines(16, 14, text, white);
+    };
+    auto drawBike = [&]() -> bool {
+        if (!bike.riding) return true;
+        std::vector<StrataWideLineVertex> lines;
+        for (const otw::BikeSegment& s : otw::handlebars(bike, walker.x, walker.eyeY, walker.z)) {
+            lines.push_back({{s.from[0], s.from[1], s.from[2]}, {s.grey, s.grey, s.grey, 1}, 2, s.width});
+            lines.push_back({{s.to[0], s.to[1], s.to[2]}, {s.grey, s.grey, s.grey, 1}, 2, s.width});
+        }
+        return check(strata_submit_wide_lines(engine, lines.data(), static_cast<int32_t>(lines.size()), STRATA_LINES_ON_TOP | STRATA_LINES_ROUND_CAPS), "handlebars");
     };
     auto drawSigns = [&]() -> bool {
         const auto& items = signs.items();
@@ -264,7 +278,9 @@ int main(int argc, char** argv) {
         walker.forward(ahead);
         const float eye[3] = {walker.x, walker.eyeY + walker.hop, walker.z};
         const float look[3] = {eye[0] + ahead[0], eye[1] + ahead[1], eye[2] + ahead[2]};
-        const float up[3] = {0, 1, 0};
+        // A rider leans into a turn. Tilting the camera's up shows it.
+        const float tilt = bike.lean * 3.14159265f / 180.0f, side = walker.yawDeg * 3.14159265f / 180.0f;
+        const float up[3] = {std::cos(side) * std::sin(tilt), std::cos(tilt), std::sin(side) * std::sin(tilt)};
         StrataCamera c{};
         strata_camera_look_at(eye, look, up, fov * zoom, static_cast<float>(w) / static_cast<float>(std::max(1, h)), 0.1f, 1600.0f, &c);
         StrataFrameDesc fd{};
@@ -273,7 +289,7 @@ int main(int argc, char** argv) {
         return check(strata_set_camera(engine, &c), "camera") && check(strata_set_lighting(engine, &light), "lighting") &&
                check(strata_begin_frame(engine, &fd), "begin_frame") &&
                check(strata_submit_primitives(engine, trees.data(), static_cast<int32_t>(trees.size())), "trees") &&
-               drawSigns() && overlay() &&
+               drawSigns() && drawBike() && overlay() &&
                check(strata_end_frame(engine), "end_frame");
     };
     auto walkableHere = [&](float x, float z) { return stream.walkable(x, z); };
@@ -281,13 +297,21 @@ int main(int argc, char** argv) {
     if (flying) walker.eyeY = stream.groundAt(walker.x, walker.z) + a.altitude;
     auto toggleFlight = [&] {
         flying = !flying;
+        bike.dismount();
         walker.hop = walker.hopSpeed = 0;
         if (flying) walker.eyeY += otw::kFlyClearance;  // lift off at once
         else walker.clearOfBuildings(stream.solids(), walkableHere);
+        say(flying ? "Flying: E climbs, Q descends, F lands" : "Landed");
     };
     auto stepWalker = [&](float ahead, float right, bool run, float dt, float up = 0) {
         if (flying) {
             walker.fly(walkableHere, groundHere, ahead, right, up, run, dt, flySpeed);
+            return;
+        }
+        if (bike.riding) {
+            bike.ride(walker, stream.solids(), walkableHere, ahead, right, run, dt, bikeSpeed);
+            const float seat = stream.groundAt(walker.x, walker.z) + otw::kBikeEye;
+            walker.eyeY += (seat - walker.eyeY) * std::min(1.0f, dt * 10.0f);
             return;
         }
         walker.step(stream.solids(), [&](float x, float z) { return stream.walkable(x, z); }, ahead, right, run, dt, walkSpeed);
@@ -296,6 +320,7 @@ int main(int argc, char** argv) {
         walker.stepHop(dt);
     };
 
+    if (a.bike && !flying) bike.mount(walker);
     if (a.headless) {
         const float dt = 1.0f / 60.0f;
         for (int i = 0, steps = static_cast<int>(a.walkAhead * 60.0f); ok && i < steps; ++i) {
@@ -343,18 +368,30 @@ int main(int argc, char** argv) {
     bool running = ok;
     const float startX = walker.x, startZ = walker.z;
     auto changeSpeed = [&](int notches) {
-        const float before = flying ? flySpeed : walkSpeed;
-        if (flying) flySpeed = otw::stepSpeed(flySpeed, notches, otw::kMinFlySpeed, otw::kMaxFlySpeed);
-        else walkSpeed = otw::stepSpeed(walkSpeed, notches, otw::kMinWalkSpeed, otw::kMaxWalkSpeed);
-        if ((flying ? flySpeed : walkSpeed) == before) say(notches > 0 ? "That is the top speed" : "That is the lowest speed");
+        float& speed = flying ? flySpeed : bike.riding ? bikeSpeed : walkSpeed;
+        const float before = speed;
+        if (flying) speed = otw::stepSpeed(speed, notches, otw::kMinFlySpeed, otw::kMaxFlySpeed);
+        else if (bike.riding) speed = otw::stepSpeed(speed, notches, otw::kMinBikeSpeed, otw::kMaxBikeSpeed);
+        else speed = otw::stepSpeed(speed, notches, otw::kMinWalkSpeed, otw::kMaxWalkSpeed);
+        if (speed == before) {
+            say(notches > 0 ? "That is the top speed" : "That is the lowest speed");
+            return;
+        }
+        char text[48];
+        std::snprintf(text, sizeof text, "%s speed %.*f m/s", flying ? "Flying" : bike.riding ? "Bike top" : "Walking", speed < 10 ? 1 : 0, static_cast<double>(speed));
+        say(text);
     };
     auto changeView = [&](int steps) {
         const float before = stream.viewRadius(), radius = otw::stepViewRadius(before, steps);
         stream.setLoadRadius(radius);
         if (radius == before) say(steps > 0 ? "That is the longest view" : "That is the shortest view");
+        else say("View " + std::to_string(static_cast<int>(radius)) + " m");
     };
     auto holdMouse = [&](bool hold) { mouseHeld = check(strata_set_relative_mouse_mode(engine, hold ? 1 : 0), "mouse look") && hold; };
     holdMouse(true);
+    auto current = [&]() -> otw::Settings { return {flySpeed, walkSpeed, stream.viewRadius(), sensitivity, fov, hud, invertLook, bikeSpeed}; };
+    otw::Settings beforeReset;
+    float undoLeft = 0;  // seconds a second Backspace still undoes the first
     bool held[256] = {};
     int shots = 0;
     auto last = Clock::now();
@@ -387,25 +424,40 @@ int main(int argc, char** argv) {
                     else running = false;
                 } else if (e.scancode == kF) {
                     toggleFlight();
+                } else if (e.scancode == kB) {
+                    if (flying) toggleFlight();
+                    if (bike.riding) {
+                        bike.dismount();
+                        say("Off the bike");
+                    } else {
+                        bike.mount(walker);
+                        say("On the bike: W pedals, S brakes, A and D steer");
+                    }
                 } else if (e.scancode == kH) {
                     helpOpen = !helpOpen;
                     helpAtStart = false;
                 } else if (e.scancode == kTab) {
                     hud = !hud;
+                    if (!hud) say("Panel hidden: Tab brings it back");
                 } else if (e.scancode == kI) {
                     invertLook = !invertLook;
                     say(invertLook ? "Mouse look inverted" : "Mouse look normal");
                 } else if (e.scancode == kBackspace) {
-                    const otw::Settings d;
-                    flySpeed = d.flySpeed;
-                    walkSpeed = d.walkSpeed;
-                    sensitivity = d.sensitivity;
-                    fov = d.fov;
-                    invertLook = d.invertLook;
-                    hud = d.panel;
-                    stream.setLoadRadius(d.viewRadius);
-                    say("Settings back to the defaults");
+                    const bool undoing = undoLeft > 0;
+                    const otw::Settings use = undoing ? beforeReset : otw::Settings{};
+                    if (!undoing) beforeReset = current();
+                    undoLeft = undoing ? 0 : 3;
+                    flySpeed = use.flySpeed;
+                    walkSpeed = use.walkSpeed;
+                    bikeSpeed = use.bikeSpeed;
+                    sensitivity = use.sensitivity;
+                    fov = use.fov;
+                    invertLook = use.invertLook;
+                    hud = use.panel;
+                    stream.setLoadRadius(use.viewRadius);
+                    say(undoing ? "Your settings are back" : "Settings back to the defaults: Backspace again to undo");
                 } else if (e.scancode == kR) {
+                    bike.dismount();
                     walker.x = startX;
                     walker.z = startZ;
                     walker.yawDeg = a.yaw;
@@ -440,29 +492,32 @@ int main(int argc, char** argv) {
         last = now;
         if (elapsed > 0) fps += (1.0f / elapsed - fps) * std::min(1.0f, elapsed * 2);  // about half a second of smoothing
         noteLeft -= dt;
+        undoLeft -= dt;
         zoom += ((held[kZ] ? 0.3f : 1.0f) - zoom) * std::min(1.0f, dt * 12);
         walker.look(((held[kRight] ? 1.0f : 0.0f) - (held[kLeft] ? 1.0f : 0.0f)) * 90.0f * dt,
                     ((held[kUp] ? 1.0f : 0.0f) - (held[kDown] ? 1.0f : 0.0f)) * 60.0f * dt);
-        if (!flying && held[kSpace]) walker.jump();
+        if (!flying && !bike.riding && held[kSpace]) walker.jump();
         const float ahead = (held[kW] ? 1.0f : 0.0f) - (held[kS] ? 1.0f : 0.0f), right = (held[kD] ? 1.0f : 0.0f) - (held[kA] ? 1.0f : 0.0f);
         const float rise = (held[kE] || held[kSpace] ? 1.0f : 0.0f) - (held[kQ] || held[kLeftCtrl] ? 1.0f : 0.0f);
-        stepWalker(ahead, right, held[225] || held[229], dt, rise);
+        const bool shift = held[225] || held[229];
+        hurrying = shift && (ahead != 0 || right != 0 || (flying && rise != 0));
+        stepWalker(ahead, right, shift, dt, rise);
         if (noteLeft <= 0 && flying && rise > 0 && walker.eyeY - stream.groundAt(walker.x, walker.z) >= otw::kFlyCeiling - 0.5f) {
             say("Highest you can fly: " + std::to_string(static_cast<int>(otw::kFlyCeiling)) + " m above the ground");
         }
         // Say why a move stopped. Looks further than a frame's travel, or fast flight stops short of the edge and never sees it.
-        if (noteLeft <= 0 && (ahead != 0 || right != 0)) {
-            const float yaw = walker.yawDeg * 3.14159265f / 180.0f, fx = std::sin(yaw), fz = -std::cos(yaw);
-            const float reach = std::max(10.0f, (flying ? flySpeed : walkSpeed) * 4 * dt * 2);
-            const float nextX = walker.x + (ahead * fx - right * fz) * reach, nextZ = walker.z + (ahead * fz + right * fx) * reach;
-            if (!stream.overTile(nextX, nextZ)) say("The map ends here");
+        float wayX, wayZ;
+        otw::travelDirection(walker, bike, ahead, right, wayX, wayZ);
+        if (noteLeft <= 0 && (wayX != 0 || wayZ != 0)) {
+            const float reach = std::max(10.0f, (flying ? flySpeed : bike.riding ? bikeSpeed : walkSpeed) * 4 * dt * 2);
+            if (!stream.overTile(walker.x + wayX * reach, walker.z + wayZ * reach)) say("The map ends here");
         }
         if (held[kLeftBracket]) light.time_of_day -= dt * 0.05f;
         if (held[kRightBracket]) light.time_of_day += dt * 0.05f;
         light.time_of_day -= std::floor(light.time_of_day);
         if (!stream.update(walker.x, walker.z, 1) || !draw() || !check(strata_present(engine), "present")) running = false;
     }
-    saveSettings({flySpeed, walkSpeed, stream.viewRadius(), sensitivity, fov, hud, invertLook});
+    saveSettings(current());
     strata_destroy(engine);
     return 0;
 }
