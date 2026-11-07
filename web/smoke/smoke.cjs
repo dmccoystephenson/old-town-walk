@@ -6,7 +6,7 @@
 // through the browser's input layer: walks, runs into nothing silly, looks around, takes off, climbs,
 // lands, and loses and gets back the graphics context. Fails on any page error, on a frame that is
 // flat, and on a tile that fails to download. On the phone, every control is on screen, at least 44
-// CSS px, and none overlaps another. Writes PNGs to <out-dir>.
+// CSS px, and none overlaps another or the map, upright or on its side. Writes PNGs to <out-dir>.
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
@@ -69,6 +69,14 @@ function changed(fileA, fileB) {
   return moved / seen;
 }
 
+// Pixels bright enough to be a light: at night nothing else in the frame comes near, signs apart.
+function brightPixels(file) {
+  const img = decodePng(fs.readFileSync(file));
+  let bright = 0;
+  for (let i = 0; i < img.data.length; i += img.channels) if (img.data[i] > 120 && img.data[i] > img.data[i + 2] * 1.3) bright++;
+  return bright;
+}
+
 // Distinct coarse colours in a screenshot: a flat frame has a handful.
 function colours(file) {
   const img = decodePng(fs.readFileSync(file));
@@ -84,6 +92,7 @@ const check = (ok, what) => {
   console.log('ok: ' + what);
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const SOLID = { east: 493580, north: 4492960 };  // inside a building, from the pinned map
 
 (async () => {
   const browser = await chromium.launch({
@@ -104,7 +113,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   // Pictures come straight off the canvas, in the task that drew them. page.screenshot goes through
   // the compositor, which falls tens of seconds behind a scene this size, so it times out; this reads
   // what GL drew, without the page's controls on top.
-  await page.addInitScript(() => {
+  await context.addInitScript(() => {
     const getContext = HTMLCanvasElement.prototype.getContext;
     let gl = null;
     HTMLCanvasElement.prototype.getContext = function (kind, ...rest) {
@@ -156,6 +165,33 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await shoot(groundShot);
   check(colours(groundShot) > 40, 'the street is drawn');
   const shows = (id) => page.locator(id).textContent();
+  const onBody = (name) => page.evaluate((n) => document.body.classList.contains(n), name);
+  const mapShown = () => page.locator('#map').isVisible();
+  const savedMap = () => page.evaluate(() => JSON.parse(localStorage.getItem('old-town-walk-settings') || '{}').map);
+  let tapAt = (x, y) => page.mouse.click(x, y);
+  check(await mapShown(), 'the map shows');
+  await page.waitForFunction(() => {  // the arrow is where the player is: the pixel under the spot is the accent colour
+    const c = document.getElementById('map'), s = window.oldTownWalk.status(), p = window.oldTownWalk.mapPoint(s.east, s.north), k = c.width / c.clientWidth;
+    const [r, g, b, a] = c.getContext('2d').getImageData(Math.round(p.x * k), Math.round(p.y * k), 1, 1).data;
+    return r > 230 && g > 170 && g < 200 && b < 90 && a > 250;
+  }, null, { timeout: 90000 });
+  check(true, 'the map is drawn with its arrow');
+  // Every box that matters, on foot and in the air, pairwise: the map against all of them and the controls against each other.
+  const overlaps = () => page.evaluate(() => {
+    const find = () => ['#brand', '#bikeBtn', '#flyBtn', '#mapBtn', '#helpBtn', '#status', '#stick', '#height', '#speed', '#jumpBtn', '#map']
+      .map((sel) => [sel, document.querySelector(sel).getBoundingClientRect()]).filter(([, b]) => b.width > 0);
+    const clashes = (boxes) => boxes.flatMap(([a, p], i) => boxes.slice(i + 1).filter(([, q]) =>
+      p.left < q.right && q.left < p.right && p.top < q.bottom && q.top < p.bottom).map(([b]) => `${a} on ${b}`));
+    const flying = document.body.classList.contains('flying'), out = [];
+    for (const on of [false, true]) {
+      document.body.classList.toggle('flying', on);
+      const boxes = find();
+      out.push(...clashes(boxes));
+      for (const [sel, b] of boxes) if (b.left < 0 || b.top < 0 || b.right > innerWidth || b.bottom > innerHeight) out.push(`${sel} off screen`);
+    }
+    document.body.classList.toggle('flying', flying);
+    return out;
+  });
   const reset = page.locator('#resetBtn');
   const level = await status();
   check(Math.abs(level.pitch) < 15, `starting does not swing the view (pitch ${level.pitch})`);
@@ -167,11 +203,27 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       const b = await page.locator(sel).boundingBox();
       return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
     };
-    for (const sel of ['#flyBtn', '#helpBtn', '#stick', '#jumpBtn']) {
+    for (const sel of ['#flyBtn', '#mapBtn', '#helpBtn', '#stick', '#jumpBtn']) {
       const b = await page.locator(sel).boundingBox();
       check(b && b.width >= 44 && b.height >= 44 && b.x >= 0 && b.y >= 0 &&
         b.x + b.width <= 390 && b.y + b.height <= page.viewportSize().height, `${sel} is on screen and big enough`);
     }
+    tapAt = async (x, y) => {
+      await touch('touchStart', [{ x, y, id: 6 }]);
+      await touch('touchEnd', []);
+      await sleep(250);
+    };
+    // The map stays clear of everything on the phones it has to fit, upright and on its side.
+    const profile = page.viewportSize();
+    for (const [width, height] of [[390, 844], [320, 568], [844, 390], [568, 320], [profile.width, profile.height]]) {
+      await page.setViewportSize({ width, height });
+      const clash = await overlaps();
+      check(clash.length === 0 && await mapShown(), `at ${width}x${height} nothing overlaps${clash.length ? ': ' + clash.join(', ') : ''}`);
+    }
+    await tapAt(...Object.values(await middle('#mapBtn')));
+    check(!(await mapShown()) && await savedMap() === false, 'the Map button hides the map, and that is kept');
+    await tapAt(...Object.values(await middle('#mapBtn')));
+    check(await mapShown() && await savedMap() === true, 'and brings it back');
     // Walk with the stick while a second finger looks.
     const c = await middle('#stick');
     const before = await status();
@@ -280,6 +332,20 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     // Under pointer lock, Playwright's mouse reports absolute jumps that a real one never does, so
     // the locked path gets a known movement, and real mouse input goes through drag to look.
     check(await page.evaluate(() => document.pointerLockElement === document.getElementById('view')), 'clicking takes the mouse');
+    const clash = await overlaps();
+    check(clash.length === 0, `nothing overlaps${clash.length ? ': ' + clash.join(', ') : ''}`);
+    await page.keyboard.press('KeyM');
+    check(!(await mapShown()) && await savedMap() === false, 'M hides the map, and that is kept');
+    await page.keyboard.press('KeyM');
+    check(await mapShown() && await savedMap() === true, 'and M brings it back');
+    await page.keyboard.press('Shift+KeyM');
+    check(await onBody('map-open'), 'Shift+M opens the large map');
+    await page.waitForFunction(() => document.pointerLockElement === null, null, { timeout: 10000 });
+    check(true, 'the large map frees the mouse');
+    await page.keyboard.press('KeyM');
+    check(!(await onBody('map-open')) && await mapShown(), 'M closes it and the small map stays');
+    await page.waitForFunction(() => document.pointerLockElement === document.getElementById('view'), null, { timeout: 10000 });
+    check(true, 'and the mouse goes back');
     await page.evaluate(() => {
       const view = document.getElementById('view');
       for (let i = 0; i < 6; i++) view.dispatchEvent(new PointerEvent('pointermove', { movementX: 40, movementY: 0, bubbles: true }));
@@ -509,14 +575,105 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     check(colours(savedFile) > 25, 'the picture is not blank');
   }
 
+  // Travel sets the player down clear of any building, and refuses a spot off the map.
+  const here = await status();
+  const went = await page.evaluate(([e, n]) => window.oldTownWalk.travel({east: e + 300, north: n - 200, yaw: 90}), [here.east, here.north]);
+  check(went, 'travel goes to a spot on the map');
+  await page.waitForFunction(() => window.oldTownWalk.status().arriving === 0, null, { timeout: 120000 });
+  const there = await status();
+  check(Math.hypot(there.east - here.east - 300, there.north - here.north + 200) < 90 && there.yaw === 90, 'and sets the player down there');
+  check(!(await page.evaluate(([e, n]) => window.oldTownWalk.travel({east: e + 90000, north: n}), [here.east, here.north])), 'travel refuses a spot off the map');
+
+  // The large map: opening and closing it moves nothing, a tap off the map stays put, and a tap on it goes there.
+  const openMap = async () => {
+    const b = await page.locator('#map').boundingBox();
+    await tapAt(b.x + b.width / 2, b.y + b.height / 2);
+    await page.waitForFunction(() => document.body.classList.contains('map-open'), null, { timeout: 10000 });
+    await sleep(500);  // past the guard against a double tap
+  };
+  await openMap();
+  const fitted = await page.evaluate(() => {
+    const c = document.getElementById('map').getBoundingClientRect();
+    return { width: c.width, height: c.height, screen: [innerWidth, innerHeight] };
+  });
+  check(fitted.width === fitted.screen[0] && fitted.height === fitted.screen[1], 'the large map fills the screen');
+  await page.keyboard.press('Escape');
+  check(!(await onBody('map-open')), 'Esc closes the large map');
+  await sleep(600);
+  const unmoved = await status();
+  check(Math.hypot(unmoved.east - there.east, unmoved.north - there.north) < 2 && unmoved.yaw === there.yaw, 'and nothing moved');
+  await openMap();
+  await page.locator('#mapBtn').click();
+  check(!(await onBody('map-open')), 'the Map button closes it too');
+  await openMap();
+  await tapAt(3, Math.round(fitted.screen[1] / 2));
+  await noted('off the map');
+  check(await onBody('map-open') && (await status()).arriving === 0, 'a tap off the map goes nowhere and leaves it open');
+  const goal = { east: there.east - 300, north: there.north + 200 };
+  const spot = await page.evaluate(({ east, north }) => window.oldTownWalk.mapPoint(east, north), goal);
+  await tapAt(spot.x, spot.y);
+  await page.waitForFunction(() => !document.body.classList.contains('map-open'), null, { timeout: 10000 });
+  await page.waitForFunction(() => window.oldTownWalk.status().arriving === 0, null, { timeout: 120000 });
+  const mapped = await status(), missed = Math.hypot(mapped.east - goal.east, mapped.north - goal.north);
+  check(missed < 90 && mapped.yaw === there.yaw, `a tap on the large map goes there and closes it (${missed.toFixed(1)} m off)`);
+  await page.locator('#mapBtn').click();
+  check(await savedMap() === false, 'the map can be left off');
+  await page.keyboard.press('Backspace');
+  await noted('again to undo');
+  check(await mapShown(), 'and a reset brings it back');
+  await page.keyboard.press('Backspace');
+  await noted('Your settings are back');
+  check(!(await mapShown()), 'which a second Backspace undoes');
+  await page.locator('#mapBtn').click();
+
+  // The Places list goes to a landmark, closes the panel, names the place and tells its history, once.
+  await page.keyboard.press('KeyH');
+  await page.locator('#places summary').click();
+  const placeButton = page.locator('#placeList button', { hasText: 'Armstrong Hotel' });
+  const placeBox = await placeButton.boundingBox();
+  check(placeBox.height >= 44, `a place's button is big enough to tap (${placeBox.height})`);
+  check(await page.locator('#placeList button').count() >= 8, 'the panel lists the places');
+  const facing = (await status()).yaw;
+  await placeButton.click();
+  check(!(await page.locator('#help').evaluate((e) => e.classList.contains('on'))), 'choosing a place closes the panel');
+  await page.waitForFunction(() => window.oldTownWalk.status().place === 'Armstrong Hotel', null, { timeout: 120000 });
+  await noted('Armstrong Hotel: This three-story');
+  const atPlace = await status();
+  check(atPlace.arriving === 0 && atPlace.yaw === facing, 'the place is named, and the view stays where the player left it');
+  await sleep(2000);
+  check((await status()).arrivals === atPlace.arrivals, 'and it says so once');
+  // Street lamps and lit windows: nothing of them by day, and at night they light up what is otherwise black.
+  const night = () => page.evaluate(() => window.oldTownWalk.night());
+  const noon = await night();
+  check(noon.level === 0 && noon.posts === 0 && noon.points === 0 && noon.lights === 0, `no lamps by day (${JSON.stringify(noon)})`);
+  check(noon.lamps > 300, `lamps stand along the streets (${noon.lamps})`);
+  await page.evaluate(([e, n]) => window.oldTownWalk.travel({east: e, north: n, yaw: 90, pitch: -25, mode: 2, height: 95}), [there.east, there.north]);
+  await page.waitForFunction(() => window.oldTownWalk.status().arriving === 0, null, { timeout: 120000 });
+  await page.evaluate(() => window.oldTownWalk.shiftSun(10));
+  await page.waitForFunction(() => window.oldTownWalk.night().level === 1, null, { timeout: 120000 });
+  await page.waitForFunction(() => window.oldTownWalk.night().points > 0, null, { timeout: 120000 });
+  const dark = await night();
+  await sleep(2500);  // the textures and the lights have settled
+  const litShot = path.join(outDir, 'night-lamps.png'), unlitShot = path.join(outDir, 'night-no-lamps.png');
+  await shoot(litShot);
+  await page.evaluate(() => window.oldTownWalk.setLamps(false));
+  await page.waitForFunction(() => window.oldTownWalk.night().level === 0, null, { timeout: 120000 });
+  await sleep(1000);
+  await shoot(unlitShot);
+  await page.evaluate(() => window.oldTownWalk.setLamps(true));
+  await page.evaluate(() => window.oldTownWalk.shiftSun(-10));
+  const lit = brightPixels(litShot), unlit = brightPixels(unlitShot);
+  check(lit > unlit + 200, `lamps and windows light the night (${lit} bright pixels against ${unlit}; ${JSON.stringify(dark)})`);
+
   // Back to the start first: where a run ends depends on the machine's frame rate, and a wall or pavement filling the
   // frame has too few colours to tell a real picture from a flat one.
   await page.keyboard.press('KeyR');
   await page.waitForFunction(() => Math.abs(window.oldTownWalk.status().pitch) < 1 && window.oldTownWalk.status().flying === 0, null, { timeout: 60000 });
   await sleep(1000);
 
-  // A lost context is rebuilt, and the map comes back.
-  const held = (await status()).tiles;
+  // A lost context is rebuilt, and the map comes back. It reloads what this spot needs, which is what it needed at the
+  // start: the count now can be higher, with tiles left over from travelling that nothing asks for again.
+  const held = first.tiles;
   check(await page.evaluate(() => window.oldTownWalk.kit.loseContext()), 'the context can be lost');
   await page.waitForFunction(() => window.oldTownWalk.kit.lost === true, null, { timeout: 10000 });
   await page.evaluate(() => window.oldTownWalk.kit.restoreContext());
@@ -528,9 +685,100 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await shoot(backShot);
   check(colours(backShot) > 25, 'the frame after a restore is drawn');
 
+  // Share from somewhere other than the start, which a link that did nothing would also land on. After the lost context,
+  // since tiles loaded out here would still be in the count that check waits for.
+  await page.evaluate(([e, n]) => window.oldTownWalk.travel({east: e + 300, north: n - 200, yaw: 90}), [first.east, first.north]);
+  await page.waitForFunction(() => window.oldTownWalk.status().arriving === 0, null, { timeout: 120000 });
+  const sharedSpot = await status();
+  // Stand-ins for the clipboard and the share sheet, so that a refusal can be tested too.
+  await page.evaluate(() => {
+    window.sent = [];
+    const sender = (refusal, read) => async (what) => {
+      if (window[refusal]) throw new DOMException('refused', window[refusal]);
+      window.sent.push(read(what));
+    };
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: sender('refuseCopy', (text) => text) } });
+    Object.defineProperty(navigator, 'share', { value: sender('refuseShare', (data) => data.url) });
+  });
+  const said = (text) => page.waitForFunction((t) => document.getElementById('shareSaid').textContent.includes(t), text, { timeout: 30000 });
+  const lastSent = () => page.evaluate(() => window.sent[window.sent.length - 1]);
+  const answer = phone ? 'Link shared' : 'Link copied';
+  const shareBtn = page.locator('#shareBtn'), shareField = page.locator('#shareLink');
+  await page.locator('#helpBtn').click();
+  await shareBtn.click();
+  await said(answer);
+  check(true, `the Share button says what happened, in the panel that hides the messages (${answer})`);
+  const sharedLink = new URL(await lastSent());
+  const linked = Object.fromEntries(sharedLink.searchParams);
+  check(Object.keys(linked).sort().join() === 'e,h,m,n,p,t,y', `the link holds the spot and nothing else (${sharedLink.search})`);
+  check(sharedLink.origin + sharedLink.pathname === new URL(url).origin + new URL(url).pathname, 'the link points to the page itself');
+  check(+linked.e === Math.floor(sharedSpot.east) && +linked.n === Math.floor(sharedSpot.north) && +linked.y === 90 && +linked.m === 0, 'the link holds where the player is');
+  if (phone) {
+    await page.evaluate(() => { window.refuseShare = 'AbortError'; window.sent = []; });
+    await shareBtn.click();
+    await sleep(500);
+    check((await shows('#shareSaid')) === '' && (await page.evaluate(() => window.sent.length)) === 0, 'cancelling the share sheet does nothing more');
+    await page.evaluate(() => { window.refuseShare = 'NotAllowedError'; });
+    await shareBtn.click();
+    await said('Link copied');
+    check(true, 'a refused share sheet falls back to the clipboard');
+  }
+  await page.evaluate(() => { window.refuseCopy = 'NotAllowedError'; });
+  await shareBtn.click();
+  await said('could not be copied');
+  check(await shareField.isVisible() && (await shareField.inputValue()) === sharedLink.href, 'a refused copy shows the link in a field');
+  check(await page.evaluate(() => {
+    const field = document.getElementById('shareLink');
+    return document.activeElement === field && field.selectionEnd === field.value.length && getComputedStyle(field).userSelect === 'text';
+  }), 'and the field can be selected, on a page that cannot');
+  await page.evaluate(() => { window.refuseCopy = window.refuseShare = null; });
+  await page.locator('#start').click();
+  check(!(await shareField.isVisible()) && (await shows('#shareSaid')) === '', 'closing the panel clears the answer');
+  await page.keyboard.press('KeyL');
+  await noted(answer);
+  check(true, 'L shares too, and says so where it can be seen');
+
+
   const end = await status();
   console.log('end', JSON.stringify(end), 'frame ms', await page.evaluate(() => window.oldTownWalk.kit.frameMs));
   check(end.peak <= 256, 'meshes stay under Strata\'s limit');
   check(errors.length === 0, 'no page errors' + (errors.length ? ': ' + errors.slice(0, 4).join(' | ') : ''));
+
+  // Links, each followed in a page of its own, the way a person would.
+  await page.close();
+  const follow = async (query, newVisitor) => {
+    const tab = await context.newPage(), problems = [];
+    tab.on('pageerror', (e) => problems.push(String(e)));
+    tab.on('console', (m) => { if (m.type() === 'error') problems.push(m.text()); });
+    if (newVisitor) await tab.addInitScript(() => localStorage.removeItem('old-town-walk-seen'));
+    await tab.goto(`${url}${url.includes('?') ? '&' : '?'}${query}`);
+    await tab.waitForFunction(() => window.oldTownWalk && window.oldTownWalk.status().ready === 1 && window.oldTownWalk.status().arriving === 0, null, { timeout: 180000 });
+    const walk = await tab.evaluate(() => ({...window.oldTownWalk.status(), sunTime: window.oldTownWalk.sunTime,
+      clock: document.getElementById('timeValue').textContent, note: document.getElementById('note').textContent,
+      said: document.getElementById('shareSaid').textContent, welcome: document.getElementById('help').classList.contains('on'),
+      share: !document.getElementById('shareBtn').hidden, nodes: document.querySelectorAll('#note *, #shareSaid *, body > img').length}));
+    await tab.close();
+    check(problems.length === 0, `${query}: no page errors` + (problems.length ? ': ' + problems.slice(0, 4).join(' | ') : ''));
+    return walk;
+  };
+  const landed = await follow(sharedLink.search.slice(1));
+  check(Math.hypot(landed.east - linked.e, landed.north - linked.n) < 2 && landed.yaw === 90 && !landed.flying && !landed.riding, 'a shared link lands on the spot, on foot, facing the same way');
+  const inAir = await follow('e=493300&n=4492700&y=45&p=-20&h=80&m=2&t=1290');
+  check(inAir.flying === 1 && Math.abs(inAir.height - 80) < 1 && inAir.yaw === 45 && inAir.pitch === -20 && Math.hypot(inAir.east - 493300, inAir.north - 4492700) < 1, 'a link can be in the air, at its height');
+  check(inAir.clock === '21:30', `and sets the time of day (${inAir.clock})`);
+  const onBike = await follow('e=493300&n=4492700&y=180&m=1');
+  check(onBike.riding === 1 && onBike.flying === 0 && onBike.height < 3, 'a link can be on the bike');
+  const atStart = (walk) => Math.hypot(walk.east - first.east, walk.north - first.north) < 0.5 && walk.yaw === first.yaw && !walk.flying && !walk.riding && walk.sunTime === Date.UTC(2026, 6, 15, 21) / 1000;
+  for (const junk of ['e=NaN&n=NaN&y=Infinity', 'e=99999999999999999999&n=1e999&h=-5', 'e=%3Cimg%20src=x%20onerror=alert(1)%3E&n=hello&t=noon', 'e=493300&n=4492700&m=1.5']) {
+    const ignored = await follow(junk);
+    check(atStart(ignored) && ignored.nodes === 0 && ignored.note.includes('could not be read'), `${junk} is ignored, and the player is told`);
+  }
+  // New visitors last: the first of them forgets, for every later page, that the controls have been seen.
+  const welcomed = await follow(`e=${SOLID.east}&n=${SOLID.north}&y=10`, true);
+  const moved = Math.hypot(welcomed.east - SOLID.east, welcomed.north - SOLID.north);
+  check(moved > 0.5 && moved < 90, `a link into a building lands outside it (${moved.toFixed(1)} m)`);
+  check(welcomed.welcome && !welcomed.share, 'and a new visitor still gets the welcome');
+  const offMap = await follow('e=300000&n=4492700&m=2&t=60', true);
+  check(atStart(offMap) && offMap.said.includes('off the map'), 'a spot off the map is ignored, and the player is told, above the welcome');
   await browser.close();
 })().catch((e) => { console.error(e); process.exit(1); });

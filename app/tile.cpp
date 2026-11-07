@@ -118,6 +118,17 @@ bool parseManifest(const std::string& text, const std::string& dir, Manifest& m)
             StreetSign sign;
             s >> sign.east >> sign.north >> sign.a >> sign.b;
             if (s) m.streets.signs.push_back(sign);
+        } else if (word == "place") {
+            Place place;
+            std::string text;
+            s >> place.east >> place.north;
+            std::getline(s >> std::ws, text);
+            const size_t bar = text.find('|');
+            if (!s.fail() && bar != std::string::npos) {
+                place.name = text.substr(0, bar);
+                place.sentence = text.substr(bar + 1);
+                m.places.push_back(std::move(place));
+            }
         }
     }
     return header && m.tileSize > 0 && !m.tiles.empty();

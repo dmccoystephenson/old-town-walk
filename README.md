@@ -35,7 +35,9 @@ There is nothing to install. It needs OpenGL 4.5, which most PCs from the last d
 The program is not code-signed, so Windows SmartScreen may warn about an unknown publisher. Choose **More info**, then
 **Run anyway**.
 
-Street signs stand at the crossings, and the status panel names the street you are on.
+Street signs stand at the crossings, and the status panel names the street you are on. A handful of public historic
+places, listed with their sources in `data/landmarks.csv`, show their name as you come near and a sentence of history
+when you reach them; in the browser, the Places list in the help panel takes you straight to one.
 
 The bike rides like one: it builds up speed, coasts, turns in arcs, and cannot move sideways.
 
@@ -57,7 +59,7 @@ python3 -m http.server 8000 --directory web-site
 
 Tiles are downloaded as they are needed, gzipped, and the page unpacks them, so the map costs about 3 MB to start and
 11 MB if you walk all of it. Your settings, and a note that you have seen the controls, are kept in that browser only,
-and nothing is reported.
+and nothing is reported. A link to a spot is made only when you ask for one, and nothing about it is stored or reported.
 `web/smoke/smoke.cjs` plays it in headless Chromium, on a desktop and a phone profile, with real input.
 
 ## Controls
@@ -82,9 +84,11 @@ button opens. Zoom, field of view and screenshots need a keyboard.
 | I | Invert the mouse's up and down |
 | Z | Hold to zoom in on something far away |
 | B | Get on or off the bike: W pedals, S brakes and backs up, A and D steer, Shift goes faster |
+| M | Browser only: show or hide the map, also with the Map button. Shift+M or a click on the map opens it large, where a click on a spot takes you there. |
 | R | Back to where you started |
-| `[` and `]` | Time of day |
+| `[` and `]` | Time of day. Street lamps and lit windows come on as the sun goes down. |
 | P | Save a screenshot, as a download in a browser |
+| L | Browser only: share a link to where you are, with your view, mode and the time of day. The controls panel has a button for it. |
 | Tab | Hide the status panel |
 | Backspace | Put every setting back to its default. Press it again straight away to undo. |
 | Esc | Free the mouse. A click takes it back. On the desktop, Esc again quits. |

@@ -12,7 +12,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .geo import Area
+from .geo import Area, lonlat_to_utm
 from .osm import OsmData
 
 ROADS = ("trunk", "primary", "secondary", "tertiary", "unclassified", "residential", "living_street", "pedestrian")
@@ -66,6 +66,26 @@ def _corner(centre, roads, rings):
             if all(_distance_to_line(spot, r) >= KERB_M for r in near_roads) and not any(_inside(spot, r) for r in near_rings):
                 return spot
     return None
+
+
+def load_places(path: Path) -> list:
+    with path.open(newline="", encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+
+def place_lines(area: Area, places: list) -> list:
+    """The manifest's `place` lines, one for each place on the map. A place is `name|sentence` after its position: names
+    have spaces, and the viewer puts both straight into JSON and on screen, so they stay plain ASCII."""
+    west, south, east, north = area.bounds()
+    lines = []
+    for place in places:
+        words = place["name"] + place["sentence"]
+        if not words.isprintable() or not words.isascii() or set(words) & set('|"\\'):
+            raise ValueError(f"not plain text: {place['name']}")
+        e, n = lonlat_to_utm(float(place["lon"]), float(place["lat"]))
+        if west <= e <= east and south <= n <= north:
+            lines.append(f"place {e:.1f} {n:.1f} {place['name']}|{place['sentence']}")
+    return lines
 
 
 def manifest_lines(area: Area, osm: OsmData, names: dict) -> list:

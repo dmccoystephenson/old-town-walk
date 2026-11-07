@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 
+#include "night.h"
 #include "streaming.h"
 #include "strata/strata.h"
 #include "tile.h"
@@ -40,6 +41,10 @@ public:
     Stream(StrataEngine* engine, const Manifest& m, TileKey origin, StreamConfig c, TileSource source)
         : engine_(engine), m_(m), origin_(origin), config_(c), source_(std::move(source)) {
         for (int i = 0; i < 256; ++i) linear_[i] = linearOf(static_cast<uint8_t>(i));
+        for (const Lamp& l : placeLamps(m_.streets)) {  // roads run on past the map's edge
+            const double tile = m_.tileSize;
+            if (m_.has({static_cast<int>(std::floor(l.east / tile)), static_cast<int>(std::floor(l.north / tile))})) lamps_.push_back(l);
+        }
     }
 
     float offsetX(TileKey k) const { return static_cast<float>(k.ix - origin_.ix) * m_.tileSize; }
@@ -78,6 +83,7 @@ public:
         solids_ = Solids{};
         trees_.clear();
         meshCount_ = 0;
+        poolTexture_ = windowTexture_ = 0;
     }
     void setLoadRadius(float radius) {
         config_.loadRadius = radius;
@@ -93,6 +99,21 @@ public:
     }
     const Solids& solids() const { return solids_; }
     const std::vector<StrataRenderItem>& trees() const { return trees_; }
+    const std::vector<Lamp>& lamps() const { return lamps_; }
+
+    // How far the lamps' pools and the windows have come on, 0 by day to 1. They are meshes kept with the tile and
+    // the alpha of their textures fades them, so this is a small upload through the dusk and nothing otherwise. By day
+    // they are moved out of sight as well: invisible pixels are still paid for.
+    bool setNightLevel(float level) {
+        const int step = static_cast<int>(std::lround(std::clamp(level, 0.0f, 1.0f) * kNightSteps));
+        if (step == nightStep_) return true;
+        const bool turned = (step > 0) != (nightStep_ > 0);
+        nightStep_ = step;
+        if (turned)
+            for (const auto& entry : tiles_)
+                for (uint32_t id : entry.second.night) moveNight(id);
+        return !poolTexture_ || writeNightTextures(false);
+    }
     int meshes() const { return meshCount_; }
     int peakMeshes() const { return peakMeshes_; }
     int tileCount() const { return static_cast<int>(tiles_.size()); }
@@ -108,7 +129,7 @@ public:
 private:
     struct Loaded {
         Tile tile;
-        std::vector<uint32_t> ids;
+        std::vector<uint32_t> ids, night;  // every mesh, and those that are only for the dark
     };
 
     bool add(const StrataMesh& mesh, Loaded& l) {
@@ -157,6 +178,74 @@ private:
         return add(mesh, l);
     }
 
+    static constexpr int kNightSteps = 64, kPoolTexels = 32;
+    static constexpr float kPoolStrength = 0.5f;
+
+    // Both textures are alpha over white, and the meshes' colours supply the warmth.
+    bool writeNightTextures(bool create) {
+        const float level = static_cast<float>(nightStep_) / kNightSteps;
+        std::vector<uint8_t> pool(kPoolTexels * kPoolTexels * 4, 255), windows(kWindowStages * 4, 255);
+        for (int y = 0; y < kPoolTexels; ++y) {
+            for (int x = 0; x < kPoolTexels; ++x) {
+                const float u = (static_cast<float>(x) + 0.5f) / kPoolTexels * 2 - 1, v = (static_cast<float>(y) + 0.5f) / kPoolTexels * 2 - 1;
+                pool[static_cast<size_t>(y * kPoolTexels + x) * 4 + 3] = static_cast<uint8_t>(255 * poolShape(std::hypot(u, v)) * kPoolStrength * level);
+            }
+        }
+        for (int i = 0; i < kWindowStages; ++i) windows[static_cast<size_t>(i) * 4 + 3] = static_cast<uint8_t>(255 * windowStageLevel(i, level));
+        if (create)
+            return check(strata_create_texture_rgba8(engine_, kPoolTexels, kPoolTexels, pool.data(), STRATA_TEXTURE_CLAMP_U | STRATA_TEXTURE_CLAMP_V, &poolTexture_), "pool texture") &&
+                   check(strata_create_texture_rgba8(engine_, kWindowStages, 1, windows.data(), STRATA_TEXTURE_NEAREST, &windowTexture_), "window texture");
+        return check(strata_update_texture_rgba8(engine_, poolTexture_, 0, 0, kPoolTexels, kPoolTexels, pool.data()), "pool texture") &&
+               check(strata_update_texture_rgba8(engine_, windowTexture_, 0, 0, kWindowStages, 1, windows.data()), "window texture");
+    }
+
+    void moveNight(uint32_t id) {
+        const float away[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, -100000, 0, 1};
+        check(strata_set_mesh_transform(engine_, id, nightStep_ > 0 ? nullptr : away), "night mesh");
+    }
+
+    bool addGlow(const GlowMesh& g, uint32_t texture, Loaded& l) {
+        if (g.empty()) return true;
+        StrataTexturedMesh mesh{};
+        mesh.mesh.positions = g.positions.data();
+        mesh.mesh.normals = g.normals.data();
+        mesh.mesh.colors = g.colors.data();
+        mesh.mesh.indices = g.indices.data();
+        mesh.mesh.vertex_count = static_cast<int32_t>(g.vertices());
+        mesh.mesh.index_count = static_cast<int32_t>(g.indices.size());
+        mesh.mesh.color[0] = mesh.mesh.color[1] = mesh.mesh.color[2] = mesh.mesh.color[3] = 1;
+        mesh.uvs = g.uvs.data();
+        mesh.texture = texture;
+        mesh.flags = STRATA_MESH_UNLIT | STRATA_MESH_TRANSLUCENT;
+        uint32_t id = 0;
+        if (!check(strata_add_textured_mesh(engine_, &mesh, &id), "night mesh")) return false;
+        l.ids.push_back(id);
+        l.night.push_back(id);
+        if (nightStep_ == 0) moveNight(id);
+        ++meshCount_;
+        peakMeshes_ = std::max(peakMeshes_, meshCount_);
+        return true;
+    }
+
+    // A tile's lit windows and lamp pools, while its buildings are still in memory. The four meshes of every tile still
+    // to come fit Strata's limit first, so on a map too big to hold in six meshes a tile, the nearest tiles get these.
+    bool addNight(Loaded& l, TileKey k, float ox, float oz) {
+        constexpr int kTileMeshes = 4, kNightMeshes = 2;
+        const int most = std::min(config_.maxTiles, static_cast<int>(m_.tiles.size())), others = std::max(0, most - tileCount() - 1);
+        if (meshCount_ + kNightMeshes + others * kTileMeshes > STRATA_MAX_MESHES) return true;
+        if (!poolTexture_ && !writeNightTextures(true)) return false;
+        for (const TileMesh& m : l.tile.meshes)
+            if (m.kind == 0 && !addGlow(litWindows(m, ox, oz), windowTexture_, l)) return false;
+        GlowMesh pools;
+        const float size = m_.tileSize;
+        auto ground = [&](float x, float z) { return l.tile.heightAt(std::clamp(x - ox, 0.0f, size), std::clamp(z - oz, 0.0f, size)); };
+        for (const Lamp& lamp : lamps_) {
+            const float x = static_cast<float>(lamp.east - east(0)), z = static_cast<float>(north(0) - lamp.north);
+            if (keyAt(x, z) == k && !solids_.inside(x, z)) addPool(pools, x, z, ground);
+        }
+        return addGlow(pools, poolTexture_, l);
+    }
+
     TileFetch load(TileKey k) {
         const auto t0 = Clock::now();
         Loaded l;
@@ -189,6 +278,7 @@ private:
             if (!add(mesh, l)) return TileFetch::Failed;
         }
         solids_.add(l.tile, ox, oz);
+        if (!addNight(l, k, ox, oz)) return TileFetch::Failed;
         // The GPU has these now; heights, outlines and trees are what stays useful.
         std::vector<TileMesh>().swap(l.tile.meshes);
         std::vector<uint8_t>().swap(l.tile.colors);
@@ -239,6 +329,9 @@ private:
     std::map<TileKey, Loaded> tiles_;
     Solids solids_;
     std::vector<StrataRenderItem> trees_;
+    std::vector<Lamp> lamps_;
+    uint32_t poolTexture_ = 0, windowTexture_ = 0;
+    int nightStep_ = 0;
     int waiting_ = 0, meshCount_ = 0, peakMeshes_ = 0, loads_ = 0, unloads_ = 0;
     double readMs_ = 0, uploadMs_ = 0, worstLoadMs_ = 0;
 };

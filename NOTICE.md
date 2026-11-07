@@ -8,6 +8,8 @@ The code is under the MIT license (see LICENSE). The data it uses is not.
   repository: `data/raw/osm-sample.osm` is the derived database in full, and `old-town-walk build` rebuilds the tiles from it.
   The sample keeps only geometry, element ids and the tags the build reads.
   `data/raw/street-names.csv` adds the ids and names of the public roads on the map, for the street signs.
+  The positions in `data/landmarks.csv` were found from OpenStreetMap and the map's own buildings; its names are of
+  public places only, its sentences are this project's own, and each cites the source it was checked against.
 - **Elevation** courtesy of the U.S. Geological Survey, 3D Elevation Program (`data/raw/dem-3dep.tif`). USGS data is in
   the public domain; attribution is requested.
 - **Rendering** by [Strata](https://github.com/Preponderous-Software/strata) (MIT), fetched at build time at the commit

@@ -7,6 +7,8 @@
 
 #include "bike_view.h"
 #include "exe_dir.h"
+#include "places.h"
+#include "night.h"
 #include "settings.h"
 #include "streaming.h"
 #include "tile.h"
@@ -351,6 +353,178 @@ static void testStreets() {
     CHECK(otw::hudText({false, 1.4f, 700, 1.65f, 0, 60, 4, 0, 0.5f}).find("street  -") != std::string::npos);
 }
 
+static void testPlaces() {
+    otw::Manifest m;
+    CHECK(otw::parseManifest("old-town-walk-manifest 1\ntile_size 500\ntile 1 2 3 abc\n"
+                             "place 100.0 0.0 Old Town Square|Once a street, it became a plaza.\n"
+                             "place 170.5 0.0 Avery Block|A corner block.\n"
+                             "place 900.0 0.0 No sentence\nplace broken\nsomething new the viewer has not met\n", "x", m));
+    CHECK(m.places.size() == 2);
+    CHECK(m.tiles.size() == 1);
+    const otw::Place& square = m.places[0];
+    CHECK(square.name == "Old Town Square" && square.sentence == "Once a street, it became a plaza.");
+    CHECK(m.places[1].east == 170.5);
+
+    const auto close = otw::placesNear(m.places, 150, 0, 60, 5);
+    CHECK(close.size() == 2 && close[0]->name == "Avery Block");
+    CHECK(otw::placesNear(m.places, 150, 0, 60, 1).size() == 1);
+    CHECK(otw::placesNear(m.places, 0, 900, 60, 5).empty());
+
+    otw::PlaceWatch beginning;  // starting in a place is not arriving at it, and it stays the place you are at
+    CHECK(beginning.update(m.places, 100, 5) == nullptr);
+    CHECK(beginning.here() == &m.places[0] && beginning.arrivals() == 0);
+
+    otw::PlaceWatch watch;
+    CHECK(watch.update(m.places, -500, 0) == nullptr);  // nowhere in particular
+    CHECK(watch.here() == nullptr);
+    CHECK(watch.update(m.places, 85, 0) == &m.places[0]);  // arrives once,
+    CHECK(watch.update(m.places, 85, 0) == nullptr);       // and says nothing more while standing there
+    CHECK(watch.update(m.places, 100, 10) == nullptr);
+    CHECK(watch.update(m.places, 65, 0) == nullptr);  // just out of reach, and back: still the same visit
+    CHECK(watch.here() == &m.places[0]);
+    CHECK(watch.update(m.places, 85, 0) == nullptr);
+    CHECK(watch.update(m.places, 170, 0) == &m.places[1]);  // on to the next
+    CHECK(watch.here() == &m.places[1]);
+    CHECK(watch.update(m.places, 400, 0) == nullptr);  // away
+    CHECK(watch.here() == nullptr);
+    CHECK(watch.update(m.places, 170, 0) == &m.places[1]);  // a second visit counts
+    CHECK(watch.arrivals() == 3);
+
+    CHECK(otw::wrapped("one two three", 7) == "one two\nthree");
+    CHECK(otw::wrapped("one two three", 40) == "one two three");
+    CHECK(otw::wrapped("unbreakable word", 4) == "unbreakable\nword");
+    CHECK(otw::wrapped("", 8).empty());
+    CHECK(otw::widest("one two\nthree") == 7);
+    CHECK(otw::widest("") == 0);
+}
+
+static otw::Streets straightRoad(double length) {
+    otw::Streets s;
+    s.addName(0, "Linden St");
+    s.roads.push_back({0, {0, 0, length, 0}});
+    return s;
+}
+
+// A wall of a building, as old_town_walk/mesh.py writes one: a quad, then the roof that ends the building.
+static void addBuilding(otw::TileMesh& m, float x, float z) {
+    const uint32_t base = static_cast<uint32_t>(m.positions.size() / 3);
+    const float wall[12] = {x, 0, z, x + 30, 0, z, x + 30, 7, z, x, 7, z}, roof[12] = {x, 7, z, x + 30, 7, z, x + 30, 7, z + 9, x, 7, z + 9};
+    m.positions.insert(m.positions.end(), wall, wall + 12);
+    m.positions.insert(m.positions.end(), roof, roof + 12);
+    for (int i = 0; i < 4; ++i) m.normals.insert(m.normals.end(), {0, 0, -127, 0});
+    for (int i = 0; i < 4; ++i) m.normals.insert(m.normals.end(), {0, 127, 0, 0});
+    for (uint32_t face : {base, base + 4}) m.indices.insert(m.indices.end(), {face, face + 1, face + 2, face, face + 2, face + 3});
+}
+
+static void testNight() {
+    // The sun: Strata's, which has no seasons, so noon stands 90 degrees less the latitude.
+    CHECK(std::fabs(otw::sunElevation(0.5f, 40) - 50) < 0.01f);
+    CHECK(std::fabs(otw::sunElevation(0.0f, 40) + 50) < 0.01f);
+    CHECK(std::fabs(otw::sunElevation(0.25f, 40)) < 0.01f);
+    CHECK(std::fabs(otw::sunElevation(0.75f, 40)) < 0.01f);
+    CHECK(std::fabs(otw::sunElevation(1.25f, 40)) < 0.01f);  // a time past midnight wraps
+
+    // The fade: nothing by day, everything at night, and no jump between.
+    CHECK(otw::nightLevel(50) == 0 && otw::nightLevel(6) == 0);
+    CHECK(otw::nightLevel(-6) == 1 && otw::nightLevel(-50) == 1);
+    CHECK(std::fabs(otw::nightLevel(0) - 0.5f) < 0.001f);
+    float last = 0;
+    for (float t = 0.5f; t <= 1.0f; t += 0.0005f) {  // noon to midnight
+        const float level = otw::nightLevel(otw::sunElevation(t, 40.6f));
+        CHECK(level >= last && level - last < 0.02f);
+        last = level;
+    }
+    CHECK(last == 1);
+    CHECK(otw::nightLevel(otw::sunElevation(0.3f, 40)) == otw::nightLevel(otw::sunElevation(0.7f, 40)));  // as it set, it rises
+
+    // Lamps stand beside a road, evenly, on alternate sides.
+    const otw::Streets road = straightRoad(1000);
+    const auto lamps = otw::placeLamps(road);
+    const size_t expected = static_cast<size_t>(1000 / otw::kLampSpacing) + 1;
+    CHECK(lamps.size() == expected);
+    for (size_t i = 0; i < lamps.size(); ++i) {
+        CHECK(std::fabs(std::fabs(lamps[i].north) - otw::kLampSide) < 0.01);
+        if (i == 0) continue;
+        CHECK(std::fabs(lamps[i].east - lamps[i - 1].east - otw::kLampSpacing) < 0.01);
+        CHECK(lamps[i].north * lamps[i - 1].north < 0);
+    }
+    // One that would land on a road crossing nearby goes to the other side, and none stands on either.
+    otw::Streets crossed = road;
+    crossed.roads.push_back({0, {0, 7, 1000, 7}});
+    for (const otw::Lamp& l : otw::placeLamps(crossed)) CHECK(crossed.streetAt(l.east, l.north, otw::kLampKerb) < 0);
+    // The same road twice gets no second row, and nothing without a name gets lamps.
+    otw::Streets twice = road;
+    twice.roads.push_back(road.roads[0]);
+    CHECK(otw::placeLamps(twice).size() == lamps.size());
+    otw::Streets unnamed;
+    unnamed.roads.push_back({5, {0, 0, 500, 0}});
+    CHECK(otw::placeLamps(unnamed).empty());
+    // However much road there is, the count stops at the bound. Far enough apart that no road is near another.
+    otw::Streets sprawl;
+    sprawl.addName(0, "Long Rd");
+    for (int i = 0; i < 50; ++i) sprawl.roads.push_back({0, {0, i * 40.0, 2000, i * 40.0}});
+    const auto many = otw::placeLamps(sprawl);
+    CHECK(many.size() == otw::kMostLamps);
+    for (size_t i = 0; i + 1 < many.size(); i += 97) CHECK(std::hypot(many[i].east - many[i + 1].east, many[i].north - many[i + 1].north) >= otw::kLampGap);
+
+    // A pool is a patch of ground; its strength dies away to its edge.
+    otw::GlowMesh pool;
+    otw::addPool(pool, 10, 20, [](float x, float) { return x * 0.1f; });
+    CHECK(pool.vertices() == static_cast<size_t>(otw::kPoolGrid * otw::kPoolGrid) && pool.uvs.size() == pool.vertices() * 2);
+    CHECK(std::fabs(pool.positions[1] - ((10 - otw::kPoolRadius) * 0.1f + otw::kPoolLift)) < 0.001f);
+    CHECK(otw::poolShape(0) == 1 && otw::poolShape(1) == 0 && otw::poolShape(1.4f) == 0 && otw::poolShape(0.5f) < 1);
+
+    // Windows: the same building lights the same way every time, on the wall itself, and not every building lights.
+    otw::TileMesh town;
+    for (int i = 0; i < 200; ++i) addBuilding(town, static_cast<float>(i % 20) * 40, static_cast<float>(i / 20) * 30);
+    const otw::GlowMesh windows = otw::litWindows(town, 500, 1000), again = otw::litWindows(town, 500, 1000);
+    CHECK(windows.positions == again.positions && windows.uvs == again.uvs);
+    const size_t quads = windows.indices.size() / 6;
+    // 200 buildings of 8 bays on 2 floors, a share of buildings by a share of windows.
+    CHECK(quads > 200 * 16 * otw::kLitBuildings * otw::kLitWindows / 10000 / 2 && quads < 200 * 16 * otw::kLitBuildings * otw::kLitWindows / 10000 * 2);
+    size_t lit = 0;
+    for (int i = 0; i < 200; ++i) {
+        otw::TileMesh one;
+        addBuilding(one, static_cast<float>(i % 20) * 40, static_cast<float>(i / 20) * 30);
+        lit += otw::litWindows(one, 0, 0).empty() ? 0 : 1;
+    }
+    CHECK(lit > 40 && lit < 160);
+    for (size_t i = 0; i < windows.vertices(); ++i) {
+        CHECK(std::fabs(std::fmod(windows.positions[i * 3 + 2] - 1000 + otw::kWindowLift, 30.0f)) < 0.01f);  // just out from the wall
+        CHECK(windows.positions[i * 3 + 1] >= otw::kWindowSill && windows.positions[i * 3 + 1] <= 7);        // and within it
+    }
+    otw::TileMesh shed;  // too low to live in
+    addBuilding(shed, 0, 0);
+    for (size_t i = 7; i < 24; i += 3) shed.positions[i] *= 0.3f;
+    CHECK(otw::litWindows(shed, 0, 0).empty());
+    otw::TileMesh crowded;
+    for (int i = 0; i < 4000; ++i) addBuilding(crowded, static_cast<float>(i), static_cast<float>(i) * 0.5f);
+    CHECK(otw::litWindows(crowded, 0, 0).indices.size() / 6 <= otw::kMostWindows);
+    CHECK(otw::windowStageLevel(0, 0) == 0 && otw::windowStageLevel(0, 1) == 1 && otw::windowStageLevel(otw::kWindowStages - 1, 1) == 1);
+    CHECK(otw::windowStageLevel(otw::kWindowStages - 1, 0.3f) < otw::windowStageLevel(0, 0.3f));
+
+    // Real lights: within budget, and handed on by fading, never by snapping.
+    otw::LightSlots slots;
+    slots.choose({1, 2, 3}, 2);
+    CHECK(slots.slots().size() == 2);
+    slots.settle();
+    CHECK(slots.slots()[0].lamp == 1 && slots.slots()[0].level == 1 && slots.slots()[1].lamp == 2);
+    std::vector<int> wanted = {7, 2};
+    float seven = 0;
+    for (int frame = 0; frame < 300; ++frame) {
+        if (frame % 15 == 0) slots.choose(wanted, 2);
+        const auto before = slots.slots();
+        slots.tick(1.0f / 60.0f);
+        for (size_t i = 0; i < 2; ++i) {
+            if (slots.slots()[i].lamp == before[i].lamp) CHECK(std::fabs(slots.slots()[i].level - before[i].level) <= 1.0f / 60.0f / otw::LightSlots::kFadeSeconds + 0.0001f);
+            else CHECK(before[i].level < 0.02f && slots.slots()[i].level < 0.02f);  // a slot only changes hands dark
+            if (slots.slots()[i].lamp == 7) seven = slots.slots()[i].level;
+        }
+    }
+    CHECK(seven == 1);
+    CHECK(slots.slots()[1].lamp == 2 && slots.slots()[1].level == 1);  // and the one that stayed wanted never flickered
+}
+
 static void testFiles() {
     otw::Manifest m;
     std::string err;
@@ -427,6 +601,8 @@ int main(int argc, char** argv) {
     testWalking();
     testFiles();
     testStreets();
+    testPlaces();
+    testNight();
     testBike();
     testShownSpeed();
     testTravelDirection();
