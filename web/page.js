@@ -148,6 +148,7 @@
   function started() {  // the panel is now a pause, not a welcome
     $("start").textContent = "Back to the walk";
     $("homeBtn").hidden = false;
+    $("shareBtn").hidden = false;
     $("settings").hidden = false;
   }
   const helpOpen = () => $("help").classList.contains("on");
@@ -159,6 +160,7 @@
       $("start").focus();
     } else {
       stored.set("old-town-walk-seen", "1");
+      clearShared();
       started();
       canvas.focus();
       grabMouse();
@@ -221,8 +223,9 @@
     note("Back at the start");
   }
 
+  const clockMinutes = () => Math.floor(((sunTime / 60 - 360) % 1440 + 1440) % 1440);  // Mountain Daylight Time
   function clockTime() {
-    const minutes = Math.floor(((sunTime / 60 - 360) % 1440 + 1440) % 1440);  // Mountain Daylight Time
+    const minutes = clockMinutes();
     return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
   }
 
@@ -252,6 +255,81 @@
     setFlying(mode === 2);
     setRiding(mode === 1);
     return true;
+  }
+
+  // A link to a spot: short keys for east, north, yaw, pitch, height, mode (as in travel) and the minute of the day. It is
+  // made only when asked for, and nothing about it is kept. Only numbers are read back, each in its range or not at all.
+  const LINK = {e: [100000, 900000], n: [0, 10000000], y: [0, 360], p: [-85, 85], h: [0, 400], m: [0, 2], t: [0, 1439]};
+  function spotLink(s) {
+    // Down, not to the nearest metre: a tile owns its west and south edges, so a spot at the very edge of the map stays on it.
+    const spot = new URLSearchParams({e: Math.floor(s.east), n: Math.floor(s.north), y: Math.round(s.yaw) % 360, p: Math.round(s.pitch),
+      h: clamp(Math.round(s.height), LINK.h), m: s.riding ? 1 : s.flying ? 2 : 0, t: Math.round(clockMinutes() / 5) * 5 % 1440});
+    return `${location.origin}${location.pathname}?${spot}`;
+  }
+  function readLink() {  // null without a link, false for one that cannot be believed
+    if (!search.has("e") && !search.has("n")) return null;
+    const spot = {};
+    for (const [key, [low, high]] of Object.entries(LINK)) {
+      const text = search.get(key);
+      if (text === null) continue;
+      const value = /^-?\d{1,8}(\.\d{1,3})?$/.test(text) ? Number(text) : NaN;
+      if (!(value >= low && value <= high)) return false;
+      spot[key] = value;
+    }
+    return spot.e !== undefined && spot.n !== undefined && (spot.m === undefined || Number.isInteger(spot.m)) && spot;
+  }
+  function arriveFromLink() {
+    const spot = readLink();
+    if (spot === null) return;
+    if (!spot) { say("That link could not be read, so this is the usual start"); return; }
+    if (!travel({east: spot.e, north: spot.n, yaw: spot.y, pitch: spot.p, height: spot.h, mode: spot.m})) {
+      say("That link's spot is off the map, so this is the usual start");
+      return;
+    }
+    if (spot.t !== undefined) shiftSun((spot.t - clockMinutes()) / 60);
+  }
+
+  // The panel draws over the messages, so with it open the answer goes in the panel.
+  function say(text) {
+    if (!helpOpen()) { note(text); return; }
+    $("shareSaid").textContent = text;
+    $("shareSaid").scrollIntoView({block: "nearest"});
+  }
+  function clearShared() {
+    $("shareSaid").textContent = "";
+    $("shareLink").hidden = true;
+    $("shareLink").value = "";
+  }
+  // Copying can be refused, in the arcade's frame above all. The page cannot be selected, so the link goes in a field that can.
+  function showLink(link) {
+    if (!helpOpen()) setHelp(true);
+    const field = $("shareLink");
+    field.value = link;
+    field.hidden = false;
+    say("The link could not be copied from here. It is in the box below.");
+    field.focus();
+    field.setSelectionRange(0, link.length);
+  }
+  async function share() {
+    const s = status();
+    if (s.arriving) { say("Wait until you have arrived"); return; }
+    const link = spotLink(s);
+    clearShared();
+    if (touching() && navigator.share) {
+      try {
+        await navigator.share({title: "Old Town Walk", url: link});
+        say("Link shared");
+        return;
+      } catch (e) {
+        if (e.name === "AbortError") return;  // the player changed their mind
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(link);
+      say("Link copied");
+    } catch (e) {
+      showLink(link);
+    }
   }
 
   const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
@@ -348,6 +426,7 @@
       if (e.code === "Digit9") changeFov(-1);
       if (e.code === "Digit0") changeFov(1);
       if (!e.repeat && e.code === "KeyP" && shown) shotWanted = true;
+      if (!e.repeat && e.code === "KeyL" && shown) share();
       if (!e.repeat && e.code === "KeyI") {
         settings.invert = !settings.invert;
         note(settings.invert ? "Mouse look inverted" : "Mouse look normal");
@@ -433,6 +512,7 @@
     $("helpBtn").addEventListener("click", () => setHelp(!helpOpen()));
     $("start").addEventListener("click", () => setHelp(false));
     $("homeBtn").addEventListener("click", () => { goToStart(); setHelp(false); });
+    $("shareBtn").addEventListener("click", share);
     const stepper = (name, change, step) => {
       $(name + "Down").addEventListener("click", () => change(-step));
       $(name + "Up").addEventListener("click", () => change(step));
@@ -481,6 +561,7 @@
         StrataLoader.done();
         if (stored.get("old-town-walk-seen") !== "1") setHelp(true);
         else started();
+        arriveFromLink();
       }
     }
   }

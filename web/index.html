@@ -68,6 +68,12 @@
   body.touch #note { top: 122px; }  /* below the status panel, which a phone is too narrow to pass */
   #homeBtn { width: 100%; margin-top: 8px; touch-action: manipulation; }
   #homeBtn[hidden] { display: none; }
+  #shareBtn { width: 100%; margin-top: 8px; touch-action: manipulation; }
+  #help #shareSaid { margin: 8px 0 0; color: var(--text); }
+  #help #shareSaid:empty { margin: 0; }
+  #shareLink { width: 100%; min-height: 48px; margin-top: 8px; padding: 0 10px; font: 13px ui-monospace, Menlo, Consolas, monospace;
+    color: var(--text); background: var(--btn); border: 2px solid var(--line); border-radius: 10px;
+    -webkit-user-select: text; user-select: text; touch-action: manipulation; }
   #settings { margin: 10px 0 4px; border-top: 1px solid var(--line); scroll-margin-bottom: 28px; }  /* the next button peeks out, so it is plain there is more */
   #settings summary { padding: 14px 4px; font-weight: 700; cursor: pointer; touch-action: manipulation; }
   #settings summary:focus-visible { outline: 3px solid var(--accent); }
@@ -123,6 +129,7 @@
     <dt>H</dt><dd>Show or hide this list (Esc or a click on the map closes it)</dd>
     <dt>R</dt><dd>Back to the start</dd>
     <dt>P</dt><dd>Save a picture of the view</dd>
+    <dt>L</dt><dd>Share a link to this spot</dd>
     <dt>, .</dt><dd>Mouse sensitivity</dd>
     <dt>I</dt><dd>Invert the mouse</dd>
     <dt>Tab</dt><dd>Hide the status panel</dd>
@@ -167,6 +174,9 @@
   </details>
   <button id="start">Start walking</button>
   <button id="homeBtn" hidden>Back to the start</button>
+  <button id="shareBtn" hidden title="Share a link to this spot (L)">Share this spot</button>
+  <p id="shareSaid" role="status"></p>
+  <input id="shareLink" type="text" readonly hidden aria-label="Link to this spot">
 </div>
 <script src="strata-loader.js"></script>
 <script src="strata-kit.js"></script>

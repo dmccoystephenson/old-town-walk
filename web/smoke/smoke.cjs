@@ -84,6 +84,7 @@ const check = (ok, what) => {
   console.log('ok: ' + what);
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const SOLID = { east: 493580, north: 4492960 };  // inside a building, from the pinned map
 
 (async () => {
   const browser = await chromium.launch({
@@ -104,7 +105,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   // Pictures come straight off the canvas, in the task that drew them. page.screenshot goes through
   // the compositor, which falls tens of seconds behind a scene this size, so it times out; this reads
   // what GL drew, without the page's controls on top.
-  await page.addInitScript(() => {
+  await context.addInitScript(() => {
     const getContext = HTMLCanvasElement.prototype.getContext;
     let gl = null;
     HTMLCanvasElement.prototype.getContext = function (kind, ...rest) {
@@ -537,9 +538,100 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await shoot(backShot);
   check(colours(backShot) > 25, 'the frame after a restore is drawn');
 
+  // Share from somewhere other than the start, which a link that did nothing would also land on. After the lost context,
+  // since tiles loaded out here would still be in the count that check waits for.
+  await page.evaluate(([e, n]) => window.oldTownWalk.travel({east: e + 300, north: n - 200, yaw: 90}), [first.east, first.north]);
+  await page.waitForFunction(() => window.oldTownWalk.status().arriving === 0, null, { timeout: 120000 });
+  const spot = await status();
+  // Stand-ins for the clipboard and the share sheet, so that a refusal can be tested too.
+  await page.evaluate(() => {
+    window.sent = [];
+    const sender = (refusal, read) => async (what) => {
+      if (window[refusal]) throw new DOMException('refused', window[refusal]);
+      window.sent.push(read(what));
+    };
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: sender('refuseCopy', (text) => text) } });
+    Object.defineProperty(navigator, 'share', { value: sender('refuseShare', (data) => data.url) });
+  });
+  const said = (text) => page.waitForFunction((t) => document.getElementById('shareSaid').textContent.includes(t), text, { timeout: 30000 });
+  const lastSent = () => page.evaluate(() => window.sent[window.sent.length - 1]);
+  const answer = phone ? 'Link shared' : 'Link copied';
+  const shareBtn = page.locator('#shareBtn'), shareField = page.locator('#shareLink');
+  await page.locator('#helpBtn').click();
+  await shareBtn.click();
+  await said(answer);
+  check(true, `the Share button says what happened, in the panel that hides the messages (${answer})`);
+  const sharedLink = new URL(await lastSent());
+  const linked = Object.fromEntries(sharedLink.searchParams);
+  check(Object.keys(linked).sort().join() === 'e,h,m,n,p,t,y', `the link holds the spot and nothing else (${sharedLink.search})`);
+  check(sharedLink.origin + sharedLink.pathname === new URL(url).origin + new URL(url).pathname, 'the link points to the page itself');
+  check(+linked.e === Math.floor(spot.east) && +linked.n === Math.floor(spot.north) && +linked.y === 90 && +linked.m === 0, 'the link holds where the player is');
+  if (phone) {
+    await page.evaluate(() => { window.refuseShare = 'AbortError'; window.sent = []; });
+    await shareBtn.click();
+    await sleep(500);
+    check((await shows('#shareSaid')) === '' && (await page.evaluate(() => window.sent.length)) === 0, 'cancelling the share sheet does nothing more');
+    await page.evaluate(() => { window.refuseShare = 'NotAllowedError'; });
+    await shareBtn.click();
+    await said('Link copied');
+    check(true, 'a refused share sheet falls back to the clipboard');
+  }
+  await page.evaluate(() => { window.refuseCopy = 'NotAllowedError'; });
+  await shareBtn.click();
+  await said('could not be copied');
+  check(await shareField.isVisible() && (await shareField.inputValue()) === sharedLink.href, 'a refused copy shows the link in a field');
+  check(await page.evaluate(() => {
+    const field = document.getElementById('shareLink');
+    return document.activeElement === field && field.selectionEnd === field.value.length && getComputedStyle(field).userSelect === 'text';
+  }), 'and the field can be selected, on a page that cannot');
+  await page.evaluate(() => { window.refuseCopy = window.refuseShare = null; });
+  await page.locator('#start').click();
+  check(!(await shareField.isVisible()) && (await shows('#shareSaid')) === '', 'closing the panel clears the answer');
+  await page.keyboard.press('KeyL');
+  await noted(answer);
+  check(true, 'L shares too, and says so where it can be seen');
+
+
   const end = await status();
   console.log('end', JSON.stringify(end), 'frame ms', await page.evaluate(() => window.oldTownWalk.kit.frameMs));
   check(end.peak <= 256, 'meshes stay under Strata\'s limit');
   check(errors.length === 0, 'no page errors' + (errors.length ? ': ' + errors.slice(0, 4).join(' | ') : ''));
+
+  // Links, each followed in a page of its own, the way a person would.
+  await page.close();
+  const follow = async (query, newVisitor) => {
+    const tab = await context.newPage(), problems = [];
+    tab.on('pageerror', (e) => problems.push(String(e)));
+    tab.on('console', (m) => { if (m.type() === 'error') problems.push(m.text()); });
+    if (newVisitor) await tab.addInitScript(() => localStorage.removeItem('old-town-walk-seen'));
+    await tab.goto(`${url}${url.includes('?') ? '&' : '?'}${query}`);
+    await tab.waitForFunction(() => window.oldTownWalk && window.oldTownWalk.status().ready === 1 && window.oldTownWalk.status().arriving === 0, null, { timeout: 180000 });
+    const walk = await tab.evaluate(() => ({...window.oldTownWalk.status(), sunTime: window.oldTownWalk.sunTime,
+      clock: document.getElementById('timeValue').textContent, note: document.getElementById('note').textContent,
+      said: document.getElementById('shareSaid').textContent, welcome: document.getElementById('help').classList.contains('on'),
+      share: !document.getElementById('shareBtn').hidden, nodes: document.querySelectorAll('#note *, #shareSaid *, body > img').length}));
+    await tab.close();
+    check(problems.length === 0, `${query}: no page errors` + (problems.length ? ': ' + problems.slice(0, 4).join(' | ') : ''));
+    return walk;
+  };
+  const landed = await follow(sharedLink.search.slice(1));
+  check(Math.hypot(landed.east - linked.e, landed.north - linked.n) < 2 && landed.yaw === 90 && !landed.flying && !landed.riding, 'a shared link lands on the spot, on foot, facing the same way');
+  const inAir = await follow('e=493300&n=4492700&y=45&p=-20&h=80&m=2&t=1290');
+  check(inAir.flying === 1 && Math.abs(inAir.height - 80) < 1 && inAir.yaw === 45 && inAir.pitch === -20 && Math.hypot(inAir.east - 493300, inAir.north - 4492700) < 1, 'a link can be in the air, at its height');
+  check(inAir.clock === '21:30', `and sets the time of day (${inAir.clock})`);
+  const onBike = await follow('e=493300&n=4492700&y=180&m=1');
+  check(onBike.riding === 1 && onBike.flying === 0 && onBike.height < 3, 'a link can be on the bike');
+  const atStart = (walk) => Math.hypot(walk.east - first.east, walk.north - first.north) < 0.5 && walk.yaw === first.yaw && !walk.flying && !walk.riding && walk.sunTime === Date.UTC(2026, 6, 15, 21) / 1000;
+  for (const junk of ['e=NaN&n=NaN&y=Infinity', 'e=99999999999999999999&n=1e999&h=-5', 'e=%3Cimg%20src=x%20onerror=alert(1)%3E&n=hello&t=noon', 'e=493300&n=4492700&m=1.5']) {
+    const ignored = await follow(junk);
+    check(atStart(ignored) && ignored.nodes === 0 && ignored.note.includes('could not be read'), `${junk} is ignored, and the player is told`);
+  }
+  // New visitors last: the first of them forgets, for every later page, that the controls have been seen.
+  const welcomed = await follow(`e=${SOLID.east}&n=${SOLID.north}&y=10`, true);
+  const moved = Math.hypot(welcomed.east - SOLID.east, welcomed.north - SOLID.north);
+  check(moved > 0.5 && moved < 90, `a link into a building lands outside it (${moved.toFixed(1)} m)`);
+  check(welcomed.welcome && !welcomed.share, 'and a new visitor still gets the welcome');
+  const offMap = await follow('e=300000&n=4492700&m=2&t=60', true);
+  check(atStart(offMap) && offMap.said.includes('off the map'), 'a spot off the map is ignored, and the player is told, above the welcome');
   await browser.close();
 })().catch((e) => { console.error(e); process.exit(1); });

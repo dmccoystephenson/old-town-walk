@@ -57,7 +57,7 @@ python3 -m http.server 8000 --directory web-site
 
 Tiles are downloaded as they are needed, gzipped, and the page unpacks them, so the map costs about 3 MB to start and
 11 MB if you walk all of it. Your settings, and a note that you have seen the controls, are kept in that browser only,
-and nothing is reported.
+and nothing is reported. A link to a spot is made only when you ask for one, and nothing about it is stored or reported.
 `web/smoke/smoke.cjs` plays it in headless Chromium, on a desktop and a phone profile, with real input.
 
 ## Controls
@@ -85,6 +85,7 @@ button opens. Zoom, field of view and screenshots need a keyboard.
 | R | Back to where you started |
 | `[` and `]` | Time of day |
 | P | Save a screenshot, as a download in a browser |
+| L | Browser only: share a link to where you are, with your view, mode and the time of day. The controls panel has a button for it. |
 | Tab | Hide the status panel |
 | Backspace | Put every setting back to its default. Press it again straight away to undo. |
 | Esc | Free the mouse. A click takes it back. On the desktop, Esc again quits. |
