@@ -5,15 +5,15 @@ from pathlib import Path
 
 import numpy as np
 
-from old_town_walk.geo import Area
-from old_town_walk.osm import parse
+from streetkit.geo import Area
+from streetkit.osm import parse
 
 ROOT = Path(__file__).resolve().parents[2]
 CLEARANCE_M = 10.0
 
 
 def start_offset():
-    text = (ROOT / "app" / "walker.h").read_text()
+    text = (ROOT / "app" / "otw.h").read_text()
     east = re.search(r"kStartEast = (-?[\d.]+)", text).group(1)
     north = re.search(r"kStartNorth = (-?[\d.]+)", text).group(1)
     return float(east), float(north)

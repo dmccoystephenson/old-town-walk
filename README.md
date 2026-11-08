@@ -139,6 +139,11 @@ follows your system's reduced-motion setting instead.
 
 ## Building it
 
+The map pipeline and the C++ that loads, streams and walks the tiles are
+[streetkit](https://github.com/Preponderous-Software/streetkit), pinned to a commit in `streetkit.ref` and
+`pyproject.toml`; this repository holds Old Town's data, the game, and the browser page. `old-town-walk` is
+streetkit's command, run from this folder.
+
 Needs Python 3.12 via [uv](https://docs.astral.sh/uv/), CMake ≥ 3.24, a C++17 compiler and OpenGL 4.5. The build is
 offline apart from fetching Strata.
 
@@ -175,7 +180,7 @@ Headless, with `LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe` where there is 
   limit of 256 meshes at four meshes a tile.
 - **Terrain is a static mesh per tile**, not `strata_set_terrain`, because Strata holds one terrain tile at a time.
 
-The layout is documented at the top of `old_town_walk/tiles.py`. `manifest.txt` lists every tile with its size and hash.
+The layout is documented at the top of `streetkit/tiles.py` in [streetkit](https://github.com/Preponderous-Software/streetkit). `manifest.txt` lists every tile with its size and hash.
 
 ## Limits
 

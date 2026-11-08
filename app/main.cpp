@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 
+#include "otw.h"
 #include "exe_dir.h"
 #include "settings.h"
 #include "streaming.h"
