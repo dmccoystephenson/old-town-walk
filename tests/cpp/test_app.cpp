@@ -530,13 +530,13 @@ static void testTreesNear() {
     std::vector<Item> all, out;
     for (int i = 0; i < 300; ++i) all.push_back({{static_cast<float>(i * 3), 0, 0}});   // a row of trees, 3 m apart
     otw::nearItems(all, 0, 0, 180, 600, out);
-    int close = 0, far = 0;
-    for (const Item& item : out) (item.position[0] <= 180 ? close : far)++;
-    CHECK(close == 61);                    // every tree out to 180 m
-    CHECK(far > 30 && far < 110);          // about one in three of the 140 between 180 and 600 m
+    int inner = 0, outer = 0;   // not near and far: Windows headers define those
+    for (const Item& item : out) (item.position[0] <= 180 ? inner : outer)++;
+    CHECK(inner == 61);                    // every tree out to 180 m
+    CHECK(outer > 30 && outer < 110);          // about one in three of the 140 between 180 and 600 m
     for (const Item& item : out) CHECK(item.position[0] <= 600);
     otw::nearItems(all, 0, 0, 180, 600, out);
-    CHECK(static_cast<int>(out.size()) == close + far);   // the same trees every frame
+    CHECK(static_cast<int>(out.size()) == inner + outer);   // the same trees every frame
     CHECK(otw::treeReach(0) == 300 && otw::treeReach(1000) == 800);
 }
 

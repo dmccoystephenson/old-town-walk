@@ -1,0 +1,2 @@
+# Raw data is checked by hash (data/raw/SOURCES.json), so it must check out byte for byte on every system.
+data/raw/** -text
