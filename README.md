@@ -1,13 +1,52 @@
 # Old Town Walk
 
-Walk or fly through 2 km by 2 km of Old Town Fort Collins, Colorado, in 3D. It is built only from open map and
-elevation data and rendered with [Strata](https://github.com/Preponderous-Software/strata).
+Walk or fly through 2 km by 2 km of Old Town Fort Collins, Colorado, in 3D. It is built only from open data (the
+map, elevation, airborne lidar and roof colours sampled from aerial photographs) and rendered with
+[Strata](https://github.com/Preponderous-Software/strata).
 
-![Old Town Fort Collins from 95 m: the street grid and blocks of buildings at evening](docs/images/old-town.png)
+![Old Town Fort Collins from 95 m: downtown at its measured heights, with light roofs, windows and street trees](docs/images/old-town.png)
 
-![A tree-lined street in Old Town seen from a low flight](docs/images/street.png)
+![A street in Old Town at eye level: shop windows, rows of windows above, and trees along the pavement](docs/images/street.png)
 
-*Rendered by the real viewer. Map data © OpenStreetMap contributors (ODbL); elevation courtesy of the USGS.*
+*Rendered by the real viewer. Map data © OpenStreetMap contributors (ODbL); elevation and lidar courtesy of the USGS;
+roof colours sampled from USDA NAIP imagery.*
+
+## Measured buildings
+
+Every building's height and roof come from the USGS's airborne lidar survey of Fort Collins, and its roof colour from
+aerial photographs. Before, all but 4% of buildings were one of two default boxes.
+
+| Before | Now |
+|---|---|
+| ![Downtown from the air before: flat grey boxes of two heights](docs/images/buildings-air-before.jpg) | ![Downtown from the air now: buildings at their measured heights, with parapets, cornices, windows and light roofs](docs/images/buildings-air-now.jpg) |
+| ![A street in Old Town before: blank walls](docs/images/buildings-street-before.jpg) | ![The same street now: shop windows on the ground floor, rows of windows above, and the street's trees](docs/images/buildings-street-now.jpg) |
+| ![A street of houses before: a gable on every house, no trees](docs/images/buildings-houses-before.jpg) | ![The same houses now: gabled and hipped roofs as surveyed, and the trees the survey found](docs/images/buildings-houses-now.jpg) |
+
+- **Heights.** The lidar is gridded to one metre (`data/raw/lidar-ndsm.tif`): the height of whatever stands above the
+  ground in each cell. A footprint's cells give its eave and its roof. Cells under a tree's leaves are left out, since a
+  pulse that splits on leaves gives itself away.
+- **Roofs.** The footprint is turned square to its walls and covered with rectangles, which may overlap like the wings
+  of a house. Flat, gabled and hipped roofs over those rectangles are each fitted to the lidar, with the pitch and eave
+  free, and the one that fits clearly best is kept. A flat roof with a higher block on it gets that block, and a church
+  gets its steeple. A building OSM splits into parts is drawn part by part.
+- **Walls.** Rows of windows a storey apart, a glass front at street level on shops in the commercial district, a
+  parapet and cornice on larger flat-roofed buildings, and no windows on a wall shared with the neighbour.
+- **Colours.** Roof colours are sampled from aerial photographs (`data/raw/roof-colours.csv`, one colour a roof; the
+  photographs themselves are not kept). Walls follow OSM's tags where mappers gave them, a few sourced facts in
+  `data/building-overrides.csv`, and otherwise palettes by the kind of building.
+- **Trees.** The survey also finds the trees: 23,000 of them, each at its measured height and crown width, where OSM
+  maps about 900. Trees are drawn in full near you and thinned further out.
+
+`uv run old-town-walk accuracy` compares every surveyed building as drawn with the lidar, cell by cell:
+
+| | Median error | Within 1 m |
+|---|---|---|
+| Before: a default by kind | 1.98 m | 15% |
+| Now: fitted to the lidar | 0.30 m | 98.7% |
+
+The model is fitted to the same lidar it is measured against, so the second row says how well the shapes can follow
+the survey, not how well they would predict a building it did not see. The survey dates from 2013: about 600 buildings
+put up since then, or under trees it saw instead, fall back on their OSM tags and kind.
 
 ## Then and now
 
@@ -57,8 +96,8 @@ uv run python tools/build_site.py build-web build/tiles web-site
 python3 -m http.server 8000 --directory web-site
 ```
 
-Tiles are downloaded as they are needed, gzipped, and the page unpacks them, so the map costs about 3 MB to start and
-11 MB if you walk all of it. Your settings, and a note that you have seen the controls, are kept in that browser only,
+Tiles are downloaded as they are needed, gzipped, and the page unpacks them, so the map costs about 4 MB to start and
+13 MB if you walk all of it. Your settings, and a note that you have seen the controls, are kept in that browser only,
 and nothing is reported. A link to a spot is made only when you ask for one, and nothing about it is stored or reported.
 `web/smoke/smoke.cjs` plays it in headless Chromium, on a desktop and a phone profile, with real input.
 
@@ -112,7 +151,9 @@ cmake -S . -B build/app && cmake --build build/app -j4
 
 To refresh the data, `uv run old-town-walk fetch` downloads it into `build/fetched`, which is never committed, because a
 full OpenStreetMap download carries contributor names and business contact details. `uv run old-town-walk sanitize` then
-reduces it to the geometry and the few tags the build reads.
+reduces it to the geometry and the few tags the build reads. `uv run --group lidar old-town-walk lidar` downloads the
+survey's point tiles (about 260 MB, into `build/fetched/lidar`) and grids them, and `uv run old-town-walk roofs`
+samples the roof colours from aerial photographs it downloads into `build/fetched`.
 
 Headless, with `LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe` where there is no GPU:
 
@@ -139,11 +180,14 @@ The layout is documented at the top of `old_town_walk/tiles.py`. `manifest.txt` 
 ## Limits
 
 - Tiles load on the main thread, one a frame, and there is no level of detail.
-- Only four-cornered footprints get a gabled roof, and holes in buildings are ignored.
-- Building heights are mostly defaults, because few buildings are tagged with one.
+- The lidar is from 2013. Buildings put up since then get their height from OSM tags or a default by kind.
+- Roofs are flat, gabled or hipped over rectangles; mansards, domes and curved roofs are not modelled, and footprints
+  that are not square to their walls get a simple hip.
+- Wall colours are mostly palettes by kind of building: neither the map nor the survey can see a wall.
 - Water is only a colour, you can walk on it, and bridges are not modelled.
 
 ## License
 
 The code is MIT (see `LICENSE`). The data is not: see `NOTICE.md`. Map data © OpenStreetMap contributors, under the
-Open Database License. Elevation courtesy of the U.S. Geological Survey.
+Open Database License. Elevation and lidar courtesy of the U.S. Geological Survey; roof colours sampled from USDA NAIP
+imagery.

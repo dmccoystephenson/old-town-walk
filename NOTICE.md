@@ -12,6 +12,13 @@ The code is under the MIT license (see LICENSE). The data it uses is not.
   public places only, its sentences are this project's own, and each cites the source it was checked against.
 - **Elevation** courtesy of the U.S. Geological Survey, 3D Elevation Program (`data/raw/dem-3dep.tif`). USGS data is in
   the public domain; attribution is requested.
+- **Lidar** courtesy of the U.S. Geological Survey, 3D Elevation Program: survey USGS_LPC_CO_SoPlatteRiver_Lot2a_2013,
+  read from the USGS open lidar bucket on AWS. `data/raw/lidar-ndsm.tif` is a one-metre grid derived from it (heights
+  above ground and a leaf share). Public domain; attribution is requested.
+- **Roof colours** in `data/raw/roof-colours.csv` are one colour a building, sampled from USDA Farm Service Agency NAIP
+  imagery through the USGS National Map. NAIP is in the public domain. The imagery itself is not kept or drawn.
+- **Building facts** in `data/building-overrides.csv` (what a wall is made of, how many storeys) are each from the
+  public source cited on their row.
 - **Rendering** by [Strata](https://github.com/Preponderous-Software/strata) (MIT), fetched at build time at the commit
   in `strata.ref`, with the third-party libraries it builds in, such as SDL3 (zlib license). The browser version also serves Strata's web kit scripts.
 - **Historic images in the README** are in the public domain in the United States and are not part of the program:
