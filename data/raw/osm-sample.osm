@@ -1651,6 +1651,8 @@
 <node id="1453291054" lat="40.5822279" lon="-105.0768211" />
 <node id="1453291056" lat="40.5827218" lon="-105.0767800" />
 <node id="1453291057" lat="40.5821582" lon="-105.0764559" />
+<node id="1453291058" lat="40.5822045" lon="-105.0764553" />
+<node id="1453291060" lat="40.5822062" lon="-105.0766703" />
 <node id="1453291061" lat="40.5822079" lon="-105.0767746" />
 <node id="1453296136" lat="40.5829933" lon="-105.0764209" />
 <node id="1453296137" lat="40.5830374" lon="-105.0764206" />
@@ -16289,6 +16291,7 @@
 <node id="7018502108" lat="40.5879968" lon="-105.0816437" />
 <node id="7018502109" lat="40.5879981" lon="-105.0823253" />
 <node id="7018502112" lat="40.5872625" lon="-105.0809609" />
+<node id="7018502113" lat="40.5873048" lon="-105.0809609" />
 <node id="7018502115" lat="40.5872626" lon="-105.0810884" />
 <node id="7018502116" lat="40.5872648" lon="-105.0810944" />
 <node id="7018502117" lat="40.5872684" lon="-105.0810994" />
@@ -58168,8 +58171,10 @@
 <nd ref="1228553372" />
 <tag k="amenity" v="library" />
 <tag k="building" v="yes" />
+<tag k="building:colour" v="brown" />
 <tag k="building:levels" v="2" />
 <tag k="height" v="12" />
+<tag k="roof:colour" v="sand" />
 </way>
 <way id="108386846">
 <nd ref="1243818613" />
@@ -58677,6 +58682,7 @@
 <nd ref="1435114515" />
 <tag k="building" v="yes" />
 <tag k="building:levels" v="2" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="130218033">
 <nd ref="1435114519" />
@@ -58691,6 +58697,7 @@
 <nd ref="1435114519" />
 <tag k="building" v="yes" />
 <tag k="building:levels" v="3" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="130218034">
 <nd ref="1435114521" />
@@ -58701,6 +58708,7 @@
 <nd ref="1435114521" />
 <tag k="building" v="apartments" />
 <tag k="building:levels" v="4" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="130222082">
 <nd ref="1435156149" />
@@ -58714,6 +58722,8 @@
 <nd ref="1435156183" />
 <nd ref="1435156149" />
 <tag k="building" v="retail" />
+<tag k="building:colour" v="gray" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="130730561">
 <nd ref="8989243981" />
@@ -58772,6 +58782,8 @@
 <nd ref="1453288437" />
 <nd ref="1446806219" />
 <tag k="building" v="office" />
+<tag k="building:colour" v="brick" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="131468975">
 <nd ref="1446806233" />
@@ -58877,7 +58889,10 @@
 <nd ref="6586042982" />
 <nd ref="6586042981" />
 <nd ref="1447620654" />
+<tag k="building:colour" v="tan" />
 <tag k="building:levels" v="4" />
+<tag k="building:part" v="yes" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="131827622">
 <nd ref="1450228569" />
@@ -59017,6 +59032,24 @@
 <nd ref="1450231079" />
 <tag k="leisure" v="park" />
 </way>
+<way id="132056279">
+<nd ref="1453291056" />
+<nd ref="1453291042" />
+<nd ref="1453291047" />
+<nd ref="1453291054" />
+<nd ref="1453291046" />
+<nd ref="1453291061" />
+<nd ref="1453291043" />
+<nd ref="1453291052" />
+<nd ref="1453291044" />
+<nd ref="1453291040" />
+<nd ref="1453291057" />
+<nd ref="1453291058" />
+<nd ref="1453291060" />
+<nd ref="1453291053" />
+<nd ref="1453291056" />
+<tag k="roof:colour" v="grey" />
+</way>
 <way id="132056361">
 <nd ref="1453296138" />
 <nd ref="6534100739" />
@@ -59025,6 +59058,7 @@
 <nd ref="1453296139" />
 <nd ref="1453296138" />
 <tag k="building" v="yes" />
+<tag k="building:colour" v="gray" />
 </way>
 <way id="132056365">
 <nd ref="1453297657" />
@@ -59033,6 +59067,7 @@
 <nd ref="1453296138" />
 <nd ref="1453297657" />
 <tag k="building" v="yes" />
+<tag k="building:colour" v="gray" />
 </way>
 <way id="132056367">
 <nd ref="1453298610" />
@@ -59049,6 +59084,7 @@
 <nd ref="1453298622" />
 <nd ref="1453298610" />
 <tag k="building" v="office" />
+<tag k="building:colour" v="brick" />
 </way>
 <way id="132056439">
 <nd ref="1453303583" />
@@ -59059,8 +59095,10 @@
 <nd ref="1453303583" />
 <tag k="amenity" v="cafe" />
 <tag k="building" v="retail" />
+<tag k="building:colour" v="brick" />
 <tag k="building:levels" v="2" />
 <tag k="height" v="9" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="132178257">
 <nd ref="1454517599" />
@@ -59083,6 +59121,8 @@
 <nd ref="1454517591" />
 <nd ref="1454517617" />
 <tag k="building" v="retail" />
+<tag k="building:colour" v="#202020" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="132178262">
 <nd ref="1454517606" />
@@ -59092,6 +59132,8 @@
 <nd ref="1454518887" />
 <nd ref="1454517606" />
 <tag k="building" v="retail" />
+<tag k="building:colour" v="brown" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="132178264">
 <nd ref="1454517604" />
@@ -59100,6 +59142,7 @@
 <nd ref="1454517617" />
 <nd ref="1454517604" />
 <tag k="building" v="retail" />
+<tag k="building:colour" v="brick" />
 </way>
 <way id="132178266">
 <nd ref="1454517601" />
@@ -59110,6 +59153,8 @@
 <nd ref="1454517616" />
 <nd ref="1454517601" />
 <tag k="building" v="retail" />
+<tag k="building:colour" v="brown" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="132178269">
 <nd ref="1454517605" />
@@ -59130,6 +59175,8 @@
 <nd ref="1454517600" />
 <tag k="amenity" v="theatre" />
 <tag k="building" v="yes" />
+<tag k="building:colour" v="brick" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="132178776">
 <nd ref="1454517606" />
@@ -59138,6 +59185,8 @@
 <nd ref="1454517604" />
 <nd ref="1454517606" />
 <tag k="building" v="retail" />
+<tag k="building:colour" v="brick" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="132179114">
 <nd ref="1454518889" />
@@ -59148,6 +59197,8 @@
 <nd ref="1454518889" />
 <tag k="building" v="retail" />
 <tag k="building:levels" v="1" />
+<tag k="roof:colour" v="tan" />
+<tag k="roof:levels" v="0" />
 </way>
 <way id="132401376">
 <nd ref="1456545670" />
@@ -59176,6 +59227,8 @@
 <nd ref="1456545655" />
 <nd ref="1456545657" />
 <tag k="building" v="yes" />
+<tag k="roof:colour" v="brown" />
+<tag k="roof:shape" v="mansard" />
 </way>
 <way id="132687118">
 <nd ref="1459472695" />
@@ -59186,6 +59239,7 @@
 <tag k="building" v="hotel" />
 <tag k="building:levels" v="3" />
 <tag k="height" v="12" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="132781796">
 <nd ref="1810199821" />
@@ -59372,6 +59426,7 @@
 <nd ref="1453291053" />
 <nd ref="1464779955" />
 <tag k="building" v="yes" />
+<tag k="building:colour" v="tan" />
 <tag k="building:levels" v="1" />
 <tag k="height" v="5.5" />
 </way>
@@ -60360,6 +60415,7 @@
 <nd ref="1641423301" />
 <tag k="building" v="yes" />
 <tag k="building:levels" v="2" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="151313924">
 <nd ref="1641423304" />
@@ -60410,6 +60466,7 @@
 <nd ref="1641423594" />
 <tag k="building" v="yes" />
 <tag k="building:levels" v="2" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="151313954">
 <nd ref="1641423601" />
@@ -61273,6 +61330,9 @@
 <nd ref="1802377837" />
 <tag k="amenity" v="bank" />
 <tag k="building" v="yes" />
+<tag k="building:colour" v="brick" />
+<tag k="roof:colour" v="grey" />
+<tag k="roof:shape" v="hipped" />
 </way>
 <way id="169064579">
 <nd ref="1802377850" />
@@ -61281,6 +61341,7 @@
 <nd ref="1802377844" />
 <nd ref="1802377850" />
 <tag k="building" v="roof" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="169064580">
 <nd ref="1802377799" />
@@ -61307,7 +61368,9 @@
 <nd ref="1802377862" />
 <nd ref="1802377872" />
 <tag k="building" v="yes" />
+<tag k="building:colour" v="brick" />
 <tag k="building:levels" v="2" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="169064583">
 <nd ref="6538518846" />
@@ -61652,6 +61715,7 @@
 <nd ref="1806861885" />
 <nd ref="1806861882" />
 <tag k="building" v="apartments" />
+<tag k="building:colour" v="tan" />
 <tag k="building:levels" v="11" />
 <tag k="height" v="42.4" />
 </way>
@@ -61668,6 +61732,7 @@
 <nd ref="1806861858" />
 <nd ref="1806861898" />
 <tag k="building" v="yes" />
+<tag k="roof:colour" v="sand" />
 </way>
 <way id="169521753">
 <nd ref="1806861879" />
@@ -62101,6 +62166,8 @@
 <nd ref="1810204428" />
 <nd ref="1810204360" />
 <tag k="building" v="yes" />
+<tag k="roof:colour" v="grey" />
+<tag k="roof:shape" v="hipped" />
 </way>
 <way id="169862492">
 <nd ref="1810204398" />
@@ -62127,6 +62194,7 @@
 <nd ref="1810204398" />
 <tag k="amenity" v="bank" />
 <tag k="building" v="yes" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="169862493">
 <nd ref="1810204361" />
@@ -62378,8 +62446,10 @@
 <nd ref="1819209351" />
 <nd ref="1819209359" />
 <tag k="building" v="retail" />
+<tag k="building:colour" v="brick" />
 <tag k="building:levels" v="2" />
 <tag k="height" v="10.5" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="170776825">
 <nd ref="1819209278" />
@@ -62398,6 +62468,8 @@
 <nd ref="1819209541" />
 <nd ref="1819209495" />
 <tag k="building" v="retail" />
+<tag k="building:colour" v="tan" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="170776827">
 <nd ref="1819209377" />
@@ -62459,8 +62531,10 @@
 <nd ref="1819209439" />
 <nd ref="1819209424" />
 <tag k="building" v="retail" />
+<tag k="building:colour" v="olive" />
 <tag k="building:levels" v="1" />
 <tag k="height" v="6.5" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="170776834">
 <nd ref="1819209515" />
@@ -62470,6 +62544,7 @@
 <nd ref="1819209464" />
 <nd ref="1819209515" />
 <tag k="building" v="yes" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="170776835">
 <nd ref="1819209465" />
@@ -62482,6 +62557,7 @@
 <nd ref="8994421330" />
 <nd ref="1819209465" />
 <tag k="building" v="retail" />
+<tag k="building:colour" v="tan" />
 <tag k="building:levels" v="2" />
 </way>
 <way id="170776836">
@@ -62491,6 +62567,7 @@
 <nd ref="1819209301" />
 <nd ref="1819209315" />
 <tag k="building" v="yes" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="170776837">
 <nd ref="3360111677" />
@@ -62518,6 +62595,7 @@
 <nd ref="3360111668" />
 <nd ref="1819209403" />
 <tag k="building" v="retail" />
+<tag k="building:colour" v="gray" />
 <tag k="building:levels" v="1" />
 <tag k="height" v="6.5" />
 </way>
@@ -62551,6 +62629,7 @@
 <nd ref="1819209465" />
 <nd ref="1819209448" />
 <tag k="building" v="retail" />
+<tag k="building:colour" v="brown" />
 <tag k="building:levels" v="1" />
 </way>
 <way id="170776843">
@@ -62561,6 +62640,7 @@
 <nd ref="1819209453" />
 <nd ref="1819209448" />
 <tag k="building" v="retail" />
+<tag k="building:colour" v="brick" />
 <tag k="building:levels" v="2" />
 </way>
 <way id="170776845">
@@ -62604,6 +62684,7 @@
 <nd ref="1819209377" />
 <nd ref="1819209406" />
 <tag k="building" v="retail" />
+<tag k="building:colour" v="sand" />
 <tag k="building:levels" v="2" />
 <tag k="height" v="11" />
 </way>
@@ -62648,6 +62729,7 @@
 <nd ref="3360111663" />
 <nd ref="1819209444" />
 <tag k="building" v="retail" />
+<tag k="building:colour" v="brown" />
 <tag k="height" v="6" />
 </way>
 <way id="170776865">
@@ -62705,6 +62787,7 @@
 <nd ref="1819209384" />
 <tag k="building" v="retail" />
 <tag k="building:levels" v="1" />
+<tag k="roof:levels" v="0" />
 </way>
 <way id="170776880">
 <nd ref="3360111676" />
@@ -62722,6 +62805,8 @@
 <nd ref="1819209397" />
 <nd ref="1819209432" />
 <tag k="building" v="yes" />
+<tag k="roof:direction" v="90" />
+<tag k="roof:shape" v="gabled" />
 </way>
 <way id="170776883">
 <nd ref="1819209351" />
@@ -62730,8 +62815,10 @@
 <nd ref="1819209331" />
 <nd ref="1819209351" />
 <tag k="building" v="retail" />
+<tag k="building:colour" v="brick" />
 <tag k="building:levels" v="2" />
 <tag k="height" v="11" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="170776885">
 <nd ref="1819209526" />
@@ -62773,6 +62860,7 @@
 <nd ref="3358910062" />
 <tag k="building" v="yes" />
 <tag k="building:levels" v="2" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="170778242">
 <nd ref="1819220606" />
@@ -63382,6 +63470,7 @@
 <nd ref="1829326537" />
 <tag k="amenity" v="parking" />
 <tag k="building" v="parking" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="171974036">
 <nd ref="3358910054" />
@@ -64052,6 +64141,7 @@
 <nd ref="1853817562" />
 <tag k="building" v="yes" />
 <tag k="height" v="4" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="174716672">
 <nd ref="1853817547" />
@@ -64062,6 +64152,7 @@
 <nd ref="12218796738" />
 <nd ref="1853817547" />
 <tag k="building" v="roof" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="174716678">
 <nd ref="1853817526" />
@@ -64192,6 +64283,7 @@
 <nd ref="1866791662" />
 <tag k="building" v="yes" />
 <tag k="building:levels" v="2" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="176112004">
 <nd ref="1866791683" />
@@ -65949,7 +66041,9 @@
 <nd ref="2128506056" />
 <nd ref="2128506058" />
 <tag k="building" v="yes" />
+<tag k="building:colour" v="brown" />
 <tag k="building:levels" v="1" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="208571818">
 <nd ref="2188550502" />
@@ -74917,8 +75011,10 @@
 <nd ref="2412767330" />
 <nd ref="2412767333" />
 <tag k="building" v="yes" />
+<tag k="building:colour" v="brick" />
 <tag k="building:levels" v="5" />
 <tag k="height" v="25" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="232954516">
 <nd ref="2412767368" />
@@ -74972,6 +75068,8 @@
 <nd ref="2641724487" />
 <tag k="amenity" v="bank" />
 <tag k="building" v="yes" />
+<tag k="roof:colour" v="grey" />
+<tag k="roof:shape" v="pyramidal" />
 </way>
 <way id="232954520">
 <nd ref="2412767341" />
@@ -75120,7 +75218,9 @@
 <nd ref="2446656720" />
 <nd ref="2446656779" />
 <tag k="building" v="yes" />
+<tag k="building:colour" v="brown" />
 <tag k="leisure" v="swimming_pool" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="236667994">
 <nd ref="2446656762" />
@@ -76644,6 +76744,7 @@
 <nd ref="3358915259" />
 <nd ref="3358915258" />
 <tag k="building" v="retail" />
+<tag k="building:colour" v="brick" />
 </way>
 <way id="329066456">
 <nd ref="3358915262" />
@@ -76679,6 +76780,7 @@
 <nd ref="3358915271" />
 <nd ref="3358915270" />
 <tag k="building" v="retail" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="329066465">
 <nd ref="3358915273" />
@@ -76688,6 +76790,7 @@
 <nd ref="3358915274" />
 <nd ref="3358915273" />
 <tag k="building" v="retail" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="329066468">
 <nd ref="1446806237" />
@@ -76742,6 +76845,7 @@
 <nd ref="3360111594" />
 <nd ref="3360111593" />
 <tag k="building" v="yes" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="329180753">
 <nd ref="3360111595" />
@@ -76750,6 +76854,7 @@
 <nd ref="3360111596" />
 <nd ref="3360111595" />
 <tag k="building" v="yes" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="329180754">
 <nd ref="3360111599" />
@@ -76758,6 +76863,7 @@
 <nd ref="3360111602" />
 <nd ref="3360111599" />
 <tag k="building" v="yes" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="329180755">
 <nd ref="3360111602" />
@@ -76807,6 +76913,7 @@
 <nd ref="3360111614" />
 <tag k="building" v="yes" />
 <tag k="building:levels" v="2" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="329180760">
 <nd ref="3360111616" />
@@ -76836,6 +76943,7 @@
 <nd ref="3360111623" />
 <tag k="building" v="yes" />
 <tag k="building:levels" v="1" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="329180763">
 <nd ref="1641423610" />
@@ -76871,6 +76979,7 @@
 <nd ref="1819209439" />
 <nd ref="1819209440" />
 <tag k="building" v="retail" />
+<tag k="building:colour" v="sand" />
 <tag k="building:levels" v="1" />
 <tag k="height" v="6.5" />
 </way>
@@ -76884,8 +76993,10 @@
 <nd ref="1819209359" />
 <nd ref="1819209365" />
 <tag k="building" v="retail" />
+<tag k="building:colour" v="brown" />
 <tag k="building:levels" v="2" />
 <tag k="height" v="11" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="329180772">
 <nd ref="690809894" />
@@ -77166,6 +77277,7 @@
 <nd ref="3477496391" />
 <tag k="building" v="apartments" />
 <tag k="building:levels" v="3" />
+<tag k="roof:shape" v="gabled" />
 </way>
 <way id="340511862">
 <nd ref="3477496389" />
@@ -78083,6 +78195,7 @@
 <nd ref="3844755797" />
 <nd ref="3844755801" />
 <tag k="building" v="yes" />
+<tag k="roof:shape" v="mansard" />
 </way>
 <way id="381243399">
 <nd ref="3844755799" />
@@ -78113,6 +78226,8 @@
 <nd ref="3844755790" />
 <nd ref="3844755791" />
 <tag k="building" v="yes" />
+<tag k="roof:colour" v="grey" />
+<tag k="roof:shape" v="pyramidal" />
 </way>
 <way id="381243402">
 <nd ref="3844755783" />
@@ -78796,6 +78911,8 @@
 <nd ref="4340343210" />
 <nd ref="4340343209" />
 <tag k="building" v="yes" />
+<tag k="building:colour" v="blue" />
+<tag k="roof:colour" v="sand" />
 </way>
 <way id="436157540">
 <nd ref="4340343212" />
@@ -79341,7 +79458,9 @@
 <nd ref="4686070916" />
 <nd ref="4686070915" />
 <tag k="building" v="roof" />
+<tag k="building:colour" v="tan" />
 <tag k="height" v="5.7" />
+<tag k="min_height" v="5" />
 </way>
 <way id="474709347">
 <nd ref="4686070924" />
@@ -79428,6 +79547,7 @@
 <nd ref="6534100713" />
 <nd ref="4762856065" />
 <tag k="building" v="apartments" />
+<tag k="building:colour" v="tan" />
 <tag k="building:levels" v="6" />
 <tag k="height" v="23" />
 </way>
@@ -79840,6 +79960,8 @@
 <nd ref="4779346790" />
 <nd ref="4779347033" />
 <tag k="building" v="yes" />
+<tag k="building:colour" v="red" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="485166750">
 <nd ref="4779347042" />
@@ -79868,6 +79990,7 @@
 <nd ref="4779346810" />
 <nd ref="4779346817" />
 <tag k="building" v="yes" />
+<tag k="building:colour" v="beige" />
 </way>
 <way id="485166753">
 <nd ref="4779347022" />
@@ -79884,6 +80007,9 @@
 <nd ref="4779347021" />
 <nd ref="4779347022" />
 <tag k="building" v="yes" />
+<tag k="building:colour" v="brick" />
+<tag k="roof:colour" v="brown" />
+<tag k="roof:shape" v="hipped" />
 </way>
 <way id="485166759">
 <nd ref="4779347031" />
@@ -79963,8 +80089,11 @@
 <nd ref="4779450280" />
 <nd ref="4779450278" />
 <tag k="building" v="yes" />
+<tag k="building:colour" v="white" />
 <tag k="building:levels" v="1" />
 <tag k="height" v="3" />
+<tag k="roof:colour" v="grey" />
+<tag k="roof:shape" v="hipped" />
 </way>
 <way id="485175812">
 <nd ref="4779450267" />
@@ -81219,6 +81348,7 @@
 <nd ref="108290957" />
 <tag k="amenity" v="fast_food" />
 <tag k="building" v="yes" />
+<tag k="roof:colour" v="sand" />
 </way>
 <way id="686551766">
 <nd ref="6435159742" />
@@ -81744,6 +81874,7 @@
 <nd ref="5061218407" />
 <tag k="building" v="retail" />
 <tag k="building:levels" v="1" />
+<tag k="roof:levels" v="0" />
 </way>
 <way id="695506471">
 <nd ref="6530502067" />
@@ -81788,6 +81919,7 @@
 <nd ref="6530502080" />
 <nd ref="6533210013" />
 <tag k="building" v="roof" />
+<tag k="building:material" v="glass" />
 <tag k="height" v="2.5" />
 </way>
 <way id="695757425">
@@ -81983,6 +82115,7 @@
 <nd ref="6530502071" />
 <tag k="building" v="yes" />
 <tag k="building:levels" v="2" />
+<tag k="building:min_level" v="1" />
 </way>
 <way id="697938245">
 <nd ref="51269861" />
@@ -82059,7 +82192,10 @@
 <nd ref="6586049086" />
 <nd ref="6586049087" />
 <nd ref="7431807920" />
+<tag k="building:colour" v="tan" />
 <tag k="building:levels" v="5" />
+<tag k="building:part" v="yes" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="701270043">
 <nd ref="6586042981" />
@@ -82085,7 +82221,10 @@
 <nd ref="6586049095" />
 <nd ref="1447620649" />
 <nd ref="6586049093" />
+<tag k="building:colour" v="tan" />
 <tag k="building:levels" v="5" />
+<tag k="building:part" v="yes" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="701272986">
 <nd ref="6586061608" />
@@ -82115,7 +82254,9 @@
 <nd ref="6586061626" />
 <nd ref="1474851860" />
 <nd ref="6586061616" />
+<tag k="building:colour" v="tan" />
 <tag k="building:levels" v="12" />
+<tag k="building:part" v="yes" />
 </way>
 <way id="701272988">
 <nd ref="1474851846" />
@@ -82130,6 +82271,7 @@
 <nd ref="1474851829" />
 <nd ref="1474851846" />
 <tag k="building:levels" v="4" />
+<tag k="building:part" v="yes" />
 </way>
 <way id="706255623">
 <nd ref="6636178468" />
@@ -82222,6 +82364,15 @@
 <nd ref="7018502109" />
 <tag k="amenity" v="school" />
 <tag k="landuse" v="religious" />
+</way>
+<way id="750632106">
+<nd ref="7018502127" />
+<nd ref="7018502113" />
+<nd ref="7018502112" />
+<nd ref="7018502125" />
+<nd ref="7018502126" />
+<nd ref="7018502127" />
+<tag k="building:part" v="yes" />
 </way>
 <way id="750632107">
 <nd ref="7018502147" />
@@ -82721,6 +82872,7 @@
 <nd ref="7235780362" />
 <nd ref="7235780357" />
 <tag k="building" v="yes" />
+<tag k="roof:colour" v="sand" />
 </way>
 <way id="775617752">
 <nd ref="7235780364" />
@@ -82729,6 +82881,7 @@
 <nd ref="7235780367" />
 <nd ref="7235780364" />
 <tag k="building" v="yes" />
+<tag k="roof:colour" v="sand" />
 </way>
 <way id="775620253">
 <nd ref="7235803658" />
@@ -83160,6 +83313,7 @@
 <nd ref="12479726534" />
 <nd ref="7283352895" />
 <tag k="building" v="office" />
+<tag k="building:colour" v="#e2dacd" />
 <tag k="height" v="47" />
 </way>
 <way id="780010617">
@@ -83371,6 +83525,8 @@
 <nd ref="1869486013" />
 <nd ref="1869486032" />
 <tag k="building:levels" v="3" />
+<tag k="building:part" v="yes" />
+<tag k="roof:shape" v="saltbox" />
 </way>
 <way id="783200000">
 <nd ref="7314127551" />
@@ -83379,6 +83535,10 @@
 <nd ref="7314127554" />
 <nd ref="7314127551" />
 <tag k="building:levels" v="2" />
+<tag k="building:part" v="yes" />
+<tag k="roof:colour" v="brown" />
+<tag k="roof:direction" v="90" />
+<tag k="roof:shape" v="skillion" />
 </way>
 <way id="783200001">
 <nd ref="7314127558" />
@@ -83587,6 +83747,7 @@
 <nd ref="6533210046" />
 <nd ref="6538395469" />
 <nd ref="7344912770" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="0.3" />
 </way>
 <way id="785740046">
@@ -84400,6 +84561,7 @@
 <tag k="building" v="apartments" />
 <tag k="building:levels" v="11" />
 <tag k="landuse" v="residential" />
+<tag k="min_height" v="4" />
 </way>
 <way id="794597020">
 <nd ref="6260803258" />
@@ -84942,6 +85104,10 @@
 <nd ref="7314127554" />
 <nd ref="7314127551" />
 <tag k="building:levels" v="2" />
+<tag k="building:part" v="yes" />
+<tag k="roof:colour" v="brown" />
+<tag k="roof:direction" v="270" />
+<tag k="roof:shape" v="skillion" />
 </way>
 <way id="797054314">
 <nd ref="7454376873" />
@@ -84950,6 +85116,7 @@
 <nd ref="7454376876" />
 <nd ref="7454376873" />
 <tag k="building:levels" v="2" />
+<tag k="building:part" v="yes" />
 </way>
 <way id="797054315">
 <nd ref="7454376872" />
@@ -84975,7 +85142,9 @@
 <nd ref="7454376882" />
 <nd ref="7454376883" />
 <nd ref="7454376872" />
+<tag k="building:colour" v="brown" />
 <tag k="building:levels" v="2" />
+<tag k="building:part" v="yes" />
 </way>
 <way id="797553498">
 <nd ref="7459151491" />
@@ -85067,6 +85236,7 @@
 <nd ref="7459151551" />
 <nd ref="7459151513" />
 <tag k="building" v="yes" />
+<tag k="building:colour" v="sand" />
 <tag k="building:levels" v="6" />
 <tag k="height" v="24" />
 </way>
@@ -85204,7 +85374,10 @@
 <nd ref="6586049092" />
 <nd ref="6586049089" />
 <nd ref="6586042981" />
+<tag k="building:colour" v="tan" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="5" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="806286627">
 <nd ref="6586049089" />
@@ -85212,7 +85385,9 @@
 <nd ref="6586049091" />
 <nd ref="6586049092" />
 <nd ref="6586049089" />
+<tag k="building:part" v="roof" />
 <tag k="height" v="5" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="806286628">
 <nd ref="6586061616" />
@@ -85243,6 +85418,8 @@
 <nd ref="6586061617" />
 <nd ref="6586061616" />
 <tag k="building:levels" v="1" />
+<tag k="building:part" v="yes" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="807150758">
 <nd ref="7548040656" />
@@ -85385,6 +85562,17 @@
 <nd ref="1974640591" />
 <tag k="highway" v="service" />
 </way>
+<way id="808448777">
+<nd ref="7559833653" />
+<nd ref="7559833654" />
+<nd ref="1819209465" />
+<nd ref="8994421330" />
+<nd ref="8994421329" />
+<nd ref="1819209495" />
+<nd ref="7559833653" />
+<tag k="building:part" v="yes" />
+<tag k="roof:colour" v="grey" />
+</way>
 <way id="808602193">
 <nd ref="7561119825" />
 <nd ref="7561119826" />
@@ -85406,7 +85594,9 @@
 <nd ref="7569812604" />
 <nd ref="7569812605" />
 <nd ref="7569812602" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="14" />
+<tag k="roof:colour" v="sand" />
 </way>
 <way id="809593160">
 <nd ref="7569812606" />
@@ -85414,7 +85604,11 @@
 <nd ref="7569812608" />
 <nd ref="7569812609" />
 <nd ref="7569812606" />
+<tag k="building:colour" v="white" />
+<tag k="building:material" v="metal" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="13" />
+<tag k="roof:colour" v="white" />
 </way>
 <way id="809593161">
 <nd ref="7569812610" />
@@ -85422,7 +85616,10 @@
 <nd ref="7569812612" />
 <nd ref="7569812613" />
 <nd ref="7569812610" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593162">
 <nd ref="7569812614" />
@@ -85430,7 +85627,10 @@
 <nd ref="7569812616" />
 <nd ref="7569812617" />
 <nd ref="7569812614" />
+<tag k="building:colour" v="gray" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.6" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="809593163">
 <nd ref="7569812618" />
@@ -85438,7 +85638,10 @@
 <nd ref="7569812620" />
 <nd ref="7569812621" />
 <nd ref="7569812618" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593164">
 <nd ref="7569812622" />
@@ -85446,7 +85649,10 @@
 <nd ref="7569812624" />
 <nd ref="7569812625" />
 <nd ref="7569812622" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593165">
 <nd ref="7569812626" />
@@ -85454,7 +85660,10 @@
 <nd ref="7569812628" />
 <nd ref="7569812629" />
 <nd ref="7569812626" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593166">
 <nd ref="7569812630" />
@@ -85462,7 +85671,10 @@
 <nd ref="7569812632" />
 <nd ref="7569812633" />
 <nd ref="7569812630" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593167">
 <nd ref="7569812634" />
@@ -85470,7 +85682,10 @@
 <nd ref="7569812636" />
 <nd ref="7569812637" />
 <nd ref="7569812634" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593168">
 <nd ref="7569812638" />
@@ -85478,7 +85693,10 @@
 <nd ref="7569812640" />
 <nd ref="7569812641" />
 <nd ref="7569812638" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593169">
 <nd ref="7569812642" />
@@ -85486,7 +85704,10 @@
 <nd ref="7569812644" />
 <nd ref="7569812645" />
 <nd ref="7569812642" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593170">
 <nd ref="7569812646" />
@@ -85494,7 +85715,10 @@
 <nd ref="7569812648" />
 <nd ref="7569812649" />
 <nd ref="7569812646" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593171">
 <nd ref="7569812650" />
@@ -85502,7 +85726,10 @@
 <nd ref="7569812652" />
 <nd ref="7569812653" />
 <nd ref="7569812650" />
+<tag k="building:colour" v="gray" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.6" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="809593172">
 <nd ref="7569812654" />
@@ -85510,7 +85737,10 @@
 <nd ref="7569812656" />
 <nd ref="7569812657" />
 <nd ref="7569812654" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593173">
 <nd ref="7569812658" />
@@ -85518,7 +85748,10 @@
 <nd ref="7569812660" />
 <nd ref="7569812661" />
 <nd ref="7569812658" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593174">
 <nd ref="7569812662" />
@@ -85526,7 +85759,10 @@
 <nd ref="7569812664" />
 <nd ref="7569812665" />
 <nd ref="7569812662" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593175">
 <nd ref="7569812666" />
@@ -85534,7 +85770,10 @@
 <nd ref="7569812668" />
 <nd ref="7569812669" />
 <nd ref="7569812666" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593176">
 <nd ref="7569812670" />
@@ -85542,7 +85781,10 @@
 <nd ref="7569812672" />
 <nd ref="7569812673" />
 <nd ref="7569812670" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593177">
 <nd ref="7569812674" />
@@ -85550,7 +85792,10 @@
 <nd ref="7569812676" />
 <nd ref="7569812677" />
 <nd ref="7569812674" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593178">
 <nd ref="7569812678" />
@@ -85558,7 +85803,10 @@
 <nd ref="7569812680" />
 <nd ref="7569812681" />
 <nd ref="7569812678" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593179">
 <nd ref="7569812682" />
@@ -85566,7 +85814,10 @@
 <nd ref="7569812684" />
 <nd ref="7569825285" />
 <nd ref="7569812682" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593180">
 <nd ref="7569825286" />
@@ -85574,7 +85825,10 @@
 <nd ref="7569825288" />
 <nd ref="7569825289" />
 <nd ref="7569825286" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593181">
 <nd ref="7569825290" />
@@ -85582,7 +85836,10 @@
 <nd ref="7569825292" />
 <nd ref="7569825293" />
 <nd ref="7569825290" />
+<tag k="building:colour" v="gray" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.6" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="809593182">
 <nd ref="7569825294" />
@@ -85590,7 +85847,10 @@
 <nd ref="7569825296" />
 <nd ref="7569825297" />
 <nd ref="7569825294" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593183">
 <nd ref="7569825298" />
@@ -85598,7 +85858,10 @@
 <nd ref="7569825300" />
 <nd ref="7569825301" />
 <nd ref="7569825298" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593184">
 <nd ref="7569825302" />
@@ -85606,7 +85869,10 @@
 <nd ref="7569825304" />
 <nd ref="7569825305" />
 <nd ref="7569825302" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593185">
 <nd ref="7569825306" />
@@ -85614,7 +85880,10 @@
 <nd ref="7569825308" />
 <nd ref="7569825309" />
 <nd ref="7569825306" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593186">
 <nd ref="7569825310" />
@@ -85622,7 +85891,10 @@
 <nd ref="7569825312" />
 <nd ref="7569825313" />
 <nd ref="7569825310" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593187">
 <nd ref="7569825314" />
@@ -85630,7 +85902,10 @@
 <nd ref="7569825316" />
 <nd ref="7569825317" />
 <nd ref="7569825314" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593188">
 <nd ref="7569825318" />
@@ -85638,7 +85913,10 @@
 <nd ref="7569825320" />
 <nd ref="7569825321" />
 <nd ref="7569825318" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593189">
 <nd ref="7569825322" />
@@ -85646,7 +85924,10 @@
 <nd ref="7569825324" />
 <nd ref="7569825325" />
 <nd ref="7569825322" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593190">
 <nd ref="7569825326" />
@@ -85654,7 +85935,10 @@
 <nd ref="7569825328" />
 <nd ref="7569825329" />
 <nd ref="7569825326" />
+<tag k="building:colour" v="#404040" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12.8" />
+<tag k="roof:colour" v="#404040" />
 </way>
 <way id="809593191">
 <nd ref="7569825343" />
@@ -85677,7 +85961,10 @@
 <nd ref="7569825335" />
 <nd ref="7569825336" />
 <nd ref="7569825343" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="13" />
+<tag k="min_height" v="12.75" />
+<tag k="roof:colour" v="#202020" />
 </way>
 <way id="809593192">
 <nd ref="7569825349" />
@@ -85700,7 +85987,10 @@
 <nd ref="7569825366" />
 <nd ref="7569825367" />
 <nd ref="7569825349" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="13" />
+<tag k="min_height" v="12.75" />
+<tag k="roof:colour" v="#202020" />
 </way>
 <way id="809593193">
 <nd ref="7569825368" />
@@ -85723,7 +86013,10 @@
 <nd ref="7569825385" />
 <nd ref="7569825386" />
 <nd ref="7569825368" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="13" />
+<tag k="min_height" v="12.75" />
+<tag k="roof:colour" v="#202020" />
 </way>
 <way id="809593194">
 <nd ref="7569825387" />
@@ -85746,7 +86039,10 @@
 <nd ref="7569825404" />
 <nd ref="7569825405" />
 <nd ref="7569825387" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="13" />
+<tag k="min_height" v="12.75" />
+<tag k="roof:colour" v="#202020" />
 </way>
 <way id="809593195">
 <nd ref="7569825406" />
@@ -85769,7 +86065,10 @@
 <nd ref="7569825423" />
 <nd ref="7569825424" />
 <nd ref="7569825406" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="13" />
+<tag k="min_height" v="12.75" />
+<tag k="roof:colour" v="#202020" />
 </way>
 <way id="809593196">
 <nd ref="7569825425" />
@@ -85792,7 +86091,10 @@
 <nd ref="7569825442" />
 <nd ref="7569825443" />
 <nd ref="7569825425" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="13" />
+<tag k="min_height" v="12.75" />
+<tag k="roof:colour" v="#202020" />
 </way>
 <way id="809593197">
 <nd ref="7569825445" />
@@ -85876,7 +86178,9 @@
 <nd ref="7672066111" />
 <nd ref="7672066112" />
 <nd ref="7672066109" />
+<tag k="building:colour" v="beige" />
 <tag k="building:levels" v="7" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="24" />
 </way>
 <way id="821667341">
@@ -85914,6 +86218,7 @@
 <nd ref="7672066136" />
 <nd ref="7672066113" />
 <tag k="building:levels" v="5" />
+<tag k="building:part" v="yes" />
 </way>
 <way id="822331289">
 <nd ref="7678270298" />
@@ -85967,6 +86272,7 @@
 <nd ref="7682811547" />
 <nd ref="7682811546" />
 <nd ref="7459151536" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="4" />
 </way>
 <way id="822860632">
@@ -85975,7 +86281,9 @@
 <nd ref="7682811549" />
 <nd ref="7682811546" />
 <nd ref="7682811547" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="12" />
+<tag k="roof:shape" v="gabled" />
 </way>
 <way id="822860633">
 <nd ref="7682811548" />
@@ -85994,6 +86302,7 @@
 <nd ref="7459151535" />
 <nd ref="7682811549" />
 <nd ref="7682811548" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="4" />
 </way>
 <way id="822860634">
@@ -86053,6 +86362,19 @@
 <nd ref="7682815588" />
 <nd ref="7682815585" />
 <tag k="building" v="roof" />
+</way>
+<way id="822860645">
+<nd ref="7682815589" />
+<nd ref="7432010589" />
+<nd ref="7432010588" />
+<nd ref="7432010587" />
+<nd ref="7432010586" />
+<nd ref="7432010585" />
+<nd ref="7431966884" />
+<nd ref="7431966883" />
+<nd ref="7682815589" />
+<tag k="building:part" v="yes" />
+<tag k="min_height" v="0" />
 </way>
 <way id="822860646">
 <nd ref="7682815590" />
@@ -86117,6 +86439,7 @@
 <nd ref="7686045255" />
 <nd ref="7686045252" />
 <tag k="building" v="yes" />
+<tag k="roof:shape" v="round" />
 </way>
 <way id="827509108">
 <nd ref="7672066109" />
@@ -86957,6 +87280,8 @@
 <nd ref="8700175182" />
 <tag k="building" v="yes" />
 <tag k="building:levels" v="1" />
+<tag k="roof:direction" v="90" />
+<tag k="roof:shape" v="gabled" />
 </way>
 <way id="939182239">
 <nd ref="8700175198" />
@@ -86966,6 +87291,8 @@
 <nd ref="8700175198" />
 <tag k="building" v="yes" />
 <tag k="building:levels" v="1" />
+<tag k="roof:levels" v="1" />
+<tag k="roof:shape" v="hipped" />
 </way>
 <way id="939182240">
 <nd ref="8700175202" />
@@ -86974,6 +87301,8 @@
 <nd ref="8700175205" />
 <nd ref="8700175202" />
 <tag k="building" v="yes" />
+<tag k="roof:direction" v="90" />
+<tag k="roof:shape" v="gabled" />
 </way>
 <way id="939182242">
 <nd ref="12222798255" />
@@ -87005,6 +87334,8 @@
 <nd ref="8700189519" />
 <nd ref="8700175216" />
 <tag k="building" v="yes" />
+<tag k="roof:direction" v="0" />
+<tag k="roof:shape" v="gabled" />
 </way>
 <way id="939182245">
 <nd ref="8700189520" />
@@ -87013,6 +87344,8 @@
 <nd ref="8700189523" />
 <nd ref="8700189520" />
 <tag k="building" v="yes" />
+<tag k="roof:direction" v="0" />
+<tag k="roof:shape" v="gabled" />
 </way>
 <way id="939182246">
 <nd ref="8700189524" />
@@ -87224,6 +87557,8 @@
 <nd ref="8708861426" />
 <nd ref="8708861423" />
 <tag k="building" v="yes" />
+<tag k="roof:direction" v="90" />
+<tag k="roof:shape" v="gabled" />
 </way>
 <way id="940334388">
 <nd ref="8708861427" />
@@ -87232,6 +87567,7 @@
 <nd ref="8708861430" />
 <nd ref="8708861427" />
 <tag k="building" v="yes" />
+<tag k="roof:shape" v="gabled" />
 </way>
 <way id="940334389">
 <nd ref="8708861431" />
@@ -87257,6 +87593,8 @@
 <tag k="building" v="yes" />
 <tag k="building:levels" v="1" />
 <tag k="height" v="3" />
+<tag k="roof:direction" v="0" />
+<tag k="roof:shape" v="gabled" />
 </way>
 <way id="940334392">
 <nd ref="8708861443" />
@@ -87266,6 +87604,9 @@
 <nd ref="8708861443" />
 <tag k="building" v="garage" />
 <tag k="building:levels" v="1" />
+<tag k="roof:colour" v="grey" />
+<tag k="roof:direction" v="0" />
+<tag k="roof:shape" v="gabled" />
 </way>
 <way id="940334393">
 <nd ref="8708861447" />
@@ -87338,6 +87679,7 @@
 <nd ref="8710456452" />
 <tag k="building" v="yes" />
 <tag k="building:levels" v="2" />
+<tag k="roof:levels" v="1" />
 </way>
 <way id="940518253">
 <nd ref="8710469748" />
@@ -87468,6 +87810,8 @@
 <nd ref="8711021006" />
 <nd ref="8711021003" />
 <tag k="building" v="yes" />
+<tag k="roof:colour" v="grey" />
+<tag k="roof:shape" v="hipped" />
 </way>
 <way id="940593018">
 <nd ref="8711021007" />
@@ -87476,6 +87820,8 @@
 <nd ref="8711021010" />
 <nd ref="8711021007" />
 <tag k="building" v="yes" />
+<tag k="roof:colour" v="grey" />
+<tag k="roof:shape" v="gabled" />
 </way>
 <way id="940593019">
 <nd ref="8711021008" />
@@ -87486,6 +87832,7 @@
 <nd ref="8711021009" />
 <nd ref="8711021008" />
 <tag k="building" v="yes" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="940593020">
 <nd ref="9136401798" />
@@ -87502,6 +87849,7 @@
 <nd ref="8711025622" />
 <nd ref="8711025619" />
 <tag k="building" v="yes" />
+<tag k="roof:shape" v="gabled" />
 </way>
 <way id="940593023">
 <nd ref="8711025627" />
@@ -87518,6 +87866,8 @@
 <nd ref="8711025634" />
 <nd ref="8711025631" />
 <tag k="building" v="yes" />
+<tag k="roof:colour" v="brown" />
+<tag k="roof:shape" v="gabled" />
 </way>
 <way id="940593025">
 <nd ref="8711025635" />
@@ -87526,6 +87876,8 @@
 <nd ref="8711025638" />
 <nd ref="8711025635" />
 <tag k="building" v="yes" />
+<tag k="roof:colour" v="grey" />
+<tag k="roof:shape" v="gabled" />
 </way>
 <way id="940593026">
 <nd ref="8711025639" />
@@ -87542,6 +87894,7 @@
 <nd ref="8711025646" />
 <nd ref="9136401800" />
 <tag k="building" v="yes" />
+<tag k="roof:colour" v="grey" />
 </way>
 <way id="940919183">
 <nd ref="8714146716" />
@@ -95400,6 +95753,7 @@
 <nd ref="8947571942" />
 <tag k="building" v="detached" />
 <tag k="building:levels" v="1" />
+<tag k="roof:levels" v="1" />
 </way>
 <way id="967128201">
 <nd ref="11968202468" />
@@ -134614,7 +134968,10 @@
 <nd ref="1474851893" />
 <nd ref="12479726535" />
 <nd ref="7283352896" />
+<tag k="building:colour" v="#e2dacd" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="5" />
+<tag k="roof:colour" v="white" />
 </way>
 <way id="1120149822">
 <nd ref="6949704368" />
@@ -140582,7 +140939,10 @@
 <nd ref="12482379988" />
 <nd ref="12479692157" />
 <nd ref="12479692153" />
+<tag k="building:colour" v="#e2dacd" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="4" />
+<tag k="roof:colour" v="white" />
 </way>
 <way id="1349128979">
 <nd ref="12482379989" />
@@ -140590,7 +140950,10 @@
 <nd ref="12482379983" />
 <nd ref="12482379986" />
 <nd ref="12482379989" />
+<tag k="building:colour" v="#e2dacd" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="6" />
+<tag k="roof:colour" v="white" />
 </way>
 <way id="1349128981">
 <nd ref="12479692159" />
@@ -140626,7 +140989,10 @@
 <nd ref="12479721083" />
 <nd ref="12479692168" />
 <nd ref="12479692167" />
+<tag k="building:colour" v="#e2dacd" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="42" />
+<tag k="roof:colour" v="white" />
 </way>
 <way id="1349128983">
 <nd ref="12479692169" />
@@ -140637,7 +141003,10 @@
 <nd ref="12482478025" />
 <nd ref="12479692164" />
 <nd ref="12479692169" />
+<tag k="building:colour" v="#e2dacd" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="42" />
+<tag k="roof:colour" v="white" />
 </way>
 <way id="1349130961">
 <nd ref="12479726537" />
@@ -140645,7 +141014,11 @@
 <nd ref="12479664745" />
 <nd ref="12479726538" />
 <nd ref="12479726537" />
+<tag k="building:colour" v="#e2dacd" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="4" />
+<tag k="min_height" v="3.5" />
+<tag k="roof:colour" v="white" />
 </way>
 <way id="1349131597">
 <nd ref="12479664753" />
@@ -140655,7 +141028,10 @@
 <nd ref="12479664755" />
 <nd ref="12479664754" />
 <nd ref="12479664753" />
+<tag k="building:colour" v="#e2dacd" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="4" />
+<tag k="roof:colour" v="white" />
 </way>
 <way id="1349131977">
 <nd ref="12479665030" />
@@ -140663,7 +141039,11 @@
 <nd ref="7283352902" />
 <nd ref="7283352903" />
 <nd ref="12479665030" />
+<tag k="building:colour" v="#e2dacd" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="4" />
+<tag k="min_height" v="3.5" />
+<tag k="roof:colour" v="white" />
 </way>
 <way id="1349132271">
 <nd ref="12482442675" />
@@ -140680,7 +141060,10 @@
 <nd ref="12482487924" />
 <nd ref="12482487923" />
 <nd ref="12482442675" />
+<tag k="building:colour" v="#e2dacd" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="5" />
+<tag k="roof:colour" v="white" />
 </way>
 <way id="1349132272">
 <nd ref="12479726534" />
@@ -140695,7 +141078,10 @@
 <nd ref="12479743208" />
 <nd ref="1474851814" />
 <nd ref="12479726534" />
+<tag k="building:colour" v="#e2dacd" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="4" />
+<tag k="roof:colour" v="white" />
 </way>
 <way id="1349133351">
 <nd ref="12479692159" />
@@ -140708,7 +141094,10 @@
 <nd ref="12479692167" />
 <nd ref="12482656773" />
 <nd ref="12479692159" />
+<tag k="building:material" v="glass" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="41" />
+<tag k="roof:colour" v="white" />
 </way>
 <way id="1349133352">
 <nd ref="12479721083" />
@@ -140720,7 +141109,10 @@
 <nd ref="12482656774" />
 <nd ref="12479692168" />
 <nd ref="12479721083" />
+<tag k="building:material" v="glass" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="41" />
+<tag k="roof:colour" v="white" />
 </way>
 <way id="1349133353">
 <nd ref="12479692169" />
@@ -140730,7 +141122,10 @@
 <nd ref="12479754007" />
 <nd ref="12479692164" />
 <nd ref="12479692169" />
+<tag k="building:material" v="glass" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="41" />
+<tag k="roof:colour" v="white" />
 </way>
 <way id="1349133354">
 <nd ref="12479692170" />
@@ -140741,7 +141136,10 @@
 <nd ref="12479783057" />
 <nd ref="12479783058" />
 <nd ref="12479692170" />
+<tag k="building:material" v="glass" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="41" />
+<tag k="roof:colour" v="white" />
 </way>
 <way id="1349133545">
 <nd ref="12479692163" />
@@ -140767,7 +141165,10 @@
 <nd ref="12482476311" />
 <nd ref="12479721082" />
 <nd ref="12479692163" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="41" />
+<tag k="min_height" v="39.5" />
 </way>
 <way id="1349133546">
 <nd ref="12479692166" />
@@ -140797,7 +141198,11 @@
 <nd ref="12479802724" />
 <nd ref="12479721083" />
 <nd ref="12479692166" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="41" />
+<tag k="min_height" v="39.5" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349134223">
 <nd ref="12479730877" />
@@ -140860,7 +141265,10 @@
 <nd ref="12479753207" />
 <nd ref="12479783045" />
 <nd ref="12479753206" />
+<tag k="building:colour" v="#e2dacd" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="41" />
+<tag k="roof:colour" v="white" />
 </way>
 <way id="1349135737">
 <nd ref="12479783048" />
@@ -140868,7 +141276,10 @@
 <nd ref="12479721081" />
 <nd ref="12479754005" />
 <nd ref="12479783048" />
+<tag k="building:colour" v="#e2dacd" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="41" />
+<tag k="roof:colour" v="white" />
 </way>
 <way id="1349135738">
 <nd ref="12479754006" />
@@ -140876,7 +141287,10 @@
 <nd ref="12479754007" />
 <nd ref="12479721085" />
 <nd ref="12479754006" />
+<tag k="building:colour" v="#e2dacd" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="41" />
+<tag k="roof:colour" v="white" />
 </way>
 <way id="1349135739">
 <nd ref="12479754009" />
@@ -140884,7 +141298,10 @@
 <nd ref="12479721087" />
 <nd ref="12479754011" />
 <nd ref="12479754009" />
+<tag k="building:colour" v="#e2dacd" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="41" />
+<tag k="roof:colour" v="white" />
 </way>
 <way id="1349136020">
 <nd ref="12479683828" />
@@ -140892,7 +141309,10 @@
 <nd ref="12479776846" />
 <nd ref="12479776845" />
 <nd ref="12479683828" />
+<tag k="building:material" v="glass" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="41" />
+<tag k="roof:colour" v="white" />
 </way>
 <way id="1349136025">
 <nd ref="12479754032" />
@@ -140900,7 +141320,10 @@
 <nd ref="12479683861" />
 <nd ref="12479683858" />
 <nd ref="12479754032" />
+<tag k="building:material" v="glass" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="41" />
+<tag k="roof:colour" v="white" />
 </way>
 <way id="1349136888">
 <nd ref="12479692166" />
@@ -140914,7 +141337,11 @@
 <nd ref="12479802726" />
 <nd ref="12479721083" />
 <nd ref="12479692166" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="10.6" />
+<tag k="min_height" v="9.1" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349136977">
 <nd ref="12479692166" />
@@ -140928,7 +141355,11 @@
 <nd ref="12479802727" />
 <nd ref="12479721083" />
 <nd ref="12479692166" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="14.4" />
+<tag k="min_height" v="12.9" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349138357">
 <nd ref="12479776849" />
@@ -140936,7 +141367,10 @@
 <nd ref="12479776851" />
 <nd ref="12479776852" />
 <nd ref="12479776849" />
+<tag k="building:material" v="glass" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="41" />
+<tag k="roof:colour" v="white" />
 </way>
 <way id="1349138358">
 <nd ref="12479776853" />
@@ -140944,7 +141378,10 @@
 <nd ref="12479776855" />
 <nd ref="12479776856" />
 <nd ref="12479776853" />
+<tag k="building:material" v="glass" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="41" />
+<tag k="roof:colour" v="white" />
 </way>
 <way id="1349138359">
 <nd ref="12479776857" />
@@ -140952,7 +141389,10 @@
 <nd ref="12479776859" />
 <nd ref="12479776860" />
 <nd ref="12479776857" />
+<tag k="building:material" v="glass" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="41" />
+<tag k="roof:colour" v="white" />
 </way>
 <way id="1349140938">
 <nd ref="12482680201" />
@@ -140988,6 +141428,8 @@
 <nd ref="12482680228" />
 <nd ref="12482680229" />
 <nd ref="12482680201" />
+<tag k="building:colour" v="#e2dacd" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="41" />
 </way>
 <way id="1349141051">
@@ -141002,7 +141444,11 @@
 <nd ref="12482442673" />
 <nd ref="1474851814" />
 <nd ref="12479743208" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="18.2" />
+<tag k="min_height" v="16.7" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349141052">
 <nd ref="12479743208" />
@@ -141016,7 +141462,11 @@
 <nd ref="12482442673" />
 <nd ref="1474851814" />
 <nd ref="12479743208" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="22" />
+<tag k="min_height" v="20.5" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349233387">
 <nd ref="12479721083" />
@@ -141030,7 +141480,11 @@
 <nd ref="12479753206" />
 <nd ref="12480632563" />
 <nd ref="12479721083" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="25.8" />
+<tag k="min_height" v="24.3" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349233959">
 <nd ref="12479721083" />
@@ -141044,7 +141498,11 @@
 <nd ref="12479753206" />
 <nd ref="12480628894" />
 <nd ref="12479721083" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="29.6" />
+<tag k="min_height" v="28.1" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349233960">
 <nd ref="12479721083" />
@@ -141058,7 +141516,11 @@
 <nd ref="12479753206" />
 <nd ref="12480628895" />
 <nd ref="12479721083" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="33.4" />
+<tag k="min_height" v="31.9" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349233961">
 <nd ref="12479721083" />
@@ -141072,7 +141534,11 @@
 <nd ref="12479753206" />
 <nd ref="12480628896" />
 <nd ref="12479721083" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="37.2" />
+<tag k="min_height" v="35.7" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349368613">
 <nd ref="12479754005" />
@@ -141088,7 +141554,11 @@
 <nd ref="12479721082" />
 <nd ref="12482476313" />
 <nd ref="12479754005" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="10.6" />
+<tag k="min_height" v="9.1" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349368922">
 <nd ref="12482463933" />
@@ -141104,7 +141574,11 @@
 <nd ref="12479692163" />
 <nd ref="12479721082" />
 <nd ref="12482463933" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="14.4" />
+<tag k="min_height" v="12.9" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349368923">
 <nd ref="12482463934" />
@@ -141120,7 +141594,11 @@
 <nd ref="12479692163" />
 <nd ref="12479721082" />
 <nd ref="12482463934" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="18.2" />
+<tag k="min_height" v="16.7" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349368924">
 <nd ref="12482463935" />
@@ -141136,7 +141614,11 @@
 <nd ref="12479692163" />
 <nd ref="12479721082" />
 <nd ref="12482463935" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="22" />
+<tag k="min_height" v="20.5" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349368925">
 <nd ref="12482463936" />
@@ -141152,7 +141634,11 @@
 <nd ref="12479692163" />
 <nd ref="12479721082" />
 <nd ref="12482463936" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="25.8" />
+<tag k="min_height" v="24.3" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349368926">
 <nd ref="12482463937" />
@@ -141168,7 +141654,11 @@
 <nd ref="12479692163" />
 <nd ref="12479721082" />
 <nd ref="12482463937" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="29.6" />
+<tag k="min_height" v="28.1" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349369514">
 <nd ref="12479721082" />
@@ -141184,7 +141674,11 @@
 <nd ref="7283352908" />
 <nd ref="12479692163" />
 <nd ref="12479721082" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="33.4" />
+<tag k="min_height" v="31.9" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349369553">
 <nd ref="12479721082" />
@@ -141201,7 +141695,11 @@
 <nd ref="7283352908" />
 <nd ref="12479692163" />
 <nd ref="12479721082" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="37.2" />
+<tag k="min_height" v="35.7" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349370112">
 <nd ref="12479692162" />
@@ -141214,7 +141712,11 @@
 <nd ref="1474851818" />
 <nd ref="12479754006" />
 <nd ref="12479692162" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="37.2" />
+<tag k="min_height" v="35.7" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349370113">
 <nd ref="12479692164" />
@@ -141227,7 +141729,11 @@
 <nd ref="12482478023" />
 <nd ref="12482478025" />
 <nd ref="12479692164" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="33.4" />
+<tag k="min_height" v="31.9" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349370114">
 <nd ref="12479692164" />
@@ -141240,7 +141746,11 @@
 <nd ref="12482478023" />
 <nd ref="12482478025" />
 <nd ref="12479692164" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="29.6" />
+<tag k="min_height" v="28.1" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349370115">
 <nd ref="12479692164" />
@@ -141253,7 +141763,11 @@
 <nd ref="12482478023" />
 <nd ref="12482478025" />
 <nd ref="12479692164" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="25.8" />
+<tag k="min_height" v="24.3" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349370116">
 <nd ref="12479692164" />
@@ -141266,7 +141780,11 @@
 <nd ref="12482478023" />
 <nd ref="12482478025" />
 <nd ref="12479692164" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="22" />
+<tag k="min_height" v="20.5" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349370117">
 <nd ref="12479692164" />
@@ -141279,7 +141797,11 @@
 <nd ref="12482478023" />
 <nd ref="12482478025" />
 <nd ref="12479692164" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="18.2" />
+<tag k="min_height" v="16.7" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349370118">
 <nd ref="12479692164" />
@@ -141292,7 +141814,11 @@
 <nd ref="12482478023" />
 <nd ref="12482478025" />
 <nd ref="12479692164" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="14.4" />
+<tag k="min_height" v="12.9" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349370119">
 <nd ref="12479692164" />
@@ -141305,7 +141831,11 @@
 <nd ref="12482478023" />
 <nd ref="12482478025" />
 <nd ref="12479692164" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="10.6" />
+<tag k="min_height" v="9.1" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349389027">
 <nd ref="12479783055" />
@@ -141318,7 +141848,11 @@
 <nd ref="12479721087" />
 <nd ref="12479783056" />
 <nd ref="12479783055" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="10.6" />
+<tag k="min_height" v="9.1" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349389028">
 <nd ref="12482660710" />
@@ -141331,7 +141865,11 @@
 <nd ref="12482478026" />
 <nd ref="12479692165" />
 <nd ref="12482660710" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="14.4" />
+<tag k="min_height" v="12.9" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349389029">
 <nd ref="12482660711" />
@@ -141344,7 +141882,11 @@
 <nd ref="12482478026" />
 <nd ref="12479692165" />
 <nd ref="12482660711" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="18.2" />
+<tag k="min_height" v="16.7" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349389030">
 <nd ref="12482660712" />
@@ -141357,7 +141899,11 @@
 <nd ref="12482478026" />
 <nd ref="12479692165" />
 <nd ref="12482660712" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="22" />
+<tag k="min_height" v="20.5" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349389031">
 <nd ref="12482660713" />
@@ -141370,7 +141916,11 @@
 <nd ref="12482478026" />
 <nd ref="12479692165" />
 <nd ref="12482660713" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="25.8" />
+<tag k="min_height" v="24.3" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349389032">
 <nd ref="12479692165" />
@@ -141383,7 +141933,11 @@
 <nd ref="1474851893" />
 <nd ref="12482478026" />
 <nd ref="12479692165" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="29.6" />
+<tag k="min_height" v="28.1" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349389033">
 <nd ref="12482660715" />
@@ -141396,7 +141950,11 @@
 <nd ref="12482478026" />
 <nd ref="12479692165" />
 <nd ref="12482660715" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="33.4" />
+<tag k="min_height" v="31.9" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349389034">
 <nd ref="12479692165" />
@@ -141409,7 +141967,11 @@
 <nd ref="1474851893" />
 <nd ref="12482478026" />
 <nd ref="12479692165" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="37.2" />
+<tag k="min_height" v="35.7" />
+<tag k="roof:colour" v="#787878" />
 </way>
 <way id="1349389806">
 <nd ref="12482656766" />
@@ -141428,7 +141990,11 @@
 <nd ref="12482653765" />
 <nd ref="12482653761" />
 <nd ref="12482653762" />
+<tag k="building:colour" v="black" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="46" />
+<tag k="min_height" v="43" />
+<tag k="roof:colour" v="black" />
 <tag k="type" v="multipolygon" />
 </way>
 <way id="1349390055">
@@ -141440,7 +142006,10 @@
 <nd ref="12482656770" />
 <nd ref="12482680231" />
 <nd ref="12482680230" />
+<tag k="building:colour" v="#e2dacd" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="45" />
+<tag k="roof:colour" v="white" />
 <tag k="type" v="multipolygon" />
 </way>
 <way id="1349390323">
@@ -141450,7 +142019,11 @@
 <nd ref="12482656775" />
 <nd ref="12482656776" />
 <nd ref="12482656772" />
+<tag k="building:colour" v="black" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="46" />
+<tag k="min_height" v="43" />
+<tag k="roof:colour" v="black" />
 <tag k="type" v="multipolygon" />
 </way>
 <way id="1349428890">
@@ -141459,7 +142032,12 @@
 <nd ref="12483028491" />
 <nd ref="12483028492" />
 <nd ref="12483028489" />
+<tag k="building:colour" v="#c0c0c0" />
+<tag k="building:material" v="metal" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="46" />
+<tag k="min_height" v="45" />
+<tag k="roof:colour" v="#c0c0c0" />
 </way>
 <way id="1349428891">
 <nd ref="12483171305" />
@@ -141482,7 +142060,11 @@
 <nd ref="12483028495" />
 <nd ref="12483028496" />
 <nd ref="12483171305" />
+<tag k="building:colour" v="black" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="46.05" />
+<tag k="min_height" v="46" />
+<tag k="roof:colour" v="black" />
 </way>
 <way id="1349428892">
 <nd ref="12483171312" />
@@ -141505,7 +142087,11 @@
 <nd ref="12483171329" />
 <nd ref="12483171330" />
 <nd ref="12483171312" />
+<tag k="building:colour" v="black" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="46.05" />
+<tag k="min_height" v="46" />
+<tag k="roof:colour" v="black" />
 </way>
 <way id="1349428893">
 <nd ref="12483171331" />
@@ -141528,7 +142114,11 @@
 <nd ref="12483171348" />
 <nd ref="12483171349" />
 <nd ref="12483171331" />
+<tag k="building:colour" v="black" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="46.05" />
+<tag k="min_height" v="46" />
+<tag k="roof:colour" v="black" />
 </way>
 <way id="1349428894">
 <nd ref="12483171350" />
@@ -141551,7 +142141,11 @@
 <nd ref="12483171367" />
 <nd ref="12483171368" />
 <nd ref="12483171350" />
+<tag k="building:colour" v="black" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="46.05" />
+<tag k="min_height" v="46" />
+<tag k="roof:colour" v="black" />
 </way>
 <way id="1349428895">
 <nd ref="12483171369" />
@@ -141574,7 +142168,11 @@
 <nd ref="12483171386" />
 <nd ref="12483171387" />
 <nd ref="12483171369" />
+<tag k="building:colour" v="black" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="46.05" />
+<tag k="min_height" v="46" />
+<tag k="roof:colour" v="black" />
 </way>
 <way id="1349428896">
 <nd ref="12483171388" />
@@ -141597,7 +142195,11 @@
 <nd ref="12483171405" />
 <nd ref="12483171406" />
 <nd ref="12483171388" />
+<tag k="building:colour" v="black" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="46.05" />
+<tag k="min_height" v="46" />
+<tag k="roof:colour" v="black" />
 </way>
 <way id="1349428897">
 <nd ref="12483171407" />
@@ -141620,7 +142222,11 @@
 <nd ref="12483171424" />
 <nd ref="12483171425" />
 <nd ref="12483171407" />
+<tag k="building:colour" v="black" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="46.05" />
+<tag k="min_height" v="46" />
+<tag k="roof:colour" v="black" />
 </way>
 <way id="1349428898">
 <nd ref="12483171426" />
@@ -141643,7 +142249,11 @@
 <nd ref="12483171443" />
 <nd ref="12483171444" />
 <nd ref="12483171426" />
+<tag k="building:colour" v="black" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="46.05" />
+<tag k="min_height" v="46" />
+<tag k="roof:colour" v="black" />
 </way>
 <way id="1349428899">
 <nd ref="12483171445" />
@@ -141666,7 +142276,11 @@
 <nd ref="12483171462" />
 <nd ref="12483171463" />
 <nd ref="12483171445" />
+<tag k="building:colour" v="black" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="46.05" />
+<tag k="min_height" v="46" />
+<tag k="roof:colour" v="black" />
 </way>
 <way id="1349428900">
 <nd ref="12483171464" />
@@ -141689,7 +142303,11 @@
 <nd ref="12483171481" />
 <nd ref="12483171482" />
 <nd ref="12483171464" />
+<tag k="building:colour" v="black" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="46.05" />
+<tag k="min_height" v="46" />
+<tag k="roof:colour" v="black" />
 </way>
 <way id="1349428901">
 <nd ref="12483171483" />
@@ -141712,7 +142330,11 @@
 <nd ref="12483171500" />
 <nd ref="12483171501" />
 <nd ref="12483171483" />
+<tag k="building:colour" v="black" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="46.05" />
+<tag k="min_height" v="46" />
+<tag k="roof:colour" v="black" />
 </way>
 <way id="1349428902">
 <nd ref="12483171502" />
@@ -141735,7 +142357,11 @@
 <nd ref="12483171519" />
 <nd ref="12483171520" />
 <nd ref="12483171502" />
+<tag k="building:colour" v="black" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="46.05" />
+<tag k="min_height" v="46" />
+<tag k="roof:colour" v="black" />
 </way>
 <way id="1349428903">
 <nd ref="12483171521" />
@@ -141743,7 +142369,12 @@
 <nd ref="12483171523" />
 <nd ref="12483171524" />
 <nd ref="12483171521" />
+<tag k="building:colour" v="#c0c0c0" />
+<tag k="building:material" v="metal" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="46" />
+<tag k="min_height" v="45" />
+<tag k="roof:colour" v="#c0c0c0" />
 </way>
 <way id="1349428904">
 <nd ref="12483171525" />
@@ -141751,7 +142382,12 @@
 <nd ref="12483171527" />
 <nd ref="12483171528" />
 <nd ref="12483171525" />
+<tag k="building:colour" v="#c0c0c0" />
+<tag k="building:material" v="metal" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="45.5" />
+<tag k="min_height" v="45" />
+<tag k="roof:colour" v="#c0c0c0" />
 </way>
 <way id="1349428905">
 <nd ref="12483171529" />
@@ -141759,7 +142395,12 @@
 <nd ref="12483171531" />
 <nd ref="12483171532" />
 <nd ref="12483171529" />
+<tag k="building:colour" v="#c0c0c0" />
+<tag k="building:material" v="metal" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="45.5" />
+<tag k="min_height" v="45" />
+<tag k="roof:colour" v="#c0c0c0" />
 </way>
 <way id="1349428906">
 <nd ref="12483171533" />
@@ -141767,7 +142408,12 @@
 <nd ref="12483171535" />
 <nd ref="12483171536" />
 <nd ref="12483171533" />
+<tag k="building:colour" v="#c0c0c0" />
+<tag k="building:material" v="metal" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="45.5" />
+<tag k="min_height" v="45" />
+<tag k="roof:colour" v="#c0c0c0" />
 </way>
 <way id="1349428907">
 <nd ref="12483171548" />
@@ -141790,7 +142436,12 @@
 <nd ref="12483171539" />
 <nd ref="12483171540" />
 <nd ref="12483171548" />
+<tag k="building:colour" v="#c0c0c0" />
+<tag k="building:material" v="metal" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="45.5" />
+<tag k="min_height" v="45" />
+<tag k="roof:colour" v="#c0c0c0" />
 </way>
 <way id="1349435643">
 <nd ref="12483091238" />
@@ -141798,7 +142449,12 @@
 <nd ref="12483091240" />
 <nd ref="12483091241" />
 <nd ref="12483091238" />
+<tag k="building:colour" v="#c0c0c0" />
+<tag k="building:material" v="metal" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="6" />
+<tag k="min_height" v="5" />
+<tag k="roof:colour" v="#c0c0c0" />
 </way>
 <way id="1349435644">
 <nd ref="12483091242" />
@@ -141821,7 +142477,11 @@
 <nd ref="12483091259" />
 <nd ref="12483091260" />
 <nd ref="12483091242" />
+<tag k="building:colour" v="black" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="6.05" />
+<tag k="min_height" v="6" />
+<tag k="roof:colour" v="black" />
 </way>
 <way id="1349435645">
 <nd ref="12483091261" />
@@ -141844,7 +142504,11 @@
 <nd ref="12483091278" />
 <nd ref="12483091279" />
 <nd ref="12483091261" />
+<tag k="building:colour" v="black" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="6.05" />
+<tag k="min_height" v="6" />
+<tag k="roof:colour" v="black" />
 </way>
 <way id="1349723841">
 <nd ref="12486011171" />
@@ -144835,6 +145499,7 @@
 <member type="way" ref="797054312" role="inner" />
 <tag k="amenity" v="place_of_worship" />
 <tag k="building" v="church" />
+<tag k="building:colour" v="brown" />
 <tag k="building:levels" v="1" />
 <tag k="type" v="multipolygon" />
 </relation>
@@ -144853,8 +145518,11 @@
 <relation id="11316991">
 <member type="way" ref="827509108" role="outer" />
 <member type="way" ref="234592903" role="inner" />
+<tag k="building:colour" v="brown" />
 <tag k="building:levels" v="1" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="4.5" />
+<tag k="roof:colour" v="grey" />
 <tag k="type" v="multipolygon" />
 </relation>
 <relation id="12935801">
@@ -144998,18 +145666,27 @@
 <relation id="18514689">
 <member type="way" ref="1349134223" role="outer" />
 <member type="way" ref="1349134224" role="inner" />
+<tag k="building:colour" v="#787878" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="6.8" />
+<tag k="min_height" v="5.3" />
+<tag k="roof:colour" v="#787878" />
 <tag k="type" v="multipolygon" />
 </relation>
 <relation id="18520183">
 <member type="way" ref="1349128981" role="outer" />
 <member type="way" ref="1349389806" role="inner" />
+<tag k="building:colour" v="#e2dacd" />
+<tag k="building:part" v="yes" />
 <tag k="height" v="47" />
+<tag k="min_height" v="41" />
+<tag k="roof:colour" v="white" />
 <tag k="type" v="multipolygon" />
 </relation>
 <relation id="21162729">
 <member type="way" ref="940334390" role="outer" />
 <tag k="building" v="yes" />
+<tag k="roof:colour" v="tan" />
 <tag k="type" v="multipolygon" />
 </relation>
 <relation id="21162730">
@@ -145020,6 +145697,8 @@
 <relation id="21162731">
 <member type="way" ref="695844198" role="outer" />
 <tag k="building" v="yes" />
+<tag k="building:colour" v="brick" />
+<tag k="roof:colour" v="grey" />
 <tag k="type" v="multipolygon" />
 </relation>
 </osm>

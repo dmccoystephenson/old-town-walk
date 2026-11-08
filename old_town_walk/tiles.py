@@ -25,7 +25,10 @@ from pathlib import Path
 import numpy as np
 
 from .geo import Area, tile_north_west, tile_of
-from .mesh import Mesh, clean_ring, extrude, points_in_ring, ribbon_quads, signed_area
+from .buildings import colours, draw, parse_length, pick, plan_building
+from .context import BuildingContext, Grid
+from .trees import mapped_height, treetops
+from .mesh import Mesh, clean_ring, points_in_ring, ribbon_quads, signed_area
 from .osm import OsmData
 
 MAGIC = b"OTWTILE1"
@@ -44,9 +47,6 @@ AREA_COLOURS = [
         or t.get("place") == "square", (138, 136, 130)),
     (lambda t: t.get("landuse") == "residential", (118, 146, 90)),
 ]
-WALLS = [(186, 150, 124), (160, 96, 76), (205, 195, 176), (222, 212, 190), (150, 120, 100), (176, 168, 156)]
-ROOFS = [(112, 96, 88), (96, 96, 104), (128, 112, 98), (88, 82, 80)]
-FLAT_ROOF = (128, 126, 122)
 ASPHALT, CONCRETE = (66, 66, 70), (186, 182, 174)
 ROAD_WIDTHS = {"motorway": 12, "trunk": 11, "primary": 11, "secondary": 10, "tertiary": 9, "unclassified": 7,
                "residential": 7.5, "living_street": 6, "service": 4, "motorway_link": 6, "trunk_link": 6,
@@ -78,37 +78,6 @@ class Dem:
         return top * (1 - fr) + bottom * fr
 
 
-def pick(options, key: str):
-    return options[zlib.crc32(key.encode()) % len(options)]
-
-
-def parse_length(value: str | None) -> float | None:
-    if not value:
-        return None
-    text = value.strip().lower().replace("m", "").strip()
-    try:
-        if text.endswith(("'", "ft")):
-            return float(text.rstrip("'ft ")) * 0.3048
-        return float(text)
-    except ValueError:
-        return None
-
-
-def building_shape(tags: dict, area: float) -> tuple[float, float]:
-    """Eave height and roof rise, in metres."""
-    kind = tags.get("building", "yes")
-    house = kind in ("house", "detached", "residential", "semidetached_house", "bungalow") or (kind == "yes" and area < 320)
-    height = parse_length(tags.get("height"))
-    levels = parse_length(tags.get("building:levels"))
-    if height:
-        return height, 0.0
-    if levels:
-        return levels * 3.2 + (0.6 if not house else 0), 2.5 if house else 0.0
-    if kind in ("garage", "garages", "shed", "carport"):
-        return 2.7, 0.0
-    return (4.5, 2.5) if house else (7.0, 0.0)
-
-
 @dataclass
 class Tile:
     ix: int
@@ -123,31 +92,31 @@ def _inside(east: float, north: float, area: Area, keys: set) -> tuple[int, int]
     return key if key in keys else None
 
 
-def build_tiles(area: Area, osm: OsmData, dem: Dem) -> tuple[dict, float]:
+def build_tiles(area: Area, osm: OsmData, dem: Dem, lidar=None, roof_colours=None, stats=None, overrides=None) -> tuple[dict, float]:
     """Assigns each feature to the tile holding its centre. Geometry may cross a tile edge, which hides seams."""
+    stats = {} if stats is None else stats
     keys = set(area.tiles())
     tiles = {k: Tile(*k) for k in keys}
     west, south, east, north = area.bounds()
     datum = float(round(float(dem.height((west + east) / 2, (south + north) / 2))))
     ox, on = west, south   # meshes stay in small numbers while they are built
 
-    for f in osm.areas:
-        if "building" not in f.tags or f.tags["building"] in ("no", "construction", "proposed", "demolished"):
-            continue
-        ring = clean_ring(f.rings[0])
-        if len(ring) < 3:
-            continue
+    context = BuildingContext(osm, (ox, on), lidar, roof_colours, overrides)
+    for f, ring, holes, tags in context.drawable():
         ce, cn = ring.mean(axis=0)
         key = _inside(ce, cn, area, keys)
         if key is None:
             continue
-        ground = dem.height(ring[:, 0], ring[:, 1]) - datum
-        base, top = float(ground.min()) - 0.4, float(ground.max())
-        eave, rise = building_shape(f.tags, abs(signed_area(ring)))
-        local = ring - (ox, on)
-        roof = FLAT_ROOF if rise == 0 else pick(ROOFS, f.osm_id + "r")
-        extrude(tiles[key].meshes["buildings"], local, base, top + eave, pick(WALLS, f.osm_id), roof, rise)
-        tiles[key].footprints.append(ring)
+        plan = plan_building(ring, holes, tags, f.osm_id, lidar, dem.height, np.array([ox, on]), datum)
+        look = colours(tags, f.osm_id, context.kind(f, tags, ring), context.roof(f), context.shopfront(f, tags, ring), plan)
+        draw(tiles[key].meshes["buildings"], plan, look, context.party(f), context.street_side)
+        context.count(plan)
+    for f in context.footprints():
+        ce, cn = f.rings[0].mean(axis=0)
+        key = _inside(ce, cn, area, keys)
+        if key is not None:
+            tiles[key].footprints.extend(clean_ring(r) for r in f.rings)
+    stats.update(context.stats)
 
     for f in osm.lines:
         hw = f.tags.get("highway")
@@ -170,14 +139,48 @@ def build_tiles(area: Area, osm: OsmData, dem: Dem) -> tuple[dict, float]:
             order = corner if np.cross(b - a, d - a)[1] > 0 else corner[::-1]
             tiles[key].meshes[kind].quad(*order, rgb)
 
+    palette = [(84, 118, 62), (98, 132, 70), (74, 108, 58), (108, 136, 74), (88, 114, 70)]
+    mapped = []
     for f in osm.points:
         if f.tags.get("natural") != "tree":
             continue
         key = _inside(*f.point, area, keys)
         if key is None:
             continue
-        rgb = pick([(66, 98, 52), (80, 112, 58), (58, 90, 50)], f.osm_id)
-        tiles[key].trees.append((f.point[0], f.point[1], parse_length(f.tags.get("height")) or 9.0, rgb))
+        height = parse_length(f.tags.get("height")) or (mapped_height(lidar, *f.point) if lidar else None) or 9.0
+        tiles[key].trees.append((f.point[0], f.point[1], height, pick(palette, f.osm_id)))
+        mapped.append(f.point)
+    if lidar is not None:
+        near_mapped = Grid()
+        for e, n in mapped:
+            near_mapped.add((e - 4, n - 4, e + 4, n + 4), (e, n))
+        roads = Grid()   # a crown over a road stands at the kerb: its top is no place for a trunk
+        for f in osm.lines:
+            width = ROAD_WIDTHS.get(f.tags.get("highway"))
+            if width and f.tags.get("tunnel") not in ("yes", "culvert"):
+                width = parse_length(f.tags.get("width")) or width
+                for a, b in zip(f.line, f.line[1:]):
+                    roads.add((min(a[0], b[0]) - width, min(a[1], b[1]) - width, max(a[0], b[0]) + width, max(a[1], b[1]) + width),
+                              (a, b, width / 2 + 0.8))
+
+        def on_road(e, n) -> bool:
+            p = np.array([e, n])
+            for a, b, half in roads.near(e, n):
+                d = b - a
+                u = np.clip(np.dot(p - a, d) / max(np.dot(d, d), 1e-9), 0, 1)
+                if np.hypot(*(p - (a + d * u))) < half:
+                    return True
+            return False
+
+        found = 0
+        for e, n, height, crown in treetops(lidar, context.built):
+            if on_road(e, n) or any(np.hypot(e - me, n - mn) < 4 for me, mn in near_mapped.near(e, n)):
+                continue
+            key = _inside(e, n, area, keys)
+            if key is not None:
+                tiles[key].trees.append((e, n, height, pick(palette, f"{e:.0f},{n:.0f}"), crown))
+                found += 1
+        stats["trees from lidar"] = found
     return tiles, datum
 
 
@@ -239,9 +242,10 @@ def write_tile(path: Path, area: Area, tile: Tile, painted: list, dem: Dem, datu
         for ring in tile.footprints:
             f.write(struct.pack("<i", len(ring)))
             f.write(np.column_stack((ring[:, 0] - tw, tn - ring[:, 1])).astype(np.float32).tobytes())
-        for east, north, height, rgb in tile.trees:
+        for east, north, height, rgb, *crown in tile.trees:
             y = float(dem.height(east, north)) - datum
-            f.write(TREE.pack(east - tw, y, tn - north, height, height * 0.32, *[(c / 255) ** 2.2 for c in rgb]))
+            radius = crown[0] if crown else height * 0.32
+            f.write(TREE.pack(east - tw, y, tn - north, height, radius, *[(c / 255) ** 2.2 for c in rgb]))
 
 
 def write_manifest(path: Path, area: Area, datum: float, sizes: dict, streets: list = ()) -> None:
@@ -270,9 +274,10 @@ def tile_name(ix: int, iy: int) -> str:
     return f"{ix}_{iy}.tile"
 
 
-def build_all(area: Area, osm: OsmData, dem: Dem, out: Path, streets: list = ()) -> dict:
+def build_all(area: Area, osm: OsmData, dem: Dem, out: Path, streets: list = (), lidar=None, roof_colours=None, overrides=None) -> dict:
     out.mkdir(parents=True, exist_ok=True)
-    tiles, datum = build_tiles(area, osm, dem)
+    stats = {}
+    tiles, datum = build_tiles(area, osm, dem, lidar, roof_colours, stats, overrides)
     painted = painted_areas(osm)
     sizes = {}
     for key, tile in sorted(tiles.items()):
@@ -281,4 +286,4 @@ def build_all(area: Area, osm: OsmData, dem: Dem, out: Path, streets: list = ())
         sizes[key] = (path.stat().st_size, hashlib.sha256(path.read_bytes()).hexdigest()[:16])
     write_manifest(out / "manifest.txt", area, datum, sizes, streets)
     return {"tiles": len(tiles), "buildings": sum(len(t.footprints) for t in tiles.values()),
-            "trees": sum(len(t.trees) for t in tiles.values()), "bytes": sum(s for s, _ in sizes.values())}
+            "trees": sum(len(t.trees) for t in tiles.values()), "bytes": sum(s for s, _ in sizes.values()), **stats}

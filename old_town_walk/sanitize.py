@@ -11,7 +11,11 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 KEEP_TAGS = frozenset({"amenity", "area", "building", "building:levels", "height", "highway", "landuse", "leisure",
-                       "natural", "place", "tunnel", "type", "water", "width"})
+                       "natural", "place", "tunnel", "type", "water", "width",
+                       # how a building looks: its parts, roof and colours, none of which says who is inside
+                       "building:part", "building:min_level", "min_height", "building:colour", "building:material",
+                       "roof:shape", "roof:height", "roof:levels", "roof:colour", "roof:material", "roof:direction",
+                       "roof:orientation"})
 ROOT_ATTRIBUTES = {"version": "0.6", "generator": "old-town-walk sanitize", "copyright": "OpenStreetMap and contributors",
                    "attribution": "https://www.openstreetmap.org/copyright",
                    "license": "https://opendatacommons.org/licenses/odbl/1-0/"}

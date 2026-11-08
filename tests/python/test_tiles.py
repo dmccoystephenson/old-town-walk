@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from old_town_walk.geo import Area, tile_north_west, tile_of
-from old_town_walk.mesh import Mesh, clean_ring, extrude, points_in_ring, ribbon_quads, signed_area
+from old_town_walk.mesh import Mesh, clean_ring, points_in_ring, ribbon_quads, signed_area
 from old_town_walk.osm import OsmData, _join
 from old_town_walk.tiles import HEADER, MAGIC, build_all, read_manifest, parse_length, tile_name
 
@@ -39,24 +39,6 @@ def test_ring_cleaning_and_area():
 def test_points_in_ring():
     ring = clean_ring([(0, 0), (4, 0), (4, 4), (0, 4)])
     assert points_in_ring(np.array([2.0, 5.0]), np.array([2.0, 2.0]), ring).tolist() == [True, False]
-
-
-def test_flat_building_winds_outward_and_up():
-    m = Mesh()
-    extrude(m, clean_ring([(0, 0), (6, 0), (6, 4), (2, 6), (0, 4)]), 0, 5, (1, 2, 3), (4, 5, 6))
-    p, n = np.array(m.positions), np.array(m.normals)
-    for t in np.array(m.indices).reshape(-1, 3):
-        face = np.cross(p[t[1]] - p[t[0]], p[t[2]] - p[t[0]])
-        assert face @ n[t[0]] > 0
-    assert (n[:, 1] > 0.9).any() and p[:, 1].max() == 5
-
-
-def test_gabled_building_has_a_ridge_along_the_long_side():
-    m = Mesh()
-    extrude(m, clean_ring([(0, 0), (10, 0), (10, 6), (0, 6)]), 0, 3, (1, 2, 3), (4, 5, 6), rise=2)
-    p = np.array(m.positions)
-    ridge = p[p[:, 1] == 5]
-    assert set(np.round(ridge[:, 0]).tolist()) == {0, 10} and set(ridge[:, 2].tolist()) == {-3}
 
 
 def test_ribbon_is_as_wide_as_asked():

@@ -5,12 +5,22 @@
   "bytes": 4195937
  },
  "osm-sample.osm": {
-  "sha256": "0b16aeec330dd3ffd16402fc39231d3a07a56eb3f191c68f9b69539f5f981088",
-  "bytes": 5388830
+  "sha256": "ab19771370840d949ddcd9be094a041db762cc7f9b5f58739960fe0e5db7dd9c",
+  "bytes": 5412213
  },
  "street-names.csv": {
   "url": "https://overpass-api.de/api/interpreter",
   "sha256": "4c1581a9d07c330cc1db32a09ed903f15bafea13ddc3897e9275aef510fe16ee",
   "bytes": 8727
+ },
+ "lidar-ndsm.tif": {
+  "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/USGS_LPC_CO_SoPlatteRiver_Lot2a_2013_LAS_2015/ept.json",
+  "sha256": "fd895c42ba269c0219b157e2e24ca3b9f1692f4bd6e89f0ec664b225ceaac214",
+  "bytes": 6176838
+ },
+ "roof-colours.csv": {
+  "url": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage (sampled; the image is not kept)",
+  "sha256": "fc7e8ebc7cb9071d5e791bc90ce1650e3d88e9dda29ddca9a0f020bbc37cd521",
+  "bytes": 86291
  }
 }
