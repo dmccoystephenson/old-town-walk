@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <set>
 #include <vector>
 
@@ -48,5 +49,24 @@ inline StreamPlan planStreaming(const std::vector<TileKey>& available, const std
     }
     return plan;
 }
+
+// Copies the items of `all` near (x, z) into `out`, in order: every one within `full` metres, and one in three of
+// those out to `reach`, picked by where they stand so a tree's trunk and crown go together and nothing flickers.
+template <typename Item>  // anything with a position[3]: Strata's render items, or a test's
+void nearItems(const std::vector<Item>& all, float x, float z, float full, float reach, std::vector<Item>& out) {
+    out.clear();
+    const float f2 = full * full, r2 = reach * reach;
+    for (const Item& item : all) {
+        const float dx = item.position[0] - x, dz = item.position[2] - z, d2 = dx * dx + dz * dz;
+        if (d2 > r2) continue;
+        const uint32_t spot = static_cast<uint32_t>(std::lround(item.position[0] * 4.0f)) * 73856093u ^
+                              static_cast<uint32_t>(std::lround(item.position[2] * 4.0f)) * 19349663u;
+        if (d2 <= f2 || (spot ^ (spot >> 13)) % 3 == 0) out.push_back(item);
+    }
+}
+
+// How far trees are drawn: far enough on foot to fill a street, further from the air where more of the map shows.
+inline float treeReach(float aboveGround) { return std::clamp(300.0f + aboveGround * 2.0f, 300.0f, 800.0f); }
+constexpr float kTreesFull = 180.0f;   // every tree this close is drawn
 
 }  // namespace otw

@@ -126,7 +126,11 @@ void strata_kit_engine_ready(strata_kit::Host& h) {
 
 void strata_kit_build(strata_kit::Host& h, double) {
     if (!game || !game->stream) return;
-    const auto& trees = game->stream->trees();
+    const otw::Walker& viewer = game->walker;
+    const float above = viewer.eyeY - game->stream->groundAt(viewer.x, viewer.z);
+    // A low quality tier is a weak GPU or a slow device: trees cost the most there, so fewer of them are drawn.
+    const float share = h.quality == 0 ? 0.4f : h.quality == 1 ? 0.7f : 1.0f;
+    const auto& trees = game->stream->treesNear(viewer.x, viewer.z, otw::treeReach(above) * share);
     h.items.insert(h.items.end(), trees.begin(), trees.end());
     const auto& signs = game->signs.items();
     h.items.insert(h.items.end(), signs.begin(), signs.end());
