@@ -20,7 +20,7 @@
  },
  "roof-colours.csv": {
   "url": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage (sampled; the image is not kept)",
-  "sha256": "fc7e8ebc7cb9071d5e791bc90ce1650e3d88e9dda29ddca9a0f020bbc37cd521",
-  "bytes": 86291
+  "sha256": "333a5aa0f7aab27b7cc43444c484e639a092afdb5c757710b3abba654f290460",
+  "bytes": 82671
  }
 }

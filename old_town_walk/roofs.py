@@ -98,7 +98,7 @@ def sample_roofs(area: Area, osm, image_path: Path, raw: Path, lidar=None) -> Pa
     bounds = grid_bounds(area)
     path = raw / FILE
     with open(path, "w", newline="") as f:
-        out = csv.writer(f)
+        out = csv.writer(f, lineterminator="\n")   # the hash in SOURCES.json must match a checkout on any system
         out.writerow(["osm_id", "r", "g", "b"])
         for feature in sorted(osm.areas, key=lambda x: x.osm_id):
             if "building" not in feature.tags and "building:part" not in feature.tags:
