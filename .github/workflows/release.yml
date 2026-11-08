@@ -18,6 +18,7 @@ jobs:
       - name: Build the tiles and the viewer
         run: |
           uv run --python 3.12 old-town-walk verify
+          if ($LASTEXITCODE) { exit 1 }   # PowerShell fails a step only on its last command
           uv run --python 3.12 old-town-walk build
           cmake -S . -B build/app
           cmake --build build/app --config Release --parallel --target old-town-walk

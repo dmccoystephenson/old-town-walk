@@ -10,6 +10,8 @@ old-town-walk = "old_town_walk.cli:main"
 
 [dependency-groups]
 dev = ["pytest>=8", "pillow>=10"]
+# Only for `old-town-walk lidar`, which reads the survey's compressed point tiles; the build reads the committed grid.
+lidar = ["laspy[lazrs]>=2.5"]
 
 [build-system]
 requires = ["hatchling"]

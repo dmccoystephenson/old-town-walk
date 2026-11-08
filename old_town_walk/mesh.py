@@ -5,7 +5,6 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 
-import mapbox_earcut
 import numpy as np
 
 EPS = 1e-9
@@ -66,40 +65,6 @@ class Mesh:
     def quad(self, a, b, c, d, rgb) -> None:
         """a, b, c, d counter-clockwise from outside."""
         self.face([a, b, c, d], [(0, 1, 2), (0, 2, 3)], rgb)
-
-
-def _triangulate(ring: np.ndarray) -> list[tuple[int, int, int]]:
-    flat = mapbox_earcut.triangulate_float64(ring, np.array([len(ring)], dtype=np.uint32))
-    return [tuple(int(v) for v in flat[i:i + 3]) for i in range(0, len(flat), 3)]
-
-
-def extrude(mesh: Mesh, ring: np.ndarray, base: float, eave: float, wall, roof, rise: float = 0.0) -> None:
-    """Walls and a roof. A four-cornered footprint with rise > 0 gets a gable along its long side; others are flat."""
-    n = len(ring)
-    if n == 4 and rise > 0:
-        s0, s1 = np.linalg.norm(ring[1] - ring[0]), np.linalg.norm(ring[2] - ring[1])
-        r = ring if s0 >= s1 else np.roll(ring, -1, axis=0)   # r0-r1 and r2-r3 are the long eaves
-        m0, m1 = (r[3] + r[0]) / 2, (r[1] + r[2]) / 2          # the ridge runs between the gable ends
-        p = lambda xy, y: (xy[0], y, -xy[1])
-        mesh.quad(p(r[0], base), p(r[1], base), p(r[1], eave), p(r[0], eave), wall)
-        mesh.quad(p(r[2], base), p(r[3], base), p(r[3], eave), p(r[2], eave), wall)
-        mesh.face([p(r[1], base), p(r[2], base), p(r[2], eave), p(m1, eave + rise), p(r[1], eave)],
-                  [(0, 1, 2), (0, 2, 3), (0, 3, 4)], wall)
-        mesh.face([p(r[3], base), p(r[0], base), p(r[0], eave), p(m0, eave + rise), p(r[3], eave)],
-                  [(0, 1, 2), (0, 2, 3), (0, 3, 4)], wall)
-        mesh.quad(p(r[0], eave), p(r[1], eave), p(m1, eave + rise), p(m0, eave + rise), roof)
-        mesh.quad(p(r[2], eave), p(r[3], eave), p(m0, eave + rise), p(m1, eave + rise), roof)
-        return
-    for i in range(n):
-        a, b = ring[i], ring[(i + 1) % n]
-        mesh.quad((a[0], base, -a[1]), (b[0], base, -b[1]), (b[0], eave, -b[1]), (a[0], eave, -a[1]), wall)
-    pts = [(v[0], eave, -v[1]) for v in ring]
-    tris = _triangulate(ring)
-    if tris:
-        a, b, c = (np.array(pts[i]) for i in tris[0])
-        if np.cross(b - a, c - a)[1] < 0:
-            tris = [(t[0], t[2], t[1]) for t in tris]
-        mesh.face(pts, tris, roof)
 
 
 def ribbon_quads(line: np.ndarray, width: float, step: float = 2.0):

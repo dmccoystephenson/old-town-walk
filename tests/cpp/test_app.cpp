@@ -525,6 +525,21 @@ static void testNight() {
     CHECK(slots.slots()[1].lamp == 2 && slots.slots()[1].level == 1);  // and the one that stayed wanted never flickered
 }
 
+static void testTreesNear() {
+    struct Item { float position[3]; };
+    std::vector<Item> all, out;
+    for (int i = 0; i < 300; ++i) all.push_back({{static_cast<float>(i * 3), 0, 0}});   // a row of trees, 3 m apart
+    otw::nearItems(all, 0, 0, 180, 600, out);
+    int inner = 0, outer = 0;   // not near and far: Windows headers define those
+    for (const Item& item : out) (item.position[0] <= 180 ? inner : outer)++;
+    CHECK(inner == 61);                    // every tree out to 180 m
+    CHECK(outer > 30 && outer < 110);          // about one in three of the 140 between 180 and 600 m
+    for (const Item& item : out) CHECK(item.position[0] <= 600);
+    otw::nearItems(all, 0, 0, 180, 600, out);
+    CHECK(static_cast<int>(out.size()) == inner + outer);   // the same trees every frame
+    CHECK(otw::treeReach(0) == 300 && otw::treeReach(1000) == 800);
+}
+
 static void testFiles() {
     otw::Manifest m;
     std::string err;
@@ -604,6 +619,7 @@ int main(int argc, char** argv) {
     testPlaces();
     testNight();
     testBike();
+    testTreesNear();
     testShownSpeed();
     testTravelDirection();
     if (failures) std::fprintf(stderr, "%d failure(s)\n", failures);

@@ -99,6 +99,11 @@ public:
     }
     const Solids& solids() const { return solids_; }
     const std::vector<StrataRenderItem>& trees() const { return trees_; }
+    // The trees within `reach` metres of (x, z): all of them is tens of thousands, and far ones are a few pixels.
+    const std::vector<StrataRenderItem>& treesNear(float x, float z, float reach) {
+        nearItems(trees_, x, z, kTreesFull, reach, near_);
+        return near_;
+    }
     const std::vector<Lamp>& lamps() const { return lamps_; }
 
     // How far the lamps' pools and the windows have come on, 0 by day to 1. They are meshes kept with the tile and
@@ -315,7 +320,7 @@ private:
                 trees_.push_back({STRATA_PRIMITIVE_CYLINDER, {t.x + ox, t.y + trunk * 0.5f, t.z + oz},
                                   {kTrunkRadius, trunk * 0.5f, kTrunkRadius}, {0.105f, 0.065f, 0.034f, 1}});
                 trees_.push_back({STRATA_PRIMITIVE_SPHERE, {t.x + ox, t.y + t.height - crown * 0.5f, t.z + oz},
-                                  {t.crown, crown, t.crown}, {t.r, t.g, t.b, 1}});
+                                  {t.crown * 2, crown, t.crown * 2}, {t.r, t.g, t.b, 1}});   // a sphere is 1 across
             }
         }
     }
@@ -328,7 +333,7 @@ private:
     float linear_[256];
     std::map<TileKey, Loaded> tiles_;
     Solids solids_;
-    std::vector<StrataRenderItem> trees_;
+    std::vector<StrataRenderItem> trees_, near_;
     std::vector<Lamp> lamps_;
     uint32_t poolTexture_ = 0, windowTexture_ = 0;
     int nightStep_ = 0;

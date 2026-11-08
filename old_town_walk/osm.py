@@ -15,7 +15,8 @@ from .geo import lonlat_to_utm
 class Feature:
     osm_id: str
     tags: dict
-    rings: list = field(default_factory=list)   # (N,2) UTM east, north; first is the outer ring
+    rings: list = field(default_factory=list)   # (N,2) UTM east, north: the outer rings
+    holes: list = field(default_factory=list)   # inner rings of a multipolygon: courtyards and light wells
     line: np.ndarray | None = None
     point: tuple | None = None
 
@@ -81,11 +82,13 @@ def parse(paths: list[Path]) -> OsmData:
         if tags.get("type") != "multipolygon":
             continue
         outers = [ways[ref][0] for typ, ref, role in members if typ == "way" and role == "outer" and ref in ways]
+        inners = [ways[ref][0] for typ, ref, role in members if typ == "way" and role == "inner" and ref in ways]
         rings = [c for c in (coords(r) for r in _join(outers)) if c is not None]
+        holes = [c for c in (coords(r) for r in _join(inners)) if c is not None]
         if rings:
-            out.areas.append(Feature("r" + rid, tags, rings=rings))
+            out.areas.append(Feature("r" + rid, tags, rings=rings, holes=holes))
             outer_only |= {ref for typ, ref, role in members if typ == "way" and role == "outer" and ref in ways and not ways[ref][1]}
-    area_keys = ("building", "landuse", "leisure", "amenity", "natural", "water")
+    area_keys = ("building", "building:part", "landuse", "leisure", "amenity", "natural", "water")
     for wid, (refs, tags) in ways.items():
         if not tags or wid in outer_only:
             continue

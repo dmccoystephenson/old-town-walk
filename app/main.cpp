@@ -321,7 +321,7 @@ int main(int argc, char** argv) {
         strata_camera_look_at(eye, look, up, fov * zoom, static_cast<float>(w) / static_cast<float>(std::max(1, h)), 0.1f, 1600.0f, &c);
         StrataFrameDesc fd{};
         fd.clear_flags = STRATA_CLEAR_COLOR | STRATA_CLEAR_DEPTH | STRATA_CLEAR_SKY;
-        const auto& trees = stream.trees();
+        const auto& trees = stream.treesNear(walker.x, walker.z, otw::treeReach(walker.eyeY - stream.groundAt(walker.x, walker.z)));
         const auto& lamps = night.lights();
         const float noTint[3] = {1, 1, 1};
         float moonlight[3];
