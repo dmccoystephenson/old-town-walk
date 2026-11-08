@@ -6,10 +6,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from old_town_walk.geo import Area
-from old_town_walk.osm import parse
-from old_town_walk.streets import KERB_M, _distance_to_line, _inside, load_names, load_places, manifest_lines, place_lines, short_name
-from old_town_walk.tiles import read_manifest, write_manifest
+from streetkit.geo import Area
+from streetkit.osm import parse
+from streetkit.streets import KERB_M, _distance_to_line, _inside, load_names, load_places, manifest_lines, place_lines, short_name
+from streetkit.tiles import read_manifest, write_manifest
 
 ROOT = Path(__file__).resolve().parents[2]
 

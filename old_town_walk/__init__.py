@@ -1,1 +1,2 @@
-"""Open map and elevation data as streamed 3D tiles."""
+"""Old Town Walk builds its map with streetkit (https://github.com/Preponderous-Software/streetkit). `old-town-walk`
+is streetkit's command, run from this folder."""

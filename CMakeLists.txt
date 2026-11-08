@@ -41,8 +41,18 @@ FetchContent_Declare(strata
   GIT_TAG ${_strata_ref})
 FetchContent_MakeAvailable(strata)
 
-add_library(old_town_walk_tiles STATIC app/tile.cpp)
-target_include_directories(old_town_walk_tiles PUBLIC app)
+# streetkit, the map library this game is built on, pinned like Strata (see streetkit.ref).
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/streetkit.ref" _streetkit_ref)
+string(STRIP "${_streetkit_ref}" _streetkit_ref)
+set(STREETKIT_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(streetkit
+  GIT_REPOSITORY https://github.com/Preponderous-Software/streetkit.git
+  GIT_TAG ${_streetkit_ref})
+FetchContent_MakeAvailable(streetkit)
+
+add_library(old_town_walk_tiles INTERFACE)
+target_include_directories(old_town_walk_tiles INTERFACE app)
+target_link_libraries(old_town_walk_tiles INTERFACE streetkit::streetkit)
 
 if(EMSCRIPTEN)
   add_executable(old-town-walk-web app/web_main.cpp)
@@ -68,9 +78,6 @@ if(EMSCRIPTEN)
 else()
   add_executable(old-town-walk app/main.cpp)
   target_link_libraries(old-town-walk PRIVATE old_town_walk_tiles strata::static)
-endif()
-if(NOT MSVC)
-  target_compile_options(old_town_walk_tiles PRIVATE -Wall -Wextra)
 endif()
 if(NOT MSVC AND NOT EMSCRIPTEN)
   target_compile_options(old-town-walk PRIVATE -Wall -Wextra)

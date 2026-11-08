@@ -3,10 +3,10 @@ name = "old-town-walk"
 version = "0.5.0"
 description = "Open map and elevation data as streamed 3D tiles, rendered with Strata"
 requires-python = ">=3.12,<3.13"
-dependencies = ["numpy>=1.26", "pyproj>=3.6", "tifffile>=2024.1.30", "mapbox-earcut>=1.0"]
+dependencies = ["streetkit @ git+https://github.com/Preponderous-Software/streetkit@1d9ba69733a60b146260dca2b6e953ad7d667e18"]
 
 [project.scripts]
-old-town-walk = "old_town_walk.cli:main"
+old-town-walk = "streetkit.cli:main"
 
 [dependency-groups]
 dev = ["pytest>=8", "pillow>=10"]
@@ -16,6 +16,9 @@ lidar = ["laspy[lazrs]>=2.5"]
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true   # streetkit is pinned to a commit on GitHub, like Strata in strata.ref
 
 [tool.hatch.build.targets.wheel]
 packages = ["old_town_walk"]

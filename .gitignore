@@ -7,7 +7,7 @@ Testing/
 *.zip
 !docs/images/*.png
 *.zip
-/build-web/
+/build-web*/
 /web-site/
 /web/smoke/node_modules/
 /smoke-out/

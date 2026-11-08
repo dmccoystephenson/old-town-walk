@@ -1,6 +1,7 @@
 // Old Town Walk in a browser: the same tiles, walker and stream as the desktop viewer, on Strata's
 // web kit. The page (web/page.js) owns the input and the downloads and calls in here once a frame.
 #define STRATA_KIT_MAIN
+#include "otw.h"
 #include "strata_kit.h"
 
 #include <algorithm>
